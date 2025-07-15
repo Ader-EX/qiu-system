@@ -1,14 +1,43 @@
-"use client"
+"use client";
 
-import { BarChart3, TrendingUp, TrendingDown, Package, Users, ShoppingCart, Receipt } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Package,
+  Users,
+  ShoppingCart,
+  Receipt,
+  PlusIcon,
+  DownloadIcon,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Selamat datang di QIU System - Overview bisnis Anda</p>
+      <div className="flex w-full justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Selamat datang di QIU System - Overview bisnis Anda
+          </p>
+        </div>
+        <div className="flex space-x-4">
+          <Button variant="outline">
+            <DownloadIcon /> Export
+          </Button>
+          <Button>
+            <PlusIcon /> Add New
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -32,7 +61,9 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customer</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Customer
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -49,7 +80,9 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pembelian Bulan Ini</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pembelian Bulan Ini
+            </CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -66,7 +99,9 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Penjualan Bulan Ini</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Penjualan Bulan Ini
+            </CardTitle>
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -90,7 +125,9 @@ export default function DashboardPage() {
               <BarChart3 className="h-5 w-5" />
               Grafik Penjualan & Pembelian
             </CardTitle>
-            <CardDescription>Perbandingan penjualan dan pembelian 6 bulan terakhir</CardDescription>
+            <CardDescription>
+              Perbandingan penjualan dan pembelian 6 bulan terakhir
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] flex items-center justify-center text-muted-foreground">
@@ -102,7 +139,9 @@ export default function DashboardPage() {
         <Card className="col-span-3">
           <CardHeader>
             <CardTitle>Aktivitas Terbaru</CardTitle>
-            <CardDescription>Transaksi dan aktivitas sistem terbaru</CardDescription>
+            <CardDescription>
+              Transaksi dan aktivitas sistem terbaru
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -110,35 +149,47 @@ export default function DashboardPage() {
                 <div className="h-2 w-2 rounded-full bg-green-500"></div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Penjualan baru #SO-001</p>
-                  <p className="text-xs text-muted-foreground">2 menit yang lalu</p>
+                  <p className="text-xs text-muted-foreground">
+                    2 menit yang lalu
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="h-2 w-2 rounded-full bg-blue-500"></div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Produk baru ditambahkan</p>
-                  <p className="text-xs text-muted-foreground">15 menit yang lalu</p>
+                  <p className="text-xs text-muted-foreground">
+                    15 menit yang lalu
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="h-2 w-2 rounded-full bg-orange-500"></div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">Pembelian #PO-002 diproses</p>
-                  <p className="text-xs text-muted-foreground">1 jam yang lalu</p>
+                  <p className="text-sm font-medium">
+                    Pembelian #PO-002 diproses
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    1 jam yang lalu
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="h-2 w-2 rounded-full bg-purple-500"></div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Customer baru terdaftar</p>
-                  <p className="text-xs text-muted-foreground">3 jam yang lalu</p>
+                  <p className="text-xs text-muted-foreground">
+                    3 jam yang lalu
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="h-2 w-2 rounded-full bg-red-500"></div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Stok produk menipis</p>
-                  <p className="text-xs text-muted-foreground">5 jam yang lalu</p>
+                  <p className="text-xs text-muted-foreground">
+                    5 jam yang lalu
+                  </p>
                 </div>
               </div>
             </div>
@@ -150,7 +201,9 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Aksi Cepat</CardTitle>
-          <CardDescription>Akses cepat ke fitur yang sering digunakan</CardDescription>
+          <CardDescription>
+            Akses cepat ke fitur yang sering digunakan
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -174,5 +227,5 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

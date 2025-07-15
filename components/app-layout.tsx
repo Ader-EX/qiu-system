@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { AppSidebar } from "@/components/app-sidebar"
-import { TopBar } from "@/components/top-bar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar";
+import { TopBar } from "@/components/top-bar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 interface AppLayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
   breadcrumbs?: Array<{
-    label: string
-    href?: string
-  }>
+    label: string;
+    href?: string;
+  }>;
 }
 
 export function AppLayout({ children, breadcrumbs }: AppLayoutProps) {
@@ -23,5 +23,5 @@ export function AppLayout({ children, breadcrumbs }: AppLayoutProps) {
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

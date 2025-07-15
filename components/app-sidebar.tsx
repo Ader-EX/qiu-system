@@ -1,14 +1,29 @@
-"use client"
+"use client";
 
-import type * as React from "react"
-import { LayoutDashboard, Package, Factory, Users, ShoppingCart, Receipt, FileText, Settings } from "lucide-react"
+import type * as React from "react";
+import {
+  LayoutDashboard,
+  Package,
+  Factory,
+  Users,
+  ShoppingCart,
+  Receipt,
+  FileText,
+  Settings,
+} from "lucide-react";
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
-import { SidebarHeader } from "@/components/sidebar-header"
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader as SidebarHeaderWrapper } from "@/components/ui/sidebar"
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
+import { SidebarHeader } from "@/components/sidebar-header";
+import {
+  Sidebar,
+  useSidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader as SidebarHeaderWrapper,
+} from "@/components/ui/sidebar";
+import ConditionalSidebarHeader from "./ConditionalSidebarHeader";
 
-// Navigation data
 const data = {
   user: {
     name: "Admin QIU",
@@ -58,13 +73,13 @@ const data = {
       icon: Settings,
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeaderWrapper>
-        <SidebarHeader />
+        <ConditionalSidebarHeader />
       </SidebarHeaderWrapper>
       <SidebarContent>
         <NavMain items={data.navMain} />
@@ -73,5 +88,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
