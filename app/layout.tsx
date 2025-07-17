@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppLayout } from "@/components/app-layout";
+import logo from "@/public/logo.png";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,6 +20,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
+      <head>
+        <link rel="icon" href="/logo.png" sizes="any" />
+      </head>
       <body className={inter.className}>
         {/* <AppLayout>{children}</AppLayout> */}
         {children}
