@@ -58,11 +58,11 @@ const data = {
       url: "/pembayaran",
       icon: CircleDollarSign,
     },
-    // {
-    //   title: "Vendor",
-    //   url: "/vendor",
-    //   icon: Factory,
-    // },
+    {
+      title: "Vendor",
+      url: "/vendor",
+      icon: Factory,
+    },
     {
       title: "Customer",
       url: "/customer",
