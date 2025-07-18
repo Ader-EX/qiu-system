@@ -1,28 +1,34 @@
-"use client"
+"use client";
 
-import type { LucideIcon } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-import { SidebarGroup, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import {
+  SidebarGroup,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 
 export function NavMain({
   items,
 }: {
   items: {
-    title: string
-    url: string
-    icon: LucideIcon
-    isActive?: boolean
-  }[]
+    title: string;
+    url: string;
+    icon: LucideIcon;
+    isActive?: boolean;
+  }[];
 }) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <SidebarGroup>
       <SidebarMenu>
         {items.map((item) => {
-          const isActive = pathname === item.url
+          const isActive =
+            pathname === item.url || pathname.startsWith(item.url);
           return (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
@@ -30,18 +36,20 @@ export function NavMain({
                 isActive={isActive}
                 tooltip={item.title}
                 className={
-                  isActive ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" : ""
+                  isActive
+                    ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+                    : ""
                 }
               >
-                <Link href={item.url} className="flex items-center gap-3">
+                <Link href={item.url} className="flex items-center gap-3 ">
                   <item.icon className="h-5 w-5" />
                   <span>{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          )
+          );
         })}
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }

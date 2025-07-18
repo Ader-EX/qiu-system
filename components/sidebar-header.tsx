@@ -2,6 +2,9 @@
 
 import { Building2 } from "lucide-react";
 
+import logo from "@/public/logo.png";
+import Image from "next/image";
+
 export function SidebarHeader({ open = true }: { open: boolean }) {
   return (
     <div
@@ -10,8 +13,9 @@ export function SidebarHeader({ open = true }: { open: boolean }) {
         ${open ? "px-2 py-3" : ""}
       `}
     >
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg  text-sidebar-accent">
-        <Building2 className="h-5 w-5" />
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg  text-sidebar-accent">
+        {/* <logo className="h-5 w-5" /> */}
+        <Image src={logo} width={44} height={44} alt="logo" />
       </div>
 
       {open && (

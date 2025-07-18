@@ -10,6 +10,7 @@ import {
   Receipt,
   FileText,
   Settings,
+  CircleDollarSign,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -38,19 +39,9 @@ const data = {
       isActive: true,
     },
     {
-      title: "Produk",
-      url: "/produk",
+      title: "Item",
+      url: "/item",
       icon: Package,
-    },
-    {
-      title: "Vendor",
-      url: "/vendor",
-      icon: Factory,
-    },
-    {
-      title: "Customer",
-      url: "/customer",
-      icon: Users,
     },
     {
       title: "Pembelian",
@@ -61,6 +52,21 @@ const data = {
       title: "Penjualan",
       url: "/penjualan",
       icon: Receipt,
+    },
+    {
+      title: "Pembayaran",
+      url: "/pembayaran",
+      icon: CircleDollarSign,
+    },
+    // {
+    //   title: "Vendor",
+    //   url: "/vendor",
+    //   icon: Factory,
+    // },
+    {
+      title: "Customer",
+      url: "/customer",
+      icon: Users,
     },
     {
       title: "Laporan",
@@ -77,11 +83,11 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" className="p-1" {...props}>
       <SidebarHeaderWrapper>
         <ConditionalSidebarHeader />
       </SidebarHeaderWrapper>
-      <SidebarContent>
+      <SidebarContent className="">
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>

@@ -1,13 +1,26 @@
-"use client"
+"use client";
 
-import { Settings, Package, DollarSign, CreditCard, Warehouse, Ruler } from "lucide-react"
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Settings,
+  Package,
+  DollarSign,
+  CreditCard,
+  Warehouse,
+  Ruler,
+} from "lucide-react";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const settingsItems = [
   {
     title: "Kategori 1",
-    description: "Kelola kategori produk tingkat pertama",
+    description: "Kelola kategori utama untuk klasifikasi produk.",
     icon: Package,
     href: "/pengaturan/kategori-1",
     color: "text-blue-600",
@@ -15,7 +28,7 @@ const settingsItems = [
   },
   {
     title: "Kategori 2",
-    description: "Kelola kategori produk tingkat kedua",
+    description: "Atur subkategori untuk detail pengelompokan produk.",
     icon: Package,
     href: "/pengaturan/kategori-2",
     color: "text-green-600",
@@ -38,7 +51,7 @@ const settingsItems = [
     bgColor: "bg-yellow-50",
   },
   {
-    title: "Jenis Pembayaran",
+    title: "Term Of Payment",
     description: "Kelola metode pembayaran",
     icon: CreditCard,
     href: "/pengaturan/jenis-pembayaran",
@@ -47,13 +60,13 @@ const settingsItems = [
   },
   {
     title: "Warehouse",
-    description: "Kelola gudang dan lokasi penyimpanan",
+    description: "Kelola data gudang dan lokasi penyimpanan produk.",
     icon: Warehouse,
     href: "/pengaturan/warehouse",
     color: "text-indigo-600",
     bgColor: "bg-indigo-50",
   },
-]
+];
 
 export default function PengaturanPage() {
   return (
@@ -64,19 +77,23 @@ export default function PengaturanPage() {
         </div>
         <div>
           <h1 className="text-3xl font-bold">Pengaturan</h1>
-          <p className="text-muted-foreground">Kelola pengaturan master data sistem inventory</p>
+          <p className="text-muted-foreground">
+            Kelola pengaturan master data sistem inventory
+          </p>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {settingsItems.map((item) => {
-          const IconComponent = item.icon
+          const IconComponent = item.icon;
           return (
             <Link key={item.href} href={item.href}>
-              <Card className="transition-all hover:shadow-md hover:scale-[1.02]">
+              <Card className="transition-all hover:shadow-md hover:scale-[1.02] min-h-[150px]">
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${item.bgColor}`}>
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-lg ${item.bgColor}`}
+                    >
                       <IconComponent className={`h-5 w-5 ${item.color}`} />
                     </div>
                     <div>
@@ -85,18 +102,22 @@ export default function PengaturanPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-sm">{item.description}</CardDescription>
+                  <CardDescription className="text-sm">
+                    {item.description}
+                  </CardDescription>
                 </CardContent>
               </Card>
             </Link>
-          )
+          );
         })}
       </div>
 
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Master Data Overview</CardTitle>
-          <CardDescription>Ringkasan data master yang telah dikonfigurasi</CardDescription>
+          <CardDescription>
+            Ringkasan data master yang telah dikonfigurasi
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -144,7 +165,7 @@ export default function PengaturanPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
-  )
+  );
 }

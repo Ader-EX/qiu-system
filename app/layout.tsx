@@ -7,6 +7,7 @@ import logo from "@/public/logo.png";
 
 const inter = Inter({ subsets: ["latin"] });
 
+import { Toaster } from "react-hot-toast";
 export const metadata: Metadata = {
   title: "QIU System - Inventory Management",
   description: "Sistem manajemen inventory yang powerful dan mudah digunakan",
@@ -25,6 +26,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         {/* <AppLayout>{children}</AppLayout> */}
+        <Toaster />
         {children}
       </body>
     </html>

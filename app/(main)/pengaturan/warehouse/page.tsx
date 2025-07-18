@@ -1,260 +1,240 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState } from "react"
-import { Plus, Search, MoreHorizontal, Edit, Trash2, MapPin, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import React, { useState, useMemo } from "react";
+import {
+  Plus,
+  Search,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  MapPin,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { AlertSuccess } from "@/components/alert-success"
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import toast from "react-hot-toast";
+import CustomBreadcrumb from "@/components/custom-breadcrumb";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Warehouse {
-  id: string
-  name: string
-  code: string
-  address: string
-  manager: string
-  capacity: number
-  isActive: boolean
-  createdAt: string
+  id: string;
+  name: string;
+  address: string;
+  isActive: boolean;
 }
 
 const initialWarehouses: Warehouse[] = [
   {
     id: "1",
-    name: "Warehouse Jakarta Pusat",
-    code: "WH-JKT-01",
-    address: "Jl. Sudirman No. 123, Jakarta Pusat",
-    manager: "John Doe",
-    capacity: 10000,
+    name: "Jakarta Pusat",
+    address: "Jl. Sudirman No. 123",
     isActive: true,
-    createdAt: "2024-01-15",
   },
-  {
-    id: "2",
-    name: "Warehouse Surabaya",
-    code: "WH-SBY-01",
-    address: "Jl. Pemuda No. 456, Surabaya",
-    manager: "Jane Smith",
-    capacity: 8000,
-    isActive: true,
-    createdAt: "2024-01-16",
-  },
+  { id: "2", name: "Surabaya", address: "Jl. Pemuda No. 456", isActive: true },
   {
     id: "3",
-    name: "Warehouse Bandung",
-    code: "WH-BDG-01",
-    address: "Jl. Asia Afrika No. 789, Bandung",
-    manager: "Bob Johnson",
-    capacity: 6000,
+    name: "Bandung",
+    address: "Jl. Asia Afrika No. 789",
     isActive: false,
-    createdAt: "2024-01-17",
   },
-]
+  // ...additional items for pagination example
+  { id: "4", name: "Medan", address: "Jl. Merdeka No. 10", isActive: true },
+  { id: "5", name: "Semarang", address: "Jl. Pemuda No. 22", isActive: true },
+  {
+    id: "6",
+    name: "Makassar",
+    address: "Jl. Sam Ratulangi No. 5",
+    isActive: false,
+  },
+  {
+    id: "7",
+    name: "Denpasar",
+    address: "Jl. Gatot Subroto No. 50",
+    isActive: true,
+  },
+];
 
 export default function WarehousePage() {
-  const [warehouses, setWarehouses] = useState<Warehouse[]>(initialWarehouses)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null)
-  const [formData, setFormData] = useState({
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(initialWarehouses);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Warehouse | null>(null);
+  const [formData, setFormData] = useState<{
+    name: string;
+    address: string;
+    isActive: boolean;
+  }>({
     name: "",
-    code: "",
     address: "",
-    manager: "",
-    capacity: 0,
     isActive: true,
-  })
-  const [showAlert, setShowAlert] = useState(false)
-  const [alertMessage, setAlertMessage] = useState("")
+  });
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
 
-  const filteredWarehouses = warehouses.filter(
-    (warehouse) =>
-      warehouse.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      warehouse.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      warehouse.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      warehouse.manager.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  // Filtered list
+  const filtered = useMemo(
+    () =>
+      warehouses.filter(
+        (w) =>
+          w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          w.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (w.isActive ? "aktif" : "tidak aktif").includes(
+            searchTerm.toLowerCase()
+          )
+      ),
+    [warehouses, searchTerm]
+  );
+
+  const pageCount = Math.ceil(filtered.length / pageSize);
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (editingWarehouse) {
+    e.preventDefault();
+    if (editing) {
       setWarehouses(
-        warehouses.map((warehouse) =>
-          warehouse.id === editingWarehouse.id
-            ? {
-                ...warehouse,
-                name: formData.name,
-                code: formData.code,
-                address: formData.address,
-                manager: formData.manager,
-                capacity: formData.capacity,
-                isActive: formData.isActive,
-              }
-            : warehouse,
-        ),
-      )
-      setAlertMessage("Warehouse berhasil diperbarui!")
+        warehouses.map((w) => (w.id === editing.id ? { ...w, ...formData } : w))
+      );
+      toast.success("Warehouse berhasil diperbarui!");
     } else {
-      const newWarehouse: Warehouse = {
+      const newWh: Warehouse = {
         id: Date.now().toString(),
-        name: formData.name,
-        code: formData.code,
-        address: formData.address,
-        manager: formData.manager,
-        capacity: formData.capacity,
-        isActive: formData.isActive,
-        createdAt: new Date().toISOString().split("T")[0],
-      }
-      setWarehouses([...warehouses, newWarehouse])
-      setAlertMessage("Warehouse berhasil ditambahkan!")
+        ...formData,
+      };
+      setWarehouses([...warehouses, newWh]);
+      toast.success("Warehouse berhasil ditambahkan!");
     }
+    setIsDialogOpen(false);
+    setEditing(null);
+    setFormData({ name: "", address: "", isActive: true });
+  };
 
-    setIsDialogOpen(false)
-    setEditingWarehouse(null)
-    setFormData({ name: "", code: "", address: "", manager: "", capacity: 0, isActive: true })
-    setShowAlert(true)
-  }
-
-  const handleEdit = (warehouse: Warehouse) => {
-    setEditingWarehouse(warehouse)
-    setFormData({
-      name: warehouse.name,
-      code: warehouse.code,
-      address: warehouse.address,
-      manager: warehouse.manager,
-      capacity: warehouse.capacity,
-      isActive: warehouse.isActive,
-    })
-    setIsDialogOpen(true)
-  }
+  const openEdit = (w: Warehouse) => {
+    setEditing(w);
+    setFormData({ name: w.name, address: w.address, isActive: w.isActive });
+    setIsDialogOpen(true);
+  };
 
   const handleDelete = (id: string) => {
-    setWarehouses(warehouses.filter((warehouse) => warehouse.id !== id))
-    setAlertMessage("Warehouse berhasil dihapus!")
-    setShowAlert(true)
-  }
-
-  const openAddDialog = () => {
-    setEditingWarehouse(null)
-    setFormData({ name: "", code: "", address: "", manager: "", capacity: 0, isActive: true })
-    setIsDialogOpen(true)
-  }
+    setWarehouses(warehouses.filter((w) => w.id !== id));
+    toast.success("Warehouse berhasil dihapus!");
+  };
 
   return (
     <div className="space-y-6">
-      {showAlert && <AlertSuccess message={alertMessage} onClose={() => setShowAlert(false)} />}
-
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Warehouse</h1>
+        <CustomBreadcrumb
+          listData={["Pengaturan", "Master Data", "Warehouse"]}
+          linkData={["pengaturan", "warehouse", "warehouse"]}
+        />
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openAddDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Warehouse
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setFormData({ name: "", address: "", isActive: true });
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Tambah Warehouse
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent>
             <form onSubmit={handleSubmit}>
               <DialogHeader>
-                <DialogTitle>{editingWarehouse ? "Edit Warehouse" : "Tambah Warehouse Baru"}</DialogTitle>
-                <DialogDescription>
-                  {editingWarehouse
-                    ? "Perbarui informasi warehouse di bawah ini."
-                    : "Masukkan informasi warehouse baru di bawah ini."}
-                </DialogDescription>
+                <DialogTitle>
+                  {editing ? "Edit Warehouse" : "Tambah Warehouse Baru"}
+                </DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="flex items-center gap-4">
                   <Label htmlFor="name" className="text-right">
                     Nama
                   </Label>
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     className="col-span-3"
                     required
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="code" className="text-right">
-                    Kode
-                  </Label>
-                  <Input
-                    id="code"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="flex items-center  gap-4">
                   <Label htmlFor="address" className="text-right">
                     Alamat
                   </Label>
                   <Textarea
                     id="address"
                     value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, address: e.target.value })
+                    }
                     className="col-span-3"
                     required
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="manager" className="text-right">
-                    Manager
+                <div className="flex items-center gap-4">
+                  <Label htmlFor="status" className="text-right">
+                    Status
                   </Label>
-                  <Input
-                    id="manager"
-                    value={formData.manager}
-                    onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="capacity" className="text-right">
-                    Kapasitas
-                  </Label>
-                  <Input
-                    id="capacity"
-                    type="number"
-                    value={formData.capacity}
-                    onChange={(e) => setFormData({ ...formData, capacity: Number.parseInt(e.target.value) })}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="isActive" className="text-right">
-                    Aktif
-                  </Label>
-                  <Switch
-                    id="isActive"
-                    checked={formData.isActive}
-                    onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                  />
+                  <Select
+                    value={formData.isActive.toString()}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, isActive: value === "true" })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih status">
+                        {formData.isActive ? "Aktif" : "Non Aktif"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Aktif ✅</SelectItem>
+                      <SelectItem value="false">Non Aktif ❌</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">{editingWarehouse ? "Perbarui" : "Simpan"}</Button>
+                <Button type="submit">{editing ? "Perbarui" : "Simpan"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -263,9 +243,7 @@ export default function WarehousePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Daftar Warehouse</CardTitle>
-          <CardDescription>Kelola warehouse untuk sistem inventory Anda.</CardDescription>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 pt-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Cari warehouse..."
@@ -279,47 +257,28 @@ export default function WarehousePage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead>Kode</TableHead>
-                <TableHead>Alamat</TableHead>
-                <TableHead>Manager</TableHead>
-                <TableHead>Kapasitas</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="">ID</TableHead>
+                <TableHead className="">Nama</TableHead>
+                <TableHead className="">Alamat</TableHead>
+                <TableHead className=" text-right">Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredWarehouses.map((warehouse) => (
-                <TableRow key={warehouse.id}>
-                  <TableCell className="font-medium">{warehouse.name}</TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                      {warehouse.code}
-                    </span>
+              {paginated.map((w) => (
+                <TableRow key={w.id}>
+                  <TableCell className="">{w.id}</TableCell>
+                  <TableCell className=" font-medium break-words">
+                    {w.name}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3 text-muted-foreground" />
-                      <span className="max-w-[200px] truncate">{warehouse.address}</span>
-                    </div>
+                  <TableCell className=" max-w-[200px] break-words flex items-center gap-1">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />{" "}
+                    {w.address}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <User className="h-3 w-3 text-muted-foreground" />
-                      <span>{warehouse.manager}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{warehouse.capacity.toLocaleString()}</TableCell>
-                  <TableCell>
-                    {warehouse.isActive ? (
-                      <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                        Aktif
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
-                        Tidak Aktif
-                      </span>
-                    )}
+                  <TableCell className=" text-right">
+                    <Badge variant={w.isActive ? "okay" : "destructive"}>
+                      {w.isActive ? "Aktif" : "Tidak Aktif"}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -329,13 +288,14 @@ export default function WarehousePage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(warehouse)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
+                        <DropdownMenuItem onClick={() => openEdit(w)}>
+                          <Edit className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(warehouse.id)} className="text-red-600">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Hapus
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(w.id)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Hapus
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -344,8 +304,30 @@ export default function WarehousePage() {
               ))}
             </TableBody>
           </Table>
+
+          {/* Pagination Controls */}
+          <div className="flex justify-end space-x-2 py-2">
+            <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
+              Prev
+            </Button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
+              <Button
+                key={p}
+                variant={p === page ? undefined : "ghost"}
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </Button>
+            ))}
+            <Button
+              disabled={page === pageCount}
+              onClick={() => setPage(page + 1)}
+            >
+              Next
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
