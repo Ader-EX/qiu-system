@@ -50,6 +50,10 @@ import {
 } from "@/components/ui/select";
 import { getStockStatus } from "@/lib/utils";
 import { ProductGridView } from "@/components/Product/ProductGridView";
+import carouselone from "@/public/carouselone.jpg";
+import carouseltwo from "@/public/carouseltwo.jpg";
+import carouselthree from "@/public/carouselthree.jpg";
+import { StaticImageData } from "next/image";
 
 export interface Product {
   id: string;
@@ -61,6 +65,7 @@ export interface Product {
   unit: string;
   status: "active" | "inactive";
   createdAt: string;
+  photos: StaticImageData[];
 }
 
 const initialProducts: Product[] = [
@@ -74,6 +79,7 @@ const initialProducts: Product[] = [
     unit: "pcs",
     status: "active",
     createdAt: "2024-01-15",
+    photos: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "2",
@@ -85,6 +91,7 @@ const initialProducts: Product[] = [
     unit: "pcs",
     status: "active",
     createdAt: "2024-01-16",
+    photos: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "3",
@@ -96,6 +103,7 @@ const initialProducts: Product[] = [
     unit: "pcs",
     status: "active",
     createdAt: "2024-01-17",
+    photos: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "4",
@@ -107,6 +115,7 @@ const initialProducts: Product[] = [
     unit: "pcs",
     status: "inactive",
     createdAt: "2024-01-18",
+    photos: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "5",
@@ -118,6 +127,7 @@ const initialProducts: Product[] = [
     unit: "pcs",
     status: "active",
     createdAt: "2024-01-19",
+    photos: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "6",
@@ -129,6 +139,7 @@ const initialProducts: Product[] = [
     unit: "pcs",
     status: "active",
     createdAt: "2024-01-20",
+    photos: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "7",
@@ -140,6 +151,7 @@ const initialProducts: Product[] = [
     unit: "pcs",
     status: "active",
     createdAt: "2024-01-21",
+    photos: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "8",
@@ -151,6 +163,7 @@ const initialProducts: Product[] = [
     unit: "pcs",
     status: "active",
     createdAt: "2024-01-22",
+    photos: [carouselone, carouseltwo, carouselthree],
   },
 ];
 
