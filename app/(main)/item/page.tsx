@@ -53,120 +53,119 @@ import { ProductGridView } from "@/components/Product/ProductGridView";
 import carouselone from "@/public/carouselone.jpg";
 import carouseltwo from "@/public/carouseltwo.jpg";
 import carouselthree from "@/public/carouselthree.jpg";
-import { StaticImageData } from "next/image";
+import Image, { StaticImageData } from "next/image";
 
 export interface Product {
   id: string;
-  name: string;
-  sku: string;
-  category: string;
-  price: number;
-  stock: number;
-  unit: string;
+  nama: string;
+  SKU: string;
+  type: string;
   status: "active" | "inactive";
-  createdAt: string;
-  photos: StaticImageData[];
+  jumlah: number;
+  harga: number;
+  satuan: string;
+  vendor: string;
+  gambar: StaticImageData[];
 }
 
 const initialProducts: Product[] = [
   {
     id: "1",
-    name: "Laptop Dell Inspiron 15",
-    sku: "DELL-INS-15-001",
-    category: "Elektronik",
-    price: 8500000,
-    stock: 25,
-    unit: "pcs",
+    nama: "Laptop Dell Inspiron 15",
+    SKU: "DELL-INS-15-001",
+    type: "Elektronik",
     status: "active",
-    createdAt: "2024-01-15",
-    photos: [carouselone, carouseltwo, carouselthree],
+    jumlah: 25,
+    harga: 8500000,
+    satuan: "pcs",
+    vendor: "Dell",
+    gambar: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "2",
-    name: "Mouse Wireless Logitech",
-    sku: "LOG-MOU-WL-002",
-    category: "Aksesoris",
-    price: 150000,
-    stock: 100,
-    unit: "pcs",
+    nama: "Mouse Wireless Logitech",
+    SKU: "LOG-MOU-WL-002",
+    type: "Aksesoris",
     status: "active",
-    createdAt: "2024-01-16",
-    photos: [carouselone, carouseltwo, carouselthree],
+    jumlah: 100,
+    harga: 150000,
+    satuan: "pcs",
+    vendor: "Logitech",
+    gambar: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "3",
-    name: "Keyboard Mechanical RGB",
-    sku: "KEY-MEC-RGB-003",
-    category: "Aksesoris",
-    price: 750000,
-    stock: 5,
-    unit: "pcs",
+    nama: "Keyboard Mechanical RGB",
+    SKU: "KEY-MEC-RGB-003",
+    type: "Aksesoris",
     status: "active",
-    createdAt: "2024-01-17",
-    photos: [carouselone, carouseltwo, carouselthree],
+    jumlah: 5,
+    harga: 750000,
+    satuan: "pcs",
+    vendor: "Generic",
+    gambar: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "4",
-    name: "Monitor 24 inch 4K",
-    sku: "MON-24-4K-004",
-    category: "Elektronik",
-    price: 3200000,
-    stock: 0,
-    unit: "pcs",
+    nama: "Monitor 24 inch 4K",
+    SKU: "MON-24-4K-004",
+    type: "Elektronik",
     status: "inactive",
-    createdAt: "2024-01-18",
-    photos: [carouselone, carouseltwo, carouselthree],
+    jumlah: 0,
+    harga: 3200000,
+    satuan: "pcs",
+    vendor: "Generic",
+    gambar: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "5",
-    name: "Headset Gaming RGB",
-    sku: "HEAD-GAM-RGB-005",
-    category: "Aksesoris",
-    price: 450000,
-    stock: 15,
-    unit: "pcs",
+    nama: "Headset Gaming RGB",
+    SKU: "HEAD-GAM-RGB-005",
+    type: "Aksesoris",
     status: "active",
-    createdAt: "2024-01-19",
-    photos: [carouselone, carouseltwo, carouselthree],
+    jumlah: 15,
+    harga: 450000,
+    satuan: "pcs",
+    vendor: "Generic",
+    gambar: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "6",
-    name: "SSD Samsung 1TB",
-    sku: "SAM-SSD-1TB-006",
-    category: "Storage",
-    price: 1200000,
-    stock: 8,
-    unit: "pcs",
+    nama: "SSD Samsung 1TB",
+    SKU: "SAM-SSD-1TB-006",
+    type: "Storage",
     status: "active",
-    createdAt: "2024-01-20",
-    photos: [carouselone, carouseltwo, carouselthree],
+    jumlah: 8,
+    harga: 1200000,
+    satuan: "pcs",
+    vendor: "Samsung",
+    gambar: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "7",
-    name: "RAM DDR4 16GB",
-    sku: "RAM-DDR4-16GB-007",
-    category: "Hardware",
-    price: 850000,
-    stock: 12,
-    unit: "pcs",
+    nama: "RAM DDR4 16GB",
+    SKU: "RAM-DDR4-16GB-007",
+    type: "Hardware",
     status: "active",
-    createdAt: "2024-01-21",
-    photos: [carouselone, carouseltwo, carouselthree],
+    jumlah: 12,
+    harga: 850000,
+    satuan: "pcs",
+    vendor: "Generic",
+    gambar: [carouselone, carouseltwo, carouselthree],
   },
   {
     id: "8",
-    name: "Webcam HD 1080p",
-    sku: "WEB-HD-1080-008",
-    category: "Aksesoris",
-    price: 250000,
-    stock: 3,
-    unit: "pcs",
+    nama: "Webcam HD 1080p",
+    SKU: "WEB-HD-1080-008",
+    type: "Aksesoris",
     status: "active",
-    createdAt: "2024-01-22",
-    photos: [carouselone, carouseltwo, carouselthree],
+    jumlah: 3,
+    harga: 250000,
+    satuan: "pcs",
+    vendor: "Generic",
+    gambar: [carouselone, carouseltwo, carouselthree],
   },
 ];
-
 type ViewMode = "grid" | "table" | "list";
 
 export default function ProdukPage() {
@@ -196,9 +195,9 @@ export default function ProdukPage() {
   );
   const [itemsPerPage] = useState(6);
 
-  // Get unique categories
+  // Get unique categories - fixed to use 'type' property
   const categories = Array.from(
-    new Set(products.map((product) => product.category))
+    new Set(products.map((product) => product.type))
   );
 
   // Update URL when params change
@@ -251,16 +250,21 @@ export default function ProdukPage() {
     updateURL({ page: page.toString() });
   };
 
+  // Fixed filtering to use correct property names
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase());
+      product.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.SKU.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.type.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
-      filterStatus === "" || product.status === filterStatus;
+      filterStatus === "" ||
+      filterStatus === "all" ||
+      product.status === filterStatus;
     const matchesCategory =
-      filterCategory === "" || product.category === filterCategory;
+      filterCategory === "" ||
+      filterCategory === "all" ||
+      product.type === filterCategory;
 
     return matchesSearch && matchesStatus && matchesCategory;
   });
@@ -279,67 +283,54 @@ export default function ProdukPage() {
     setShowAlert(true);
   };
 
-  // Grid View Component
-
-  // List View Component
+  // List View Component - Updated to match the design
   const ListView = () => (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {paginatedProducts.map((product) => {
-        const stockStatus = getStockStatus(product.stock);
+        const stockStatus = getStockStatus(product.jumlah);
         return (
           <Card key={product.id} className="hover:shadow-sm transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-1">
-                      <h3 className="font-medium">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground font-mono">
-                        {product.sku}
+                <div className="flex items-center space-x-4 flex-1">
+                  {/* Product Image Placeholder */}
+                  <Image
+                    src={product.gambar[0]}
+                    alt=""
+                    width={44}
+                    height={44}
+                    className="w-12 h-12  rounded flex-shrink-0"
+                  />
+                  {/* Product Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-base truncate">
+                      {product.nama}
+                    </h3>
+                    <div className="flex items-center space-x-4 mt-1">
+                      <p className="text-sm text-gray-500">
+                        SKU : {product.SKU}
+                      </p>
+                      <p className="text-sm font-semibold text-green-600">
+                        Rp {product.harga}
                       </p>
                     </div>
-                    <div className="flex items-center space-x-6">
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Kategori
-                        </p>
-                        <p className="text-sm font-medium">
-                          {product.category}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Harga</p>
-                        <p className="text-sm font-bold text-green-600">
-                          Rp {product.price.toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Stok</p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">
-                            {product.stock} {product.unit}
-                          </span>
-                          <Badge
-                            variant={stockStatus.variant}
-                            className="text-xs"
-                          >
-                            {stockStatus.label}
-                          </Badge>
-                        </div>
-                      </div>
-                      <Badge
-                        variant={
-                          product.status === "active" ? "default" : "secondary"
-                        }
-                      >
-                        {product.status === "active" ? "Aktif" : "Tidak Aktif"}
-                      </Badge>
+                  </div>
+
+                  {/* Stock Status */}
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-sm text-gray-600 mb-1">
+                      {product.jumlah} {product.satuan} tersisa
                     </div>
+                    <Badge variant={stockStatus.variant} className={`text-xs `}>
+                      {stockStatus.label}
+                    </Badge>
                   </div>
                 </div>
+
+                {/* Actions */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <Button variant="ghost" className="h-8 w-8 p-0 ml-2">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -369,51 +360,50 @@ export default function ProdukPage() {
     </div>
   );
 
-  // Table View Component
+  // Table View Component - Updated to match the design
   const TableView = () => (
     <Card>
       <CardContent className="p-0">
         <TableComponent>
           <TableHeader>
-            <TableRow>
-              <TableHead>Nama Produk</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Kategori</TableHead>
-              <TableHead>Harga</TableHead>
-              <TableHead>Stok</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
+            <TableRow className="bg-gray-50">
+              <TableHead className="font-semibold">Item ID</TableHead>
+              <TableHead className="font-semibold">Item</TableHead>
+              <TableHead className="font-semibold">Jumlah</TableHead>
+              <TableHead className="font-semibold">Unit</TableHead>
+              <TableHead className="font-semibold">Satuan</TableHead>
+              <TableHead className="font-semibold">Harga Jual (Rp)</TableHead>
+              <TableHead className="font-semibold">Vendor</TableHead>
+              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="text-right font-semibold">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedProducts.map((product) => {
-              const stockStatus = getStockStatus(product.stock);
+              const stockStatus = getStockStatus(product.jumlah);
               return (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>
-                    <span className="font-mono text-sm">{product.sku}</span>
+                <TableRow key={product.id} className="hover:bg-gray-50">
+                  <TableCell className="font-medium">{product.id}</TableCell>
+                  <TableCell className="font-medium">{product.nama}</TableCell>
+                  <TableCell>{product.jumlah}</TableCell>
+                  <TableCell>{product.satuan}</TableCell>
+                  <TableCell>{product.satuan}</TableCell>
+                  <TableCell className="font-semibold">
+                    {product.harga}
                   </TableCell>
-                  <TableCell>{product.category}</TableCell>
-                  <TableCell>Rp {product.price.toLocaleString()}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span>
-                        {product.stock} {product.unit}
-                      </span>
-                      <Badge variant={stockStatus.variant} className="text-xs">
-                        {stockStatus.label}
+                    {product.vendor || "PT. Aksa Prima Jaya"}
+                  </TableCell>
+                  <TableCell>
+                    {product.jumlah <= 50 ? (
+                      <Badge className="bg-red-500 hover:bg-red-500 text-white text-xs">
+                        Tidak Aktif
                       </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        product.status === "active" ? "default" : "secondary"
-                      }
-                    >
-                      {product.status === "active" ? "Aktif" : "Tidak Aktif"}
-                    </Badge>
+                    ) : (
+                      <Badge className="bg-green-500 hover:bg-green-500 text-white text-xs">
+                        Aktif
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -449,7 +439,6 @@ export default function ProdukPage() {
       </CardContent>
     </Card>
   );
-
   // Pagination Component
   const Pagination = () => {
     if (totalPages <= 1) return null;
@@ -539,7 +528,10 @@ export default function ProdukPage() {
       )}
 
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Produk</h1>
+        <div>
+          <h1 className="text-3xl font-bold"> Daftar Produk</h1>
+          <span>Kelola produk dalam sistem inventory Anda.</span>
+        </div>
         <Link href="/produk/add">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
@@ -549,81 +541,71 @@ export default function ProdukPage() {
       </div>
 
       {/* Filters and View Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Produk</CardTitle>
-          <CardDescription>
-            Kelola produk dalam sistem inventory Anda.
-          </CardDescription>
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-2 flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari produk..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-9 max-w-sm"
-                />
-              </div>
-              <Select
-                value={filterCategory}
-                onValueChange={handleCategoryChange}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Pilih kategori" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Kategori</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filterStatus} onValueChange={handleStatusChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Pilih status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="active">Aktif</SelectItem>
-                  <SelectItem value="inactive">Tidak Aktif</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
-            {/* View Mode Toggle */}
-            <div className="flex items-center border rounded-lg">
-              <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleViewModeChange("grid")}
-                className="rounded-r-none"
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleViewModeChange("list")}
-                className="rounded-none border-x"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "table" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleViewModeChange("table")}
-                className="rounded-l-none"
-              >
-                <Table className="h-4 w-4" />
-              </Button>
-            </div>
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-2 flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari produk..."
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9 max-w-sm"
+            />
           </div>
-        </CardHeader>
-      </Card>
+          <Select value={filterCategory} onValueChange={handleCategoryChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Pilih kategori" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kategori</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={handleStatusChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Pilih status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Status</SelectItem>
+              <SelectItem value="active">Aktif</SelectItem>
+              <SelectItem value="inactive">Tidak Aktif</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* View Mode Toggle */}
+        <div className="flex items-center border rounded-lg">
+          <Button
+            variant={viewMode === "grid" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => handleViewModeChange("grid")}
+            className="rounded-r-none"
+          >
+            <Grid3X3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => handleViewModeChange("list")}
+            className="rounded-none border-x"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => handleViewModeChange("table")}
+            className="rounded-l-none"
+          >
+            <Table className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       {viewMode === "grid" && (
         <ProductGridView

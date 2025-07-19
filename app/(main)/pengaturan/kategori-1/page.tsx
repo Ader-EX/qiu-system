@@ -126,10 +126,11 @@ export default function Kategori1Page() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <CustomBreadcrumb
+        {/* <CustomBreadcrumb
           listData={["Pengaturan", "Master Data", "Kategori 1"]}
           linkData={["pengaturan", "kategori-1", "kategori-1"]}
-        />
+        /> */}
+        <Button>{"<-"}</Button>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={openAddDialog}>

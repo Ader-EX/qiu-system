@@ -7,6 +7,5 @@ export function cn(...inputs: ClassValue[]) {
 
 export const getStockStatus = (stock: number) => {
   if (stock === 0) return { label: "Habis", variant: "destructive" as const };
-  if (stock <= 10) return { label: "Menipis", variant: "secondary" as const };
-  return { label: "Tersedia", variant: "default" as const };
+  return { label: "Tersedia", variant: "okay" as const };
 };
