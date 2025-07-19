@@ -1,7 +1,3 @@
-"use client";
-
-import { Building2 } from "lucide-react";
-
 import logo from "@/public/logo.png";
 import Image from "next/image";
 

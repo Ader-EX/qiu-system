@@ -13,6 +13,7 @@ import {
   Table,
   ChevronLeft,
   ChevronRight,
+  TableIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -54,6 +55,8 @@ import carouselone from "@/public/carouselone.jpg";
 import carouseltwo from "@/public/carouseltwo.jpg";
 import carouselthree from "@/public/carouselthree.jpg";
 import Image, { StaticImageData } from "next/image";
+import toast from "react-hot-toast";
+import AddEditItemDialog from "@/components/Product/AddEditItemDialog";
 
 export interface Product {
   id: string;
@@ -173,103 +176,78 @@ export default function ProdukPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Main data + filters/search/view state
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("search") || ""
   );
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
   const [filterStatus, setFilterStatus] = useState(
     searchParams.get("status") || ""
   );
   const [filterCategory, setFilterCategory] = useState(
     searchParams.get("category") || ""
   );
-
-  // View and pagination state from URL params
   const [viewMode, setViewMode] = useState<ViewMode>(
     (searchParams.get("view") as ViewMode) || "grid"
   );
   const [currentPage, setCurrentPage] = useState(
     parseInt(searchParams.get("page") || "1")
   );
-  const [itemsPerPage] = useState(6);
+  const itemsPerPage = 6;
 
-  // Get unique categories - fixed to use 'type' property
-  const categories = Array.from(
-    new Set(products.map((product) => product.type))
-  );
+  // Dialog state
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingItem, setEditingItem]: any = useState(null);
 
-  // Update URL when params change
+  // Helpers for URL sync
   const updateURL = (params: Record<string, string>) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
-
-    Object.entries(params).forEach(([key, value]) => {
-      if (value) {
-        current.set(key, value);
-      } else {
-        current.delete(key);
-      }
+    Object.entries(params).forEach(([k, v]) => {
+      v ? current.set(k, v) : current.delete(k);
     });
-
-    const search = current.toString();
-    const query = search ? `?${search}` : "";
-    router.push(`${pathname}${query}`);
+    const q = current.toString();
+    router.push(`${pathname}${q ? `?${q}` : ""}`);
   };
 
-  // Handle view mode change
-  const handleViewModeChange = (mode: ViewMode) => {
-    setViewMode(mode);
-    updateURL({ view: mode });
+  // Handlers for dialog
+  const handleAddNew = () => {
+    setEditingItem(null);
+    setIsDialogOpen(true);
+  };
+  const handleEdit = (item: Product) => {
+    setEditingItem(item);
+    setIsDialogOpen(true);
+  };
+  const handleDialogClose = () => setIsDialogOpen(false);
+  const handleDialogSave = (itemData: Product) => {
+    if (editingItem) {
+      // update
+      setProducts((prev) =>
+        prev.map((p) => (p.id === itemData.id ? itemData : p))
+      );
+      toast.success("Produk berhasil diperbarui!");
+    } else {
+      // add
+      const newItem = { ...itemData, id: String(Date.now()) };
+      setProducts((prev) => [newItem, ...prev]);
+      toast.success("Produk berhasil ditambahkan!");
+    }
+    setIsDialogOpen(false);
   };
 
-  // Handle search change
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-    updateURL({ search: value, page: "1" });
-  };
-
-  // Handle status filter change
-  const handleStatusChange = (value: string) => {
-    setFilterStatus(value);
-    setCurrentPage(1);
-    updateURL({ status: value, page: "1" });
-  };
-
-  // Handle category filter change
-  const handleCategoryChange = (value: string) => {
-    setFilterCategory(value);
-    setCurrentPage(1);
-    updateURL({ category: value, page: "1" });
-  };
-
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    updateURL({ page: page.toString() });
-  };
-
-  // Fixed filtering to use correct property names
-  const filteredProducts = products.filter((product) => {
+  // Filter / paginate
+  const categories = Array.from(new Set(products.map((p) => p.type)));
+  const filteredProducts = products.filter((p) => {
     const matchesSearch =
-      product.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.SKU.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.type.toLowerCase().includes(searchTerm.toLowerCase());
-
+      p.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.SKU.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.type.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
-      filterStatus === "" ||
-      filterStatus === "all" ||
-      product.status === filterStatus;
-    const matchesCategory =
-      filterCategory === "" ||
-      filterCategory === "all" ||
-      product.type === filterCategory;
-
-    return matchesSearch && matchesStatus && matchesCategory;
+      !filterStatus || filterStatus === "all" || p.status === filterStatus;
+    const matchesCat =
+      !filterCategory || filterCategory === "all" || p.type === filterCategory;
+    return matchesSearch && matchesStatus && matchesCat;
   });
-
-  // Pagination logic
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(
@@ -278,9 +256,33 @@ export default function ProdukPage() {
   );
 
   const handleDelete = (id: string) => {
-    setProducts(products.filter((product) => product.id !== id));
-    setAlertMessage("Produk berhasil dihapus!");
-    setShowAlert(true);
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+    toast.success("Produk berhasil dihapus!");
+  };
+
+  // Change handlers
+  const handleSearchChange = (v: string) => {
+    setSearchTerm(v);
+    setCurrentPage(1);
+    updateURL({ search: v, page: "1" });
+  };
+  const handleStatusChange = (v: string) => {
+    setFilterStatus(v);
+    setCurrentPage(1);
+    updateURL({ status: v, page: "1" });
+  };
+  const handleCategoryChange = (v: string) => {
+    setFilterCategory(v);
+    setCurrentPage(1);
+    updateURL({ category: v, page: "1" });
+  };
+  const handleViewChange = (m: ViewMode) => {
+    setViewMode(m);
+    updateURL({ view: m });
+  };
+  const handlePageChange = (p: number) => {
+    setCurrentPage(p);
+    updateURL({ page: String(p) });
   };
 
   // List View Component - Updated to match the design
@@ -339,7 +341,7 @@ export default function ProdukPage() {
                       <Eye className="mr-2 h-4 w-4" />
                       Lihat Detail
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEdit(product)}>
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
@@ -417,7 +419,7 @@ export default function ProdukPage() {
                           <Eye className="mr-2 h-4 w-4" />
                           Lihat Detail
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(product)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
@@ -439,6 +441,7 @@ export default function ProdukPage() {
       </CardContent>
     </Card>
   );
+
   // Pagination Component
   const Pagination = () => {
     if (totalPages <= 1) return null;
@@ -520,28 +523,18 @@ export default function ProdukPage() {
 
   return (
     <div className="space-y-6">
-      {showAlert && (
-        <AlertSuccess
-          message={alertMessage}
-          onClose={() => setShowAlert(false)}
-        />
-      )}
-
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold"> Daftar Produk</h1>
           <span>Kelola produk dalam sistem inventory Anda.</span>
         </div>
-        <Link href="/produk/add">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Tambah Produk
-          </Button>
-        </Link>
+        <Button onClick={handleAddNew}>
+          <Plus className="mr-2 h-4 w-4" />
+          Tambah Produk
+        </Button>
       </div>
 
       {/* Filters and View Controls */}
-
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex flex-col sm:flex-row gap-2 flex-1">
           <div className="relative">
@@ -578,31 +571,30 @@ export default function ProdukPage() {
           </Select>
         </div>
 
-        {/* View Mode Toggle */}
         <div className="flex items-center border rounded-lg">
           <Button
-            variant={viewMode === "grid" ? "default" : "ghost"}
             size="sm"
-            onClick={() => handleViewModeChange("grid")}
+            variant={viewMode === "grid" ? "default" : "ghost"}
+            onClick={() => handleViewChange("grid")}
             className="rounded-r-none"
           >
             <Grid3X3 className="h-4 w-4" />
           </Button>
           <Button
-            variant={viewMode === "list" ? "default" : "ghost"}
             size="sm"
-            onClick={() => handleViewModeChange("list")}
-            className="rounded-none border-x"
+            variant={viewMode === "list" ? "default" : "ghost"}
+            onClick={() => handleViewChange("list")}
+            className="border-x"
           >
             <List className="h-4 w-4" />
           </Button>
           <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
             size="sm"
-            onClick={() => handleViewModeChange("table")}
+            variant={viewMode === "table" ? "default" : "ghost"}
+            onClick={() => handleViewChange("table")}
             className="rounded-l-none"
           >
-            <Table className="h-4 w-4" />
+            <TableIcon className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -618,6 +610,16 @@ export default function ProdukPage() {
 
       {/* Pagination */}
       <Pagination />
+
+      {/* Add/Edit Dialog */}
+      {isDialogOpen && (
+        <AddEditItemDialog
+          item={editingItem}
+          isOpen={isDialogOpen}
+          onClose={handleDialogClose}
+          onSave={handleDialogSave}
+        />
+      )}
     </div>
   );
 }
