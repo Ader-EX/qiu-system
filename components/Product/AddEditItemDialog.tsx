@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Upload } from "lucide-react";
+import MultipleSelector from "../ui/MultipleSelector";
 
 // Data shape passed to onSave
 interface ItemData {
@@ -58,6 +59,11 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
     satuan: "pcs",
     vendor: "",
   });
+  const vendorOptions = [
+    { label: "Vendor A", value: "Vendor A" },
+    { label: "Vendor B", value: "Vendor B" },
+    { label: "Vendor C", value: "Vendor C" },
+  ];
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   useEffect(() => {
@@ -234,11 +240,14 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
             {/* Vendor */}
             <div className="space-y-2">
               <Label htmlFor="vendor">Vendor</Label>
-              <Input
-                id="vendor"
-                value={formData.vendor}
-                onChange={(e) => handleInputChange("vendor", e.target.value)}
-                placeholder="Nama vendor"
+              <MultipleSelector
+                defaultOptions={vendorOptions}
+                placeholder="Pilih Vendor"
+                emptyIndicator={
+                  <p className="text-center text-lg leading-10 text-gray-600 dark:text-gray-400">
+                    no results found.
+                  </p>
+                }
               />
             </div>
           </div>

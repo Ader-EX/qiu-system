@@ -101,7 +101,14 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
 export const ProductGridView: React.FC<{
   paginatedProducts: Product[];
   handleDelete: (id: string) => void;
-}> = ({ paginatedProducts, handleDelete }) => (
+  setSelectedProduct: (product: Product) => void;
+  setIsDetailOpen: (open: boolean) => void;
+}> = ({
+  paginatedProducts,
+  handleDelete,
+  setSelectedProduct,
+  setIsDetailOpen,
+}) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     {paginatedProducts.map((product) => (
       <Card key={product.id} className="hover:shadow-md transition-shadow">
@@ -141,8 +148,14 @@ export const ProductGridView: React.FC<{
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Eye className="mr-2 h-4 w-4" /> Lihat Detail
+                <DropdownMenuItem
+                  onClick={() => {
+                    setIsDetailOpen(true);
+                    setSelectedProduct(product);
+                  }}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Lihat Detail
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Edit className="mr-2 h-4 w-4" /> Edit

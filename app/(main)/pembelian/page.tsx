@@ -1,25 +1,47 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Plus, Search, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
-import { AlertSuccess } from "@/components/alert-success"
+import { useState } from "react";
+import { Plus, Search, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { AlertSuccess } from "@/components/alert-success";
+import {
+  HeaderActions,
+  SidebarHeaderBar,
+} from "@/components/ui/SidebarHeaderBar";
 
 interface Purchase {
-  id: string
-  purchaseNumber: string
-  vendor: string
-  date: string
-  total: number
-  status: "pending" | "completed" | "cancelled"
-  paymentStatus: "unpaid" | "partial" | "paid"
-  createdAt: string
+  id: string;
+  purchaseNumber: string;
+  vendor: string;
+  date: string;
+  total: number;
+  status: "pending" | "completed" | "cancelled";
+  paymentStatus: "unpaid" | "partial" | "paid";
+  createdAt: string;
 }
 
 const initialPurchases: Purchase[] = [
@@ -53,38 +75,40 @@ const initialPurchases: Purchase[] = [
     paymentStatus: "partial",
     createdAt: "2024-01-17",
   },
-]
+];
 
 export default function PembelianPage() {
-  const [purchases, setPurchases] = useState<Purchase[]>(initialPurchases)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [showAlert, setShowAlert] = useState(false)
-  const [alertMessage, setAlertMessage] = useState("")
+  const [purchases, setPurchases] = useState<Purchase[]>(initialPurchases);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
 
   const filteredPurchases = purchases.filter(
     (purchase) =>
-      purchase.purchaseNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      purchase.vendor.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      purchase.purchaseNumber
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      purchase.vendor.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleDelete = (id: string) => {
-    setPurchases(purchases.filter((purchase) => purchase.id !== id))
-    setAlertMessage("Pembelian berhasil dihapus!")
-    setShowAlert(true)
-  }
+    setPurchases(purchases.filter((purchase) => purchase.id !== id));
+    setAlertMessage("Pembelian berhasil dihapus!");
+    setShowAlert(true);
+  };
 
   const getStatusBadge = (status: Purchase["status"]) => {
     switch (status) {
       case "completed":
-        return <Badge variant="default">Selesai</Badge>
+        return <Badge variant="default">Selesai</Badge>;
       case "pending":
-        return <Badge variant="secondary">Pending</Badge>
+        return <Badge variant="secondary">Pending</Badge>;
       case "cancelled":
-        return <Badge variant="destructive">Dibatalkan</Badge>
+        return <Badge variant="destructive">Dibatalkan</Badge>;
       default:
-        return <Badge variant="outline">Unknown</Badge>
+        return <Badge variant="outline">Unknown</Badge>;
     }
-  }
+  };
 
   const getPaymentStatusBadge = (status: Purchase["paymentStatus"]) => {
     switch (status) {
@@ -93,38 +117,47 @@ export default function PembelianPage() {
           <Badge variant="default" className="bg-green-500">
             Lunas
           </Badge>
-        )
+        );
       case "partial":
         return (
           <Badge variant="secondary" className="bg-yellow-500">
             Sebagian
           </Badge>
-        )
+        );
       case "unpaid":
-        return <Badge variant="destructive">Belum Bayar</Badge>
+        return <Badge variant="destructive">Belum Bayar</Badge>;
       default:
-        return <Badge variant="outline">Unknown</Badge>
+        return <Badge variant="outline">Unknown</Badge>;
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
-      {showAlert && <AlertSuccess message={alertMessage} onClose={() => setShowAlert(false)} />}
+      {showAlert && (
+        <AlertSuccess
+          message={alertMessage}
+          onClose={() => setShowAlert(false)}
+        />
+      )}
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Pembelian</h1>
-        <Link href="/pembelian/add">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Tambah Pembelian
-          </Button>
-        </Link>
-      </div>
+      <SidebarHeaderBar
+        title="Pembelian"
+        rightContent={
+          <HeaderActions.ActionGroup>
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Pembelian
+            </Button>
+          </HeaderActions.ActionGroup>
+        }
+      />
 
       <Card>
         <CardHeader>
           <CardTitle>Daftar Pembelian</CardTitle>
-          <CardDescription>Kelola transaksi pembelian dari vendor dan supplier.</CardDescription>
+          <CardDescription>
+            Kelola transaksi pembelian dari vendor dan supplier.
+          </CardDescription>
           <div className="flex items-center space-x-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
@@ -158,7 +191,9 @@ export default function PembelianPage() {
                   <TableCell>{purchase.date}</TableCell>
                   <TableCell>Rp {purchase.total.toLocaleString()}</TableCell>
                   <TableCell>{getStatusBadge(purchase.status)}</TableCell>
-                  <TableCell>{getPaymentStatusBadge(purchase.paymentStatus)}</TableCell>
+                  <TableCell>
+                    {getPaymentStatusBadge(purchase.paymentStatus)}
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -177,7 +212,10 @@ export default function PembelianPage() {
                             Edit
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(purchase.id)} className="text-red-600">
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(purchase.id)}
+                          className="text-red-600"
+                        >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Hapus
                         </DropdownMenuItem>
@@ -191,5 +229,5 @@ export default function PembelianPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

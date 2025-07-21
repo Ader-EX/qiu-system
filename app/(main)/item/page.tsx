@@ -20,13 +20,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table as TableComponent,
   TableBody,
@@ -62,6 +56,7 @@ import {
   HeaderActions,
   SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
+import { ProductDetailDialog } from "@/components/Product/ProductDetailDialog";
 
 export interface Product {
   id: string;
@@ -181,7 +176,18 @@ export default function ProdukPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Main data + filters/search/view state
+  const [selectedProduct, setSelectedProduct] = useState<Product>({
+    id: "8",
+    nama: "Webcam HD 1080p",
+    SKU: "WEB-HD-1080-008",
+    type: "Aksesoris",
+    status: "active",
+    jumlah: 3,
+    harga: 250000,
+    satuan: "pcs",
+    vendor: "Generic",
+    gambar: [carouselone, carouseltwo, carouselthree],
+  });
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("search") || ""
@@ -202,6 +208,7 @@ export default function ProdukPage() {
 
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [editingItem, setEditingItem]: any = useState(null);
 
   // Helpers for URL sync
@@ -292,11 +299,14 @@ export default function ProdukPage() {
 
   // List View Component - Updated to match the design
   const ListView = () => (
-    <div className="space-y-2">
+    <div className="space-y-2 min-w-[900px]">
       {paginatedProducts.map((product) => {
         const stockStatus = getStockStatus(product.jumlah);
         return (
-          <Card key={product.id} className="hover:shadow-sm transition-shadow">
+          <Card
+            key={product.id}
+            className="hover:shadow-sm transition-shadow min-w-[900px]"
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4 flex-1">
@@ -342,7 +352,12 @@ export default function ProdukPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setIsDetailOpen(true);
+                        setSelectedProduct(product);
+                      }}
+                    >
                       <Eye className="mr-2 h-4 w-4" />
                       Lihat Detail
                     </DropdownMenuItem>
@@ -370,7 +385,7 @@ export default function ProdukPage() {
   // Table View Component - Updated to match the design
   const TableView = () => (
     <Card>
-      <CardContent className="p-0">
+      <CardContent className="p-0 min-w-[900px]">
         <TableComponent>
           <TableHeader>
             <TableRow className="bg-gray-50">
@@ -420,7 +435,12 @@ export default function ProdukPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setIsDetailOpen(true);
+                            setSelectedProduct(product);
+                          }}
+                        >
                           <Eye className="mr-2 h-4 w-4" />
                           Lihat Detail
                         </DropdownMenuItem>
@@ -608,15 +628,18 @@ export default function ProdukPage() {
           </Button>
         </div>
       </div>
-
-      {viewMode === "grid" && (
-        <ProductGridView
-          paginatedProducts={paginatedProducts}
-          handleDelete={handleDelete}
-        />
-      )}
-      {viewMode === "list" && <ListView />}
-      {viewMode === "table" && <TableView />}
+      <div className="overflow-x-auto">
+        {viewMode === "grid" && (
+          <ProductGridView
+            setSelectedProduct={setSelectedProduct}
+            setIsDetailOpen={setIsDetailOpen}
+            paginatedProducts={paginatedProducts}
+            handleDelete={handleDelete}
+          />
+        )}
+        {viewMode === "list" && <ListView />}
+        {viewMode === "table" && <TableView />}
+      </div>
 
       {/* Pagination */}
       <Pagination />
@@ -630,6 +653,11 @@ export default function ProdukPage() {
           onSave={handleDialogSave}
         />
       )}
+      <ProductDetailDialog
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        product={selectedProduct}
+      />
     </div>
   );
 }

@@ -256,8 +256,8 @@ export default function VendorPage() {
                 <TableHead>Id Vendor</TableHead>
                 <TableHead>Nama Vendor</TableHead>
                 <TableHead>Alamat</TableHead>
-                <TableHead>Currency</TableHead>
-                <TableHead>Term of Payment</TableHead>
+                <TableHead>Mata Uang</TableHead>
+                <TableHead>Jenis Pembayaran</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
