@@ -45,6 +45,10 @@ import { AlertSuccess } from "@/components/alert-success";
 import { Badge } from "@/components/ui/badge";
 import CustomBreadcrumb from "@/components/custom-breadcrumb";
 import toast from "react-hot-toast";
+import {
+  HeaderActions,
+  SidebarHeaderBar,
+} from "@/components/ui/SidebarHeaderBar";
 
 interface Unit {
   id: string;
@@ -134,83 +138,89 @@ export default function SatuanPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <CustomBreadcrumb
-          listData={["Pengaturan", "Master Data", "Satuan"]}
-          linkData={["pengaturan", "satuan", "satuan"]}
-        />
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openAddDialog}>
-              <Plus className="mr-2 h-4 w-4" />
+      <SidebarHeaderBar
+        title=""
+        leftContent={
+          <CustomBreadcrumb
+            listData={["Pengaturan", "Master Data", "Satuan"]}
+            linkData={["pengaturan", "satuan", "satuan"]}
+          />
+        }
+        rightContent={
+          <HeaderActions.ActionGroup>
+            <Button size="sm" onClick={openAddDialog}>
+              <Plus className="h-4 w-4 mr-2" />
               Tambah Satuan
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle>
-                  {editingUnit ? "Edit Satuan" : "Tambah Satuan Baru"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="flex items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Nama
-                  </Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="flex items-center gap-4">
-                  <Label htmlFor="symbol" className="text-right">
-                    Simbol
-                  </Label>
-                  <Input
-                    id="symbol"
-                    value={formData.symbol}
-                    onChange={(e) =>
-                      setFormData({ ...formData, symbol: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="flex items-center gap-4">
-                  <Label htmlFor="status" className="text-right">
-                    Status
-                  </Label>
-                  <Select
-                    value={formData.status.toString()}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, status: value === "true" })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih status">
-                        {formData.status ? "Aktif" : "Non Aktif"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="true">Aktif ✅</SelectItem>
-                      <SelectItem value="false">Non Aktif ❌</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          </HeaderActions.ActionGroup>
+        }
+      />
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle>
+                {editingUnit ? "Edit Satuan" : "Tambah Satuan Baru"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Nama
+                </Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                />
               </div>
-              <DialogFooter>
-                <Button type="submit">
-                  {editingUnit ? "Perbarui" : "Simpan"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <div className="flex items-center gap-4">
+                <Label htmlFor="symbol" className="text-right">
+                  Simbol
+                </Label>
+                <Input
+                  id="symbol"
+                  value={formData.symbol}
+                  onChange={(e) =>
+                    setFormData({ ...formData, symbol: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="flex items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <Select
+                  value={formData.status.toString()}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, status: value === "true" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih status">
+                      {formData.status ? "Aktif" : "Non Aktif"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Aktif ✅</SelectItem>
+                    <SelectItem value="false">Non Aktif ❌</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">
+                {editingUnit ? "Perbarui" : "Simpan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>

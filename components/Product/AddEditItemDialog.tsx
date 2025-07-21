@@ -72,7 +72,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         jumlah: item.jumlah?.toString() || "",
         harga: item.harga?.toString() || "",
         satuan: item.satuan || "pcs",
-        vendor: item.vendor || "PT. Aksa Jaya Mulia",
+        vendor: item.vendor || "",
       });
       setUploadedImages(item.gambar || []);
     } else {
@@ -85,7 +85,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         jumlah: "",
         harga: "",
         satuan: "pcs",
-        vendor: "PT. Aksa Jaya Mulia",
+        vendor: "",
       });
       setUploadedImages([]);
     }
@@ -131,24 +131,18 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
 
         <div className="space-y-6">
           {/* Row 1: type, status, id */}
-          <div className="grid grid-cols-3 gap-4">
-            {/* Type */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="type">Type</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(v) => handleInputChange("type", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="FINISH-GOOD">FINISH-GOOD</SelectItem>
-                  <SelectItem value="RAW-MATERIAL">RAW-MATERIAL</SelectItem>
-                  <SelectItem value="SPARE-PART">SPARE-PART</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="nama">Nama</Label>
+              <Input
+                id="nama"
+                value={formData.nama}
+                onChange={(e) => handleInputChange("nama", e.target.value)}
+                placeholder="Masukkan nama item"
+              />
             </div>
+            {/* Type */}
+
             {/* Status */}
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
@@ -166,29 +160,21 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
               </Select>
             </div>
             {/* ID */}
-            <div className="space-y-2">
-              <Label htmlFor="id">ID</Label>
-              <Input
-                id="id"
-                value={formData.id}
-                onChange={(e) => handleInputChange("id", e.target.value)}
-                placeholder="Masukkan ID"
-              />
-            </div>
           </div>
 
           {/* Row 2: nama, SKU, jumlah, harga */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Nama */}
             <div className="space-y-2">
-              <Label htmlFor="nama">Nama</Label>
+              <Label htmlFor="id"> Item ID</Label>
               <Input
-                id="nama"
-                value={formData.nama}
-                onChange={(e) => handleInputChange("nama", e.target.value)}
-                placeholder="Masukkan nama item"
+                id="id"
+                value={formData.id}
+                onChange={(e) => handleInputChange("id", e.target.value)}
+                placeholder="JSD0001"
               />
             </div>
+            {/* Nama */}
+
             {/* SKU */}
             <div className="space-y-2">
               <Label htmlFor="SKU">SKU</Label>
@@ -196,12 +182,12 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 id="SKU"
                 value={formData.SKU}
                 onChange={(e) => handleInputChange("SKU", e.target.value)}
-                placeholder="Masukkan SKU"
+                placeholder=" SKU"
               />
             </div>
             {/* Jumlah */}
             <div className="space-y-2">
-              <Label htmlFor="jumlah">Jumlah</Label>
+              <Label htmlFor="jumlah">Jumlah Unit</Label>
               <Input
                 id="jumlah"
                 type="number"
@@ -213,7 +199,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
             </div>
             {/* Harga */}
             <div className="space-y-2">
-              <Label htmlFor="harga">Harga</Label>
+              <Label htmlFor="harga">Harga Jual (Rp)</Label>
               <Input
                 id="harga"
                 type="number"
@@ -228,14 +214,22 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
           {/* Row 3: satuan, vendor */}
           <div className="grid grid-cols-2 gap-4">
             {/* Satuan */}
+
             <div className="space-y-2">
               <Label htmlFor="satuan">Satuan</Label>
-              <Input
-                id="satuan"
+              <Select
                 value={formData.satuan}
-                onChange={(e) => handleInputChange("satuan", e.target.value)}
-                placeholder="pcs"
-              />
+                onValueChange={(v) => handleInputChange("satuan", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pcs">pcs</SelectItem>
+                  <SelectItem value="kg">kg</SelectItem>
+                  <SelectItem value="lbs">lbs</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             {/* Vendor */}
             <div className="space-y-2">
@@ -264,12 +258,16 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
               </Button>
+
               {uploadedImages.length > 0 && (
                 <span className="text-sm text-gray-500">
                   {uploadedImages.length} file dipilih
                 </span>
               )}
             </div>
+            <span className="opacity-60 text-sm mt-2">
+              Maks ukuran file 2 MB. Format JPG
+            </span>
             {uploadedImages.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {uploadedImages.map((img, i) => (

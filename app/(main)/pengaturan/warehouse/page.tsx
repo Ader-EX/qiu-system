@@ -53,6 +53,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  HeaderActions,
+  SidebarHeaderBar,
+} from "@/components/ui/SidebarHeaderBar";
 
 interface Warehouse {
   id: string;
@@ -159,87 +163,99 @@ export default function WarehousePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <CustomBreadcrumb
-          listData={["Pengaturan", "Master Data", "Warehouse"]}
-          linkData={["pengaturan", "warehouse", "warehouse"]}
-        />
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setFormData({ name: "", address: "", isActive: true });
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" /> Tambah Warehouse
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle>
-                  {editing ? "Edit Warehouse" : "Tambah Warehouse Baru"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="flex items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Nama
-                  </Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="flex items-center  gap-4">
-                  <Label htmlFor="address" className="text-right">
-                    Alamat
-                  </Label>
-                  <Textarea
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="flex items-center gap-4">
-                  <Label htmlFor="status" className="text-right">
-                    Status
-                  </Label>
-                  <Select
-                    value={formData.isActive.toString()}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, isActive: value === "true" })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih status">
-                        {formData.isActive ? "Aktif" : "Non Aktif"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="true">Aktif ✅</SelectItem>
-                      <SelectItem value="false">Non Aktif ❌</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">{editing ? "Perbarui" : "Simpan"}</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <SidebarHeaderBar
+        title=""
+        leftContent={
+          <CustomBreadcrumb
+            listData={["Pengaturan", "Master Data", "Warehouse"]}
+            linkData={["pengaturan", "warehouse", "warehouse"]}
+          />
+        }
+        rightContent={
+          <HeaderActions.ActionGroup>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  onClick={() => {
+                    setEditing(null);
+                    setFormData({ name: "", address: "", isActive: true });
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Tambah Warehouse
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <form onSubmit={handleSubmit}>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editing ? "Edit Warehouse" : "Tambah Warehouse Baru"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="flex items-center gap-4">
+                      <Label htmlFor="name" className="text-right">
+                        Nama
+                      </Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                        className="col-span-3"
+                        required
+                      />
+                    </div>
+                    <div className="flex items-center  gap-4">
+                      <Label htmlFor="address" className="text-right">
+                        Alamat
+                      </Label>
+                      <Textarea
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: e.target.value })
+                        }
+                        className="col-span-3"
+                        required
+                      />
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Label htmlFor="status" className="text-right">
+                        Status
+                      </Label>
+                      <Select
+                        value={formData.isActive.toString()}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            isActive: value === "true",
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih status">
+                            {formData.isActive ? "Aktif" : "Non Aktif"}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Aktif ✅</SelectItem>
+                          <SelectItem value="false">Non Aktif ❌</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit">
+                      {editing ? "Perbarui" : "Simpan"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </HeaderActions.ActionGroup>
+        }
+      />
 
       <Card>
         <CardHeader>

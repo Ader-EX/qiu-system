@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Search, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Search,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -46,6 +53,10 @@ import { AlertSuccess } from "@/components/alert-success";
 import { Badge } from "@/components/ui/badge";
 import toast from "react-hot-toast";
 import CustomBreadcrumb from "@/components/custom-breadcrumb";
+import {
+  HeaderActions,
+  SidebarHeaderBar,
+} from "@/components/ui/SidebarHeaderBar";
 
 interface Category {
   id: string;
@@ -125,85 +136,86 @@ export default function Kategori1Page() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        {/* <CustomBreadcrumb
-          listData={["Pengaturan", "Master Data", "Kategori 1"]}
-          linkData={["pengaturan", "kategori-1", "kategori-1"]}
-        /> */}
-        <Button>{"<-"}</Button>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openAddDialog}>
-              <Plus className="mr-2 h-4 w-4" />
+      <SidebarHeaderBar
+        title=""
+        leftContent={
+          <CustomBreadcrumb
+            listData={["Pengaturan", "Master Data", "Kategori 1"]}
+            linkData={["pengaturan", "kategori-1", "kategori-1"]}
+          />
+        }
+        rightContent={
+          <HeaderActions.ActionGroup>
+            <Button size="sm" onClick={openAddDialog}>
+              <Plus className="h-4 w-4 mr-2" />
               Tambah Kategori
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle>
-                  {editingCategory ? "Edit Kategori" : "Tambah Kategori Baru"}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingCategory
-                    ? "Perbarui informasi kategori di bawah ini."
-                    : "Masukkan informasi kategori baru di bawah ini."}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="flex items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Nama
-                  </Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    className="col-span-3"
-                    required
-                  />
-                </div>
-                <div className="flex items-center gap-4">
-                  <Label htmlFor="status" className="text-right">
-                    Status
-                  </Label>
-                  <Select
-                    // id="status"
-                    value={formData.status}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        className="col-span-3"
-                        placeholder="Pilih status"
-                      />
-                    </SelectTrigger>
-                    <SelectContent className="col-span-3">
-                      <SelectItem value="Aktif">Aktif ✅</SelectItem>
-                      <SelectItem value="Non Aktif">Non Aktif ❌</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          </HeaderActions.ActionGroup>
+        }
+      />
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle>
+                {editingCategory ? "Edit Kategori" : "Tambah Kategori Baru"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingCategory
+                  ? "Perbarui informasi kategori di bawah ini."
+                  : "Masukkan informasi kategori baru di bawah ini."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Nama
+                </Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  className="col-span-3"
+                  required
+                />
               </div>
-              <DialogFooter>
-                <Button type="submit">
-                  {editingCategory ? "Perbarui" : "Simpan"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <div className="flex items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <Select
+                  // id="status"
+                  value={formData.status}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, status: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      className="col-span-3"
+                      placeholder="Pilih status"
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="col-span-3">
+                    <SelectItem value="Aktif">Aktif ✅</SelectItem>
+                    <SelectItem value="Non Aktif">Non Aktif ❌</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">
+                {editingCategory ? "Perbarui" : "Simpan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       <Card>
         <CardHeader>
-          <CardTitle>Daftar Kategori</CardTitle>
-          <CardDescription>
-            Kelola kategori produk untuk sistem inventory Anda.
-          </CardDescription>
           <div className="flex items-center space-x-2  pt-2 ">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input

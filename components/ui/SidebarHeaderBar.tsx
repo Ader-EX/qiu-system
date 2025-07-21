@@ -73,7 +73,9 @@ const SidebarHeaderBar = React.forwardRef<
           {(title || subtitle) && (
             <div className="flex flex-col">
               {title && (
-                <h1 className="  leading-none tracking-tight">{title}</h1>
+                <h1 className=" opacity-70 leading-none tracking-tight">
+                  {title}
+                </h1>
               )}
               {subtitle && (
                 <p className="text-sm text-muted-foreground mt-0.5">

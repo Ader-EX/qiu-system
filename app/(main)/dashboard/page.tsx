@@ -10,6 +10,8 @@ import {
   Receipt,
   PlusIcon,
   DownloadIcon,
+  Plus,
+  Download,
 } from "lucide-react";
 import {
   Card,
@@ -19,26 +21,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  HeaderActions,
+  SidebarHeaderBar,
+} from "@/components/ui/SidebarHeaderBar";
 
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col w-full  sm:flex-row justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Selamat datang di QIU System - Overview bisnis Anda
-          </p>
-        </div>
-        <div className="flex space-x-4">
-          <Button variant="outline">
-            <DownloadIcon /> Export
-          </Button>
-          <Button>
-            <PlusIcon /> Add New
-          </Button>
-        </div>
-      </div>
+      <SidebarHeaderBar
+        title="Dashboard"
+        rightContent={
+          <HeaderActions.ActionGroup>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah
+            </Button>
+          </HeaderActions.ActionGroup>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

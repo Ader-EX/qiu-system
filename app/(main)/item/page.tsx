@@ -302,7 +302,7 @@ export default function ProdukPage() {
                 <div className="flex items-center space-x-4 flex-1">
                   {/* Product Image Placeholder */}
                   <Image
-                    src={product.gambar[0]}
+                    src={product.gambar[0] || carouselone}
                     alt=""
                     width={44}
                     height={44}

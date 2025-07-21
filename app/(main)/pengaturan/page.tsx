@@ -16,6 +16,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  HeaderActions,
+  SidebarHeaderBar,
+} from "@/components/ui/SidebarHeaderBar";
 
 const settingsItems = [
   {
@@ -71,6 +75,10 @@ const settingsItems = [
 export default function PengaturanPage() {
   return (
     <div className="space-y-6">
+      <SidebarHeaderBar
+        title="Pengaturan"
+        rightContent={<HeaderActions.ActionGroup></HeaderActions.ActionGroup>}
+      />
       <div className="flex items-center gap-4">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Settings className="h-6 w-6" />

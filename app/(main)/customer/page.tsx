@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { useState } from "react";
 import {
   Plus,
   Search,
@@ -8,21 +8,12 @@ import {
   Edit,
   Trash2,
   Eye,
-  Phone,
-  Mail,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -46,6 +37,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  HeaderActions,
+  SidebarHeaderBar,
+} from "@/components/ui/SidebarHeaderBar";
+import toast from "react-hot-toast";
 
 interface Customer {
   id: string;
@@ -153,11 +159,25 @@ const initialCustomers: Customer[] = [
 export default function CustomerPage() {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
+
   const [filterStatus, setFilterStatus] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  // Dialog states
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+
+  // Form states
+  const [formData, setFormData] = useState({
+    name: "",
+    code: "",
+    address: "",
+    currency: "IDR",
+    top: "NET 30",
+    status: "active" as "active" | "inactive",
+  });
 
   const filteredCustomers = customers.filter((customer) => {
     const matchesSearch =
@@ -165,7 +185,9 @@ export default function CustomerPage() {
       customer.code.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
-      filterStatus === "" || customer.status === filterStatus;
+      filterStatus === "" ||
+      filterStatus === "all" ||
+      customer.status === filterStatus;
 
     return matchesSearch && matchesStatus;
   });
@@ -176,10 +198,94 @@ export default function CustomerPage() {
   const endIndex = startIndex + rowsPerPage;
   const currentCustomers = filteredCustomers.slice(startIndex, endIndex);
 
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      code: "",
+      address: "",
+      currency: "IDR",
+      top: "NET 30",
+      status: "active",
+    });
+  };
+
+  const openAddDialog = () => {
+    setDialogMode("add");
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (customer: Customer) => {
+    setDialogMode("edit");
+    setEditingCustomer(customer);
+    setFormData({
+      name: customer.name,
+      code: customer.code,
+      address: customer.address,
+      currency: customer.currency,
+      top: customer.top,
+      status: customer.status,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setEditingCustomer(null);
+    resetForm();
+  };
+
+  const generateCustomerCode = () => {
+    const lastCustomer = customers.sort(
+      (a, b) => parseInt(b.code.split("-")[1]) - parseInt(a.code.split("-")[1])
+    )[0];
+
+    const lastNumber = lastCustomer
+      ? parseInt(lastCustomer.code.split("-")[1])
+      : 0;
+    return `CUS-${String(lastNumber + 1).padStart(3, "0")}`;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.name.trim() || !formData.address.trim()) {
+      return;
+    }
+
+    if (dialogMode === "add") {
+      const newCustomer: Customer = {
+        id: Date.now().toString(),
+        ...formData,
+        code: formData.code || generateCustomerCode(),
+      };
+
+      setCustomers([...customers, newCustomer]);
+      toast.success("Customer berhasil ditambahkan!");
+    } else if (editingCustomer) {
+      const updatedCustomers = customers.map((customer) =>
+        customer.id === editingCustomer.id
+          ? { ...customer, ...formData }
+          : customer
+      );
+
+      setCustomers(updatedCustomers);
+      toast.success("Customer berhasil diperbarui!");
+    }
+
+    closeDialog();
+  };
+
   const handleDelete = (id: string) => {
     setCustomers(customers.filter((customer) => customer.id !== id));
-    setAlertMessage("Customer berhasil dihapus!");
-    setShowAlert(true);
+    toast.success("Customer berhasil dihapus!");
+  };
+
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   const handlePageChange = (page: number) => {
@@ -193,22 +299,17 @@ export default function CustomerPage() {
 
   return (
     <div className="space-y-6">
-      {showAlert && (
-        <AlertSuccess
-          message={alertMessage}
-          onClose={() => setShowAlert(false)}
-        />
-      )}
-
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Customer</h1>
-        <Link href="/customer/add">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Tambah Customer
-          </Button>
-        </Link>
-      </div>
+      <SidebarHeaderBar
+        title="Customer"
+        rightContent={
+          <HeaderActions.ActionGroup>
+            <Button size="sm" onClick={openAddDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Customer
+            </Button>
+          </HeaderActions.ActionGroup>
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -221,6 +322,7 @@ export default function CustomerPage() {
               className="max-w-sm"
             />
             <Select
+              value={filterStatus}
               onValueChange={(value) => {
                 setFilterStatus(value);
                 setCurrentPage(1); // Reset to first page when filtering
@@ -285,7 +387,9 @@ export default function CustomerPage() {
                           <Eye className="mr-2 h-4 w-4" />
                           Lihat Detail
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => openEditDialog(customer)}
+                        >
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
@@ -301,6 +405,16 @@ export default function CustomerPage() {
                   </TableCell>
                 </TableRow>
               ))}
+              {currentCustomers.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="text-center py-8 text-muted-foreground"
+                  >
+                    Tidak ada customer yang ditemukan
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
 
@@ -343,7 +457,7 @@ export default function CustomerPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages || totalPages === 0}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -351,6 +465,123 @@ export default function CustomerPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-left">
+              {dialogMode === "add" ? "Tambah Customer" : "Edit Customer"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: "active" | "inactive") =>
+                    handleInputChange("status", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Aktif</SelectItem>
+                    <SelectItem value="inactive">Tidak Aktif</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="code">Kode Customer</Label>
+                <Input
+                  id="code"
+                  value={formData.code}
+                  onChange={(e) => handleInputChange("code", e.target.value)}
+                  placeholder={dialogMode === "add" ? "JSD001" : "CUS-001"}
+                  disabled={dialogMode === "edit"}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Nama Customer</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="Masukkan nama customer"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Select
+                  value={formData.currency}
+                  onValueChange={(value) =>
+                    handleInputChange("currency", value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="IDR">IDR</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="SGD">SGD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="top">Term of Payment</Label>
+                <Select
+                  value={formData.top}
+                  onValueChange={(value) => handleInputChange("top", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CASH">CASH</SelectItem>
+                    <SelectItem value="COD">COD</SelectItem>
+                    <SelectItem value="NET 15">NET 15</SelectItem>
+                    <SelectItem value="NET 30">NET 30</SelectItem>
+                    <SelectItem value="NET 45">NET 45</SelectItem>
+                    <SelectItem value="NET 60">NET 60</SelectItem>
+                    <SelectItem value="NET 90">NET 90</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Alamat</Label>
+              <Textarea
+                id="address"
+                value={formData.address}
+                onChange={(e) => handleInputChange("address", e.target.value)}
+                placeholder="Masukkan alamat lengkap customer"
+                rows={3}
+                required
+              />
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={closeDialog}>
+                Batal
+              </Button>
+              <Button type="submit">
+                {dialogMode === "add" ? "Tambah Customer" : "Simpan Perubahan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

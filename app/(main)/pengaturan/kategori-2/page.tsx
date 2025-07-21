@@ -45,6 +45,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import toast from "react-hot-toast";
 import CustomBreadcrumb from "@/components/custom-breadcrumb";
+import {
+  HeaderActions,
+  SidebarHeaderBar,
+} from "@/components/ui/SidebarHeaderBar";
 
 interface Category {
   id: string;
@@ -120,75 +124,82 @@ export default function Kategori2Page() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <CustomBreadcrumb
-          listData={["Pengaturan", "Master Data", "Kategori 2"]}
-          linkData={["pengaturan", "kategori-2", "kategori-2"]}
-        />
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openAddDialog}>
-              <Plus className="mr-2 h-4 w-4" />
+      <SidebarHeaderBar
+        title=""
+        leftContent={
+          <CustomBreadcrumb
+            listData={["Pengaturan", "Master Data", "Kategori 2"]}
+            linkData={["pengaturan", "kategori-2", "kategori-2"]}
+          />
+        }
+        rightContent={
+          <HeaderActions.ActionGroup>
+            <Button
+              onClick={openAddDialog}
+              size="sm"
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              <Plus className="h-4 w-4 mr-2" />
               Tambah Kategori 2
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle>
-                  {editingCategory
-                    ? "Edit Kategori 2"
-                    : "Tambah Kategori 2 Baru"}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingCategory
-                    ? "Perbarui informasi kategori 2 di bawah ini."
-                    : "Masukkan informasi kategori 2 baru di bawah ini."}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="flex items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Nama
-                  </Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="flex items-center gap-4">
-                  <Label htmlFor="status" className="text-right">
-                    Status
-                  </Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Aktif">Aktif ✅</SelectItem>
-                      <SelectItem value="Non Aktif">Non Aktif ❌</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          </HeaderActions.ActionGroup>
+        }
+      />
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle>
+                {editingCategory ? "Edit Kategori 2" : "Tambah Kategori 2 Baru"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingCategory
+                  ? "Perbarui informasi kategori 2 di bawah ini."
+                  : "Masukkan informasi kategori 2 baru di bawah ini."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Nama
+                </Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                />
               </div>
-              <DialogFooter>
-                <Button type="submit">
-                  {editingCategory ? "Perbarui" : "Simpan"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <div className="flex items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, status: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Aktif">Aktif ✅</SelectItem>
+                    <SelectItem value="Non Aktif">Non Aktif ❌</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">
+                {editingCategory ? "Perbarui" : "Simpan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>
