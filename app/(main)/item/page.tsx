@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   TableIcon,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -57,6 +58,10 @@ import carouselthree from "@/public/carouselthree.jpg";
 import Image, { StaticImageData } from "next/image";
 import toast from "react-hot-toast";
 import AddEditItemDialog from "@/components/Product/AddEditItemDialog";
+import {
+  HeaderActions,
+  SidebarHeaderBar,
+} from "@/components/ui/SidebarHeaderBar";
 
 export interface Product {
   id: string;
@@ -523,16 +528,21 @@ export default function ProdukPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold"> Daftar Produk</h1>
-          <span>Kelola produk dalam sistem inventory Anda.</span>
-        </div>
-        <Button onClick={handleAddNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          Tambah Produk
-        </Button>
-      </div>
+      <SidebarHeaderBar
+        title="Items"
+        rightContent={
+          <HeaderActions.ActionGroup>
+            <Button variant="outline" size="sm">
+              <Upload className="h-4 w-4 mr-2" />
+              Import
+            </Button>
+            <Button size="sm" onClick={handleAddNew}>
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Item
+            </Button>
+          </HeaderActions.ActionGroup>
+        }
+      />
 
       {/* Filters and View Controls */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">

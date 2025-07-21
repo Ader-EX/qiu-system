@@ -56,7 +56,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
     jumlah: "",
     harga: "",
     satuan: "pcs",
-    vendor: "PT. Aksa Jaya Mulia",
+    vendor: "",
   });
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 

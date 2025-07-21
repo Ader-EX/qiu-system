@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,20 +9,20 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+} from "@/components/ui/breadcrumb";
 
 interface TopBarProps {
   breadcrumbs?: Array<{
-    label: string
-    href?: string
-  }>
+    label: string;
+    href?: string;
+  }>;
 }
 
 export function TopBar({ breadcrumbs = [] }: TopBarProps) {
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
       <div className="flex items-center gap-2 px-4">
-        <SidebarTrigger className="-ml-1" />
+        {/* <SidebarTrigger className="-ml-1" /> */}
         <Separator orientation="vertical" className="mr-2 h-4" />
         {breadcrumbs.length > 0 && (
           <Breadcrumb>
@@ -32,7 +32,9 @@ export function TopBar({ breadcrumbs = [] }: TopBarProps) {
                   {index > 0 && <BreadcrumbSeparator />}
                   <BreadcrumbItem>
                     {breadcrumb.href ? (
-                      <BreadcrumbLink href={breadcrumb.href}>{breadcrumb.label}</BreadcrumbLink>
+                      <BreadcrumbLink href={breadcrumb.href}>
+                        {breadcrumb.label}
+                      </BreadcrumbLink>
                     ) : (
                       <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
                     )}
@@ -44,5 +46,5 @@ export function TopBar({ breadcrumbs = [] }: TopBarProps) {
         )}
       </div>
     </header>
-  )
+  );
 }

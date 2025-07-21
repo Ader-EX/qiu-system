@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { Menu } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { SidebarTrigger as ShadcnSidebarTrigger } from "@/components/ui/sidebar"
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SidebarTrigger as ShadcnSidebarTrigger } from "@/components/ui/sidebar";
 
 export function SidebarTrigger() {
   return (
@@ -12,5 +12,5 @@ export function SidebarTrigger() {
         <span className="sr-only">Toggle sidebar</span>
       </Button>
     </ShadcnSidebarTrigger>
-  )
+  );
 }
