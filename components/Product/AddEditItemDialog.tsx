@@ -33,6 +33,8 @@ interface ItemData {
   satuan: string;
   vendor: string;
   gambar: any[];
+  kategori1: string;
+  kategori2: string;
 }
 
 interface AddEditItemDialogProps {
@@ -58,6 +60,8 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
     harga: "",
     satuan: "pcs",
     vendor: "",
+    kategori1: "",
+    kategori2: "",
   });
   const vendorOptions = [
     { label: "Vendor A", value: "Vendor A" },
@@ -79,6 +83,8 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         harga: item.harga?.toString() || "",
         satuan: item.satuan || "pcs",
         vendor: item.vendor || "",
+        kategori1: "",
+        kategori2: "",
       });
       setUploadedImages(item.gambar || []);
     } else {
@@ -92,6 +98,8 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         harga: "",
         satuan: "pcs",
         vendor: "",
+        kategori1: "",
+        kategori2: "",
       });
       setUploadedImages([]);
     }
@@ -123,6 +131,8 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
       satuan: formData.satuan,
       vendor: formData.vendor,
       gambar: uploadedImages,
+      kategori1: "",
+      kategori2: "",
     };
     onSave(newItem);
     onClose();

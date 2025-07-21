@@ -57,6 +57,14 @@ import {
   HeaderActions,
   SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface Warehouse {
   id: string;
@@ -322,25 +330,40 @@ export default function WarehousePage() {
           </Table>
 
           {/* Pagination Controls */}
-          <div className="flex justify-end space-x-2 py-2">
-            <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
-              Prev
-            </Button>
-            {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
-              <Button
-                key={p}
-                variant={p === page ? undefined : "ghost"}
-                onClick={() => setPage(p)}
-              >
-                {p}
-              </Button>
-            ))}
-            <Button
-              disabled={page === pageCount}
-              onClick={() => setPage(page + 1)}
-            >
-              Next
-            </Button>
+          <div className="flex justify-end pt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                    aria-disabled={page === 1}
+                    className={
+                      page === 1 ? "pointer-events-none opacity-50" : ""
+                    }
+                  />
+                </PaginationItem>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
+                  <PaginationItem key={p}>
+                    <PaginationLink onClick={() => setPage(p)}>
+                      {p}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => {
+                      if (page < pageCount) {
+                        setPage((prev) => Math.min(prev + 1, pageCount));
+                      }
+                    }}
+                    aria-disabled={page === pageCount}
+                    className={
+                      page === pageCount ? "pointer-events-none opacity-50" : ""
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         </CardContent>
       </Card>

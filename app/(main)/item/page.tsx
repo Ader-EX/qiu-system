@@ -69,6 +69,8 @@ export interface Product {
   satuan: string;
   vendor: string;
   gambar: StaticImageData[];
+  kategori1: string;
+  kategori2: string;
 }
 
 const initialProducts: Product[] = [
@@ -83,6 +85,8 @@ const initialProducts: Product[] = [
     satuan: "pcs",
     vendor: "Dell",
     gambar: [carouselone, carouseltwo, carouselthree],
+    kategori1: "Komputer",
+    kategori2: "Premium",
   },
   {
     id: "2",
@@ -95,6 +99,8 @@ const initialProducts: Product[] = [
     satuan: "pcs",
     vendor: "Logitech",
     gambar: [carouselone, carouseltwo, carouselthree],
+    kategori1: "Input Device",
+    kategori2: "Budget",
   },
   {
     id: "3",
@@ -107,6 +113,8 @@ const initialProducts: Product[] = [
     satuan: "pcs",
     vendor: "Generic",
     gambar: [carouselone, carouseltwo, carouselthree],
+    kategori1: "Input Device",
+    kategori2: "Gaming",
   },
   {
     id: "4",
@@ -119,6 +127,8 @@ const initialProducts: Product[] = [
     satuan: "pcs",
     vendor: "Generic",
     gambar: [carouselone, carouseltwo, carouselthree],
+    kategori1: "Display",
+    kategori2: "Premium",
   },
   {
     id: "5",
@@ -131,6 +141,8 @@ const initialProducts: Product[] = [
     satuan: "pcs",
     vendor: "Generic",
     gambar: [carouselone, carouseltwo, carouselthree],
+    kategori1: "Audio",
+    kategori2: "Gaming",
   },
   {
     id: "6",
@@ -143,6 +155,8 @@ const initialProducts: Product[] = [
     satuan: "pcs",
     vendor: "Samsung",
     gambar: [carouselone, carouseltwo, carouselthree],
+    kategori1: "Storage Device",
+    kategori2: "Professional",
   },
   {
     id: "7",
@@ -155,6 +169,8 @@ const initialProducts: Product[] = [
     satuan: "pcs",
     vendor: "Generic",
     gambar: [carouselone, carouseltwo, carouselthree],
+    kategori1: "Memory",
+    kategori2: "Professional",
   },
   {
     id: "8",
@@ -167,8 +183,11 @@ const initialProducts: Product[] = [
     satuan: "pcs",
     vendor: "Generic",
     gambar: [carouselone, carouseltwo, carouselthree],
+    kategori1: "Camera",
+    kategori2: "Budget",
   },
 ];
+
 type ViewMode = "grid" | "table" | "list";
 
 export default function ProdukPage() {
@@ -187,6 +206,8 @@ export default function ProdukPage() {
     satuan: "pcs",
     vendor: "Generic",
     gambar: [carouselone, carouseltwo, carouselthree],
+    kategori1: "Camera",
+    kategori2: "Budget",
   });
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [searchTerm, setSearchTerm] = useState(
@@ -194,6 +215,12 @@ export default function ProdukPage() {
   );
   const [filterStatus, setFilterStatus] = useState(
     searchParams.get("status") || ""
+  );
+  const [filterKategori1, setFilterKategori1] = useState(
+    searchParams.get("kategori1") || ""
+  );
+  const [filterKategori2, setFilterKategori2] = useState(
+    searchParams.get("kategori2") || ""
   );
   const [filterCategory, setFilterCategory] = useState(
     searchParams.get("category") || ""
@@ -247,8 +274,14 @@ export default function ProdukPage() {
     setIsDialogOpen(false);
   };
 
-  // Filter / paginate
   const categories = Array.from(new Set(products.map((p) => p.type)));
+  const kategori1Options = Array.from(
+    new Set(products.map((p) => p.kategori1))
+  );
+  const kategori2Options = Array.from(
+    new Set(products.map((p) => p.kategori2))
+  );
+
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
       p.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -258,14 +291,45 @@ export default function ProdukPage() {
       !filterStatus || filterStatus === "all" || p.status === filterStatus;
     const matchesCat =
       !filterCategory || filterCategory === "all" || p.type === filterCategory;
-    return matchesSearch && matchesStatus && matchesCat;
+    const matchesKategori1 =
+      !filterKategori1 ||
+      filterKategori1 === "all" ||
+      p.kategori1 === filterKategori1;
+    const matchesKategori2 =
+      !filterKategori2 ||
+      filterKategori2 === "all" ||
+      p.kategori2 === filterKategori2;
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesCat &&
+      matchesKategori1 &&
+      matchesKategori2
+    );
   });
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(
     startIndex,
     startIndex + itemsPerPage
   );
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const handleKategori1Change = (value: string) => {
+    setFilterKategori1(value);
+    setCurrentPage(1);
+    updateURL({
+      kategori1: value === "all" ? "" : value,
+      page: "1",
+    });
+  };
+
+  const handleKategori2Change = (value: string) => {
+    setFilterKategori2(value);
+    setCurrentPage(1);
+    updateURL({
+      kategori2: value === "all" ? "" : value,
+      page: "1",
+    });
+  };
 
   const handleDelete = (id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
@@ -585,6 +649,32 @@ export default function ProdukPage() {
               {categories.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterKategori1} onValueChange={handleKategori1Change}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Pilih kategori 1" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kategori 1</SelectItem>
+              {kategori1Options.map((kategori1) => (
+                <SelectItem key={kategori1} value={kategori1}>
+                  {kategori1}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterKategori2} onValueChange={handleKategori2Change}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Pilih kategori 2" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kategori 2</SelectItem>
+              {kategori2Options.map((kategori2) => (
+                <SelectItem key={kategori2} value={kategori2}>
+                  {kategori2}
                 </SelectItem>
               ))}
             </SelectContent>
