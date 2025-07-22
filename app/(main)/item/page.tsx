@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import {
-  Plus,
-  Search,
-  Grid3X3,
-  List,
-  Upload,
-  TableIcon,
-} from "lucide-react";
+import { Plus, Search, Grid3X3, List, Upload, TableIcon } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,13 +23,13 @@ import useProductStore from "@/store/useProductStore";
 import toast from "react-hot-toast";
 import ProductListView from "@/components/Product/ProductListView";
 import { StaticImageData } from "next/image";
-import carouselone from "@/public/carouselone.jpg"
+import carouselone from "@/public/carouselone.jpg";
 
-import carouseltwo from "@/public/carouseltwo.jpg"
+import carouseltwo from "@/public/carouseltwo.jpg";
 
-import carouselthree from "@/public/carouselthree.jpg"
+import carouselthree from "@/public/carouselthree.jpg";
 import ProductTableView from "@/components/Product/ProductTableView";
-import {Pagination} from "@/components/ui/pagination";
+import { Pagination } from "@/components/ui/pagination";
 
 export interface Product {
   id: string;
@@ -48,7 +41,7 @@ export interface Product {
   harga: number;
   satuan: string;
   vendor: string;
-  gambar: StaticImageData[];
+  gambar: (StaticImageData | string)[];
   kategori1: string;
   kategori2: string;
 }
@@ -168,12 +161,10 @@ const initialProducts: Product[] = [
   },
 ];
 
-
-const   ProdukPage = () => {
+const ProdukPage = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
 
   // Zustand store
   const {
@@ -226,7 +217,8 @@ const   ProdukPage = () => {
     const kategori1 = searchParams.get("kategori1") || "";
     const kategori2 = searchParams.get("kategori2") || "";
     const category = searchParams.get("category") || "";
-    const view = (searchParams.get("view") as "grid" | "list" | "table") || "grid";
+    const view =
+      (searchParams.get("view") as "grid" | "list" | "table") || "grid";
     const page = parseInt(searchParams.get("page") || "1");
 
     if (search) setSearchTerm(search);
@@ -251,37 +243,37 @@ const   ProdukPage = () => {
   // Handlers with URL sync
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    updateURL({search: value, page: "1"});
+    updateURL({ search: value, page: "1" });
   };
 
   const handleStatusChange = (value: string) => {
     setFilterStatus(value);
-    updateURL({status: value === "all" ? "" : value, page: "1"});
+    updateURL({ status: value === "all" ? "" : value, page: "1" });
   };
 
   const handleCategoryChange = (value: string) => {
     setFilterCategory(value);
-    updateURL({category: value === "all" ? "" : value, page: "1"});
+    updateURL({ category: value === "all" ? "" : value, page: "1" });
   };
 
   const handleKategori1Change = (value: string) => {
     setFilterKategori1(value);
-    updateURL({kategori1: value === "all" ? "" : value, page: "1"});
+    updateURL({ kategori1: value === "all" ? "" : value, page: "1" });
   };
 
   const handleKategori2Change = (value: string) => {
     setFilterKategori2(value);
-    updateURL({kategori2: value === "all" ? "" : value, page: "1"});
+    updateURL({ kategori2: value === "all" ? "" : value, page: "1" });
   };
 
   const handleViewChange = (mode: "grid" | "list" | "table") => {
     setViewMode(mode);
-    updateURL({view: mode});
+    updateURL({ view: mode });
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    updateURL({page: String(page)});
+    updateURL({ page: String(page) });
   };
 
   // Dialog handlers
@@ -308,144 +300,142 @@ const   ProdukPage = () => {
   const paginatedProducts = getPaginatedProducts();
 
   return (
-      <div className="space-y-6">
-        <SidebarHeaderBar
-            title="Items"
-            rightContent={
-              <HeaderActions.ActionGroup>
-                <Button variant="outline" size="sm">
-                  <Upload className="h-4 w-4 mr-2"/>
-                  Import
-                </Button>
-                <Button size="sm" onClick={openAddDialog}>
-                  <Plus className="h-4 w-4 mr-2"/>
-                  Tambah Item
-                </Button>
-              </HeaderActions.ActionGroup>
-            }
-        />
-
-        {/* Filters and View Controls */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-2 flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-              <Input
-                  placeholder="Cari produk..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-9 max-w-sm"
-              />
-            </div>
-
-            <Select value={filterCategory} onValueChange={handleCategoryChange}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Pilih kategori"/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Kategori</SelectItem>
-                {categories.map((category: string) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterKategori1} onValueChange={handleKategori1Change}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Pilih kategori 1"/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Kategori 1</SelectItem>
-                {kategori1Options.map((kategori1: string) => (
-                    <SelectItem key={kategori1} value={kategori1}>
-                      {kategori1}
-                    </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterKategori2} onValueChange={handleKategori2Change}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Pilih kategori 2"/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Kategori 2</SelectItem>
-                {kategori2Options.map((kategori2: string) => (
-                    <SelectItem key={kategori2} value={kategori2}>
-                      {kategori2}
-                    </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterStatus} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Pilih status"/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="active">Aktif</SelectItem>
-                <SelectItem value="inactive">Tidak Aktif</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center border rounded-lg">
-            <Button
-                size="sm"
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                onClick={() => handleViewChange("grid")}
-                className="rounded-r-none"
-            >
-              <Grid3X3 className="h-4 w-4"/>
+    <div className="space-y-6">
+      <SidebarHeaderBar
+        title="Items"
+        rightContent={
+          <HeaderActions.ActionGroup>
+            <Button variant="outline" size="sm">
+              <Upload className="h-4 w-4 mr-2" />
+              Import
             </Button>
-            <Button
-                size="sm"
-                variant={viewMode === "list" ? "default" : "ghost"}
-                onClick={() => handleViewChange("list")}
-                className="border-x"
-            >
-              <List className="h-4 w-4"/>
+            <Button size="sm" onClick={openAddDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Item
             </Button>
-            <Button
-                size="sm"
-                variant={viewMode === "table" ? "default" : "ghost"}
-                onClick={() => handleViewChange("table")}
-                className="rounded-l-none"
-            >
-              <TableIcon className="h-4 w-4"/>
-            </Button>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          {viewMode === "grid" && (
-              <ProductGridView/>
-          )}
-          {viewMode === "list" && <ProductListView/>}
-          {viewMode === "table" && <ProductTableView/>}
-        </div>
-
-        {/* Pagination */}
-        <Pagination/>
-
-        {/* Dialogs */}
-        <AddEditItemDialog
-            item={editingItem}
-            isOpen={isAddEditDialogOpen}
-            onClose={closeAddEditDialog}
-            onSave={handleDialogSave}
-        />
-        {selectedProduct &&
-            <ProductDetailDialog
-            isOpen={isDetailDialogOpen}
-            onClose={closeDetailDialog}
-            product={selectedProduct}
-        />
+          </HeaderActions.ActionGroup>
         }
+      />
+
+      {/* Filters and View Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-2 flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari produk..."
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-9 max-w-sm"
+            />
+          </div>
+
+          {/* <Select value={filterCategory} onValueChange={handleCategoryChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Pilih kategori" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kategori</SelectItem>
+              {categories.map((category: string) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select> */}
+
+          <Select value={filterKategori1} onValueChange={handleKategori1Change}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Pilih kategori 1" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kategori 1</SelectItem>
+              {kategori1Options.map((kategori1: string) => (
+                <SelectItem key={kategori1} value={kategori1 || "elektronik"}>
+                  {kategori1}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterKategori2} onValueChange={handleKategori2Change}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Pilih kategori 2" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kategori 2</SelectItem>
+              {kategori2Options.map((kategori2: string) => (
+                <SelectItem key={kategori2} value={kategori2 || "elektronik"}>
+                  {kategori2}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterStatus} onValueChange={handleStatusChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Pilih status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Status</SelectItem>
+              <SelectItem value="active">Aktif</SelectItem>
+              <SelectItem value="inactive">Tidak Aktif</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center border rounded-lg">
+          <Button
+            size="sm"
+            variant={viewMode === "grid" ? "default" : "ghost"}
+            onClick={() => handleViewChange("grid")}
+            className="rounded-r-none"
+          >
+            <Grid3X3 className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant={viewMode === "list" ? "default" : "ghost"}
+            onClick={() => handleViewChange("list")}
+            className="border-x"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant={viewMode === "table" ? "default" : "ghost"}
+            onClick={() => handleViewChange("table")}
+            className="rounded-l-none"
+          >
+            <TableIcon className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      <div className="overflow-x-auto">
+        {viewMode === "grid" && <ProductGridView />}
+        {viewMode === "list" && <ProductListView />}
+        {viewMode === "table" && <ProductTableView />}
+      </div>
+
+      {/* Pagination */}
+      <Pagination />
+
+      {/* Dialogs */}
+      <AddEditItemDialog
+        item={editingItem}
+        isOpen={isAddEditDialogOpen}
+        onClose={closeAddEditDialog}
+        onSave={handleDialogSave}
+      />
+      {selectedProduct && (
+        <ProductDetailDialog
+          isOpen={isDetailDialogOpen}
+          onClose={closeDetailDialog}
+          product={selectedProduct}
+        />
+      )}
+    </div>
   );
-}
-export default ProdukPage
+};
+export default ProdukPage;

@@ -17,12 +17,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import carouselone from "@/public/carouselone.jpg";
 import { Badge } from "@/components/ui/badge";
 import Image, { StaticImageData } from "next/image";
 import { Product } from "@/app/(main)/item/page";
 
 interface ImageCarouselProps {
-  photos: StaticImageData[];
+  photos: (StaticImageData | string)[];
   productName: string;
   intervalMs?: number;
   jumlah: number;
@@ -32,57 +33,60 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
   photos,
   productName,
   intervalMs = 2000,
-  jumlah,
 }) => {
+  // 1. filter out empty strings & nulls
+  const validPhotos = photos.filter(
+    (src): src is StaticImageData =>
+      (typeof src === "string" && src !== "") || typeof src !== "string"
+  );
+
+  // 2. if nothing left, use the placeholder
+  const displayPhotos =
+    validPhotos.length > 0
+      ? validPhotos
+      : ([carouselone] as (string | StaticImageData)[]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!isHovered || photos.length <= 1) return;
-
+    if (!isHovered || displayPhotos.length <= 1) return;
     intervalRef.current = window.setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % photos.length);
+      setCurrentIndex((i) => (i + 1) % displayPhotos.length);
     }, intervalMs);
-
     return () => {
-      if (intervalRef.current !== null) {
+      if (intervalRef.current != null)
         window.clearInterval(intervalRef.current);
-      }
     };
-  }, [isHovered, photos.length, intervalMs]);
-
-  const handleMouseEnter = () => setIsHovered(true);
-  const handleMouseLeave = () => setIsHovered(false);
-
-  if (!photos.length) return null;
+  }, [isHovered, displayPhotos.length, intervalMs]);
 
   return (
     <div
       className="relative w-full aspect-square overflow-hidden rounded-lg bg-gray-100"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div
         className="flex h-full w-full transition-transform duration-500 ease-in-out"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
       >
-        {photos.map((src, idx) => (
+        {displayPhotos.map((src, idx) => (
           <div key={idx} className="relative flex-shrink-0 w-full h-full">
             <Image
               src={src}
-              alt={`${productName} - Image ${idx + 1}`}
+              alt={`${productName} – Image ${idx + 1}`}
               fill
               className="object-cover hover:scale-105 transition-all"
-              sizes="(max-width: 768px) 07vw, (max-width: 1200px) 50vw, 33vw"
+              sizes="(max-width: 768px) 70vw, (max-width: 1200px) 50vw, 33vw"
             />
           </div>
         ))}
       </div>
 
-      {photos.length > 1 && (
+      {displayPhotos.length > 1 && (
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-          {photos.map((_, idx) => (
+          {displayPhotos.map((_, idx) => (
             <button
               key={idx}
               className={`w-2 h-2 rounded-full transition-all duration-200 ${

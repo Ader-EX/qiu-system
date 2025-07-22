@@ -29,21 +29,7 @@ import {
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
-      <SidebarHeaderBar
-        title="Dashboard"
-        rightContent={
-          <HeaderActions.ActionGroup>
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah
-            </Button>
-          </HeaderActions.ActionGroup>
-        }
-      />
+      <SidebarHeaderBar title="Dashboard" />
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
