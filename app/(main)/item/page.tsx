@@ -1,42 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import {
   Plus,
   Search,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Eye,
   Grid3X3,
   List,
-  Table,
-  ChevronLeft,
-  ChevronRight,
-  TableIcon,
   Upload,
+  TableIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table as TableComponent,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { AlertSuccess } from "@/components/alert-success";
 import {
   Select,
   SelectContent,
@@ -44,19 +19,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getStockStatus } from "@/lib/utils";
 import { ProductGridView } from "@/components/Product/ProductGridView";
-import carouselone from "@/public/carouselone.jpg";
-import carouseltwo from "@/public/carouseltwo.jpg";
-import carouselthree from "@/public/carouselthree.jpg";
-import Image, { StaticImageData } from "next/image";
-import toast from "react-hot-toast";
 import AddEditItemDialog from "@/components/Product/AddEditItemDialog";
 import {
   HeaderActions,
   SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
 import { ProductDetailDialog } from "@/components/Product/ProductDetailDialog";
+import useProductStore from "@/store/useProductStore";
+import toast from "react-hot-toast";
+import ProductListView from "@/components/Product/ProductListView";
+import { StaticImageData } from "next/image";
+import carouselone from "@/public/carouselone.jpg"
+
+import carouseltwo from "@/public/carouseltwo.jpg"
+
+import carouselthree from "@/public/carouselthree.jpg"
+import ProductTableView from "@/components/Product/ProductTableView";
+import {Pagination} from "@/components/ui/pagination";
 
 export interface Product {
   id: string;
@@ -188,57 +168,77 @@ const initialProducts: Product[] = [
   },
 ];
 
-type ViewMode = "grid" | "table" | "list";
 
-export default function ProdukPage() {
+const   ProdukPage = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [selectedProduct, setSelectedProduct] = useState<Product>({
-    id: "8",
-    nama: "Webcam HD 1080p",
-    SKU: "WEB-HD-1080-008",
-    type: "Aksesoris",
-    status: "active",
-    jumlah: 3,
-    harga: 250000,
-    satuan: "pcs",
-    vendor: "Generic",
-    gambar: [carouselone, carouseltwo, carouselthree],
-    kategori1: "Camera",
-    kategori2: "Budget",
-  });
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [searchTerm, setSearchTerm] = useState(
-    searchParams.get("search") || ""
-  );
-  const [filterStatus, setFilterStatus] = useState(
-    searchParams.get("status") || ""
-  );
-  const [filterKategori1, setFilterKategori1] = useState(
-    searchParams.get("kategori1") || ""
-  );
-  const [filterKategori2, setFilterKategori2] = useState(
-    searchParams.get("kategori2") || ""
-  );
-  const [filterCategory, setFilterCategory] = useState(
-    searchParams.get("category") || ""
-  );
-  const [viewMode, setViewMode] = useState<ViewMode>(
-    (searchParams.get("view") as ViewMode) || "grid"
-  );
-  const [currentPage, setCurrentPage] = useState(
-    parseInt(searchParams.get("page") || "1")
-  );
-  const itemsPerPage = 6;
 
-  // Dialog state
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [editingItem, setEditingItem]: any = useState(null);
+  // Zustand store
+  const {
+    // State
+    searchTerm,
+    filterStatus,
+    filterKategori1,
+    filterKategori2,
+    filterCategory,
+    viewMode,
+    currentPage,
+    isAddEditDialogOpen,
+    isDetailDialogOpen,
+    editingItem,
+    selectedProduct,
 
-  // Helpers for URL sync
+    // Actions
+    setProducts,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    setSearchTerm,
+    setFilterStatus,
+    setFilterKategori1,
+    setFilterKategori2,
+    setFilterCategory,
+    setViewMode,
+    setCurrentPage,
+    openAddDialog,
+    openEditDialog,
+    closeAddEditDialog,
+    openDetailDialog,
+    closeDetailDialog,
+
+    // Computed values
+    getFilteredProducts,
+    getPaginatedProducts,
+    getCategories,
+    getKategori1Options,
+    getKategori2Options,
+  } = useProductStore();
+
+  // Initialize products and sync with URL params
+  useEffect(() => {
+    setProducts(initialProducts);
+
+    // Sync URL params with store
+    const search = searchParams.get("search") || "";
+    const status = searchParams.get("status") || "";
+    const kategori1 = searchParams.get("kategori1") || "";
+    const kategori2 = searchParams.get("kategori2") || "";
+    const category = searchParams.get("category") || "";
+    const view = (searchParams.get("view") as "grid" | "list" | "table") || "grid";
+    const page = parseInt(searchParams.get("page") || "1");
+
+    if (search) setSearchTerm(search);
+    if (status) setFilterStatus(status);
+    if (kategori1) setFilterKategori1(kategori1);
+    if (kategori2) setFilterKategori2(kategori2);
+    if (category) setFilterCategory(category);
+    setViewMode(view);
+    setCurrentPage(page);
+  }, []);
+
+  // URL sync helper
   const updateURL = (params: Record<string, string>) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
     Object.entries(params).forEach(([k, v]) => {
@@ -248,506 +248,204 @@ export default function ProdukPage() {
     router.push(`${pathname}${q ? `?${q}` : ""}`);
   };
 
-  // Handlers for dialog
-  const handleAddNew = () => {
-    setEditingItem(null);
-    setIsDialogOpen(true);
-  };
-  const handleEdit = (item: Product) => {
-    setEditingItem(item);
-    setIsDialogOpen(true);
-  };
-  const handleDialogClose = () => setIsDialogOpen(false);
-  const handleDialogSave = (itemData: Product) => {
-    if (editingItem) {
-      // update
-      setProducts((prev) =>
-        prev.map((p) => (p.id === itemData.id ? itemData : p))
-      );
-      toast.success("Produk berhasil diperbarui!");
-    } else {
-      // add
-      const newItem = { ...itemData, id: String(Date.now()) };
-      setProducts((prev) => [newItem, ...prev]);
-      toast.success("Produk berhasil ditambahkan!");
-    }
-    setIsDialogOpen(false);
+  // Handlers with URL sync
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    updateURL({search: value, page: "1"});
   };
 
-  const categories = Array.from(new Set(products.map((p) => p.type)));
-  const kategori1Options = Array.from(
-    new Set(products.map((p) => p.kategori1))
-  );
-  const kategori2Options = Array.from(
-    new Set(products.map((p) => p.kategori2))
-  );
+  const handleStatusChange = (value: string) => {
+    setFilterStatus(value);
+    updateURL({status: value === "all" ? "" : value, page: "1"});
+  };
 
-  const filteredProducts = products.filter((p) => {
-    const matchesSearch =
-      p.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.SKU.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.type.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      !filterStatus || filterStatus === "all" || p.status === filterStatus;
-    const matchesCat =
-      !filterCategory || filterCategory === "all" || p.type === filterCategory;
-    const matchesKategori1 =
-      !filterKategori1 ||
-      filterKategori1 === "all" ||
-      p.kategori1 === filterKategori1;
-    const matchesKategori2 =
-      !filterKategori2 ||
-      filterKategori2 === "all" ||
-      p.kategori2 === filterKategori2;
-    return (
-      matchesSearch &&
-      matchesStatus &&
-      matchesCat &&
-      matchesKategori1 &&
-      matchesKategori2
-    );
-  });
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProducts = filteredProducts.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const handleCategoryChange = (value: string) => {
+    setFilterCategory(value);
+    updateURL({category: value === "all" ? "" : value, page: "1"});
+  };
+
   const handleKategori1Change = (value: string) => {
     setFilterKategori1(value);
-    setCurrentPage(1);
-    updateURL({
-      kategori1: value === "all" ? "" : value,
-      page: "1",
-    });
+    updateURL({kategori1: value === "all" ? "" : value, page: "1"});
   };
 
   const handleKategori2Change = (value: string) => {
     setFilterKategori2(value);
-    setCurrentPage(1);
-    updateURL({
-      kategori2: value === "all" ? "" : value,
-      page: "1",
-    });
+    updateURL({kategori2: value === "all" ? "" : value, page: "1"});
+  };
+
+  const handleViewChange = (mode: "grid" | "list" | "table") => {
+    setViewMode(mode);
+    updateURL({view: mode});
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    updateURL({page: String(page)});
+  };
+
+  // Dialog handlers
+  const handleDialogSave = (itemData: Product) => {
+    if (editingItem) {
+      updateProduct(itemData);
+      toast.success("Produk berhasil diperbarui!");
+    } else {
+      addProduct(itemData);
+      toast.success("Produk berhasil ditambahkan!");
+    }
+    closeAddEditDialog();
   };
 
   const handleDelete = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    deleteProduct(id);
     toast.success("Produk berhasil dihapus!");
   };
 
-  // Change handlers
-  const handleSearchChange = (v: string) => {
-    setSearchTerm(v);
-    setCurrentPage(1);
-    updateURL({ search: v, page: "1" });
-  };
-  const handleStatusChange = (v: string) => {
-    setFilterStatus(v);
-    setCurrentPage(1);
-    updateURL({ status: v, page: "1" });
-  };
-  const handleCategoryChange = (v: string) => {
-    setFilterCategory(v);
-    setCurrentPage(1);
-    updateURL({ category: v, page: "1" });
-  };
-  const handleViewChange = (m: ViewMode) => {
-    setViewMode(m);
-    updateURL({ view: m });
-  };
-  const handlePageChange = (p: number) => {
-    setCurrentPage(p);
-    updateURL({ page: String(p) });
-  };
-
-  // List View Component - Updated to match the design
-  const ListView = () => (
-    <div className="space-y-2 min-w-[900px]">
-      {paginatedProducts.map((product) => {
-        const stockStatus = getStockStatus(product.jumlah);
-        return (
-          <Card
-            key={product.id}
-            className="hover:shadow-sm transition-shadow min-w-[900px]"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4 flex-1">
-                  {/* Product Image Placeholder */}
-                  <Image
-                    src={product.gambar[0] || carouselone}
-                    alt=""
-                    width={44}
-                    height={44}
-                    className="w-12 h-12  rounded flex-shrink-0"
-                  />
-                  {/* Product Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-base truncate">
-                      {product.nama}
-                    </h3>
-                    <div className="flex items-center space-x-4 mt-1">
-                      <p className="text-sm text-gray-500">
-                        SKU : {product.SKU}
-                      </p>
-                      <p className="text-sm font-semibold text-green-600">
-                        Rp {product.harga}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Stock Status */}
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-sm text-gray-600 mb-1">
-                      {product.jumlah} {product.satuan} tersisa
-                    </div>
-                    <Badge variant={stockStatus.variant} className={`text-xs `}>
-                      {stockStatus.label}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0 ml-2">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setIsDetailOpen(true);
-                        setSelectedProduct(product);
-                      }}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      Lihat Detail
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleEdit(product)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleDelete(product.id)}
-                      className="text-red-600"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Hapus
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
-
-  // Table View Component - Updated to match the design
-  const TableView = () => (
-    <Card>
-      <CardContent className="p-0 min-w-[900px]">
-        <TableComponent>
-          <TableHeader>
-            <TableRow className="bg-gray-50">
-              <TableHead className="font-semibold">Item ID</TableHead>
-              <TableHead className="font-semibold">Item</TableHead>
-              <TableHead className="font-semibold">Jumlah</TableHead>
-              <TableHead className="font-semibold">Unit</TableHead>
-              <TableHead className="font-semibold">Satuan</TableHead>
-              <TableHead className="font-semibold">Harga Jual (Rp)</TableHead>
-              <TableHead className="font-semibold">Vendor</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="text-right font-semibold">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedProducts.map((product) => {
-              const stockStatus = getStockStatus(product.jumlah);
-              return (
-                <TableRow key={product.id} className="hover:bg-gray-50">
-                  <TableCell className="font-medium">{product.id}</TableCell>
-                  <TableCell className="font-medium">{product.nama}</TableCell>
-                  <TableCell>{product.jumlah}</TableCell>
-                  <TableCell>{product.satuan}</TableCell>
-                  <TableCell>{product.satuan}</TableCell>
-                  <TableCell className="font-semibold">
-                    {product.harga}
-                  </TableCell>
-                  <TableCell>
-                    {product.vendor || "PT. Aksa Prima Jaya"}
-                  </TableCell>
-                  <TableCell>
-                    {product.jumlah <= 50 ? (
-                      <Badge className="bg-red-500 hover:bg-red-500 text-white text-xs">
-                        Tidak Aktif
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-green-500 hover:bg-green-500 text-white text-xs">
-                        Aktif
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setIsDetailOpen(true);
-                            setSelectedProduct(product);
-                          }}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          Lihat Detail
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(product)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(product.id)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Hapus
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </TableComponent>
-      </CardContent>
-    </Card>
-  );
-
-  // Pagination Component
-  const Pagination = () => {
-    if (totalPages <= 1) return null;
-
-    const getVisiblePages = () => {
-      const delta = 2;
-      const range = [];
-      const rangeWithDots = [];
-
-      for (
-        let i = Math.max(2, currentPage - delta);
-        i <= Math.min(totalPages - 1, currentPage + delta);
-        i++
-      ) {
-        range.push(i);
-      }
-
-      if (currentPage - delta > 2) {
-        rangeWithDots.push(1, "...");
-      } else {
-        rangeWithDots.push(1);
-      }
-
-      rangeWithDots.push(...range);
-
-      if (currentPage + delta < totalPages - 1) {
-        rangeWithDots.push("...", totalPages);
-      } else {
-        rangeWithDots.push(totalPages);
-      }
-
-      return rangeWithDots;
-    };
-
-    return (
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Menampilkan {startIndex + 1}-
-          {Math.min(startIndex + itemsPerPage, filteredProducts.length)} dari{" "}
-          {filteredProducts.length} produk
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
-
-          {getVisiblePages().map((page, index) => (
-            <Button
-              key={index}
-              variant={page === currentPage ? "default" : "outline"}
-              size="sm"
-              onClick={() => typeof page === "number" && handlePageChange(page)}
-              disabled={page === "..."}
-              className={page === "..." ? "cursor-default" : ""}
-            >
-              {page}
-            </Button>
-          ))}
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
+  // Get computed values
+  const categories = getCategories();
+  const kategori1Options = getKategori1Options();
+  const kategori2Options = getKategori2Options();
+  const paginatedProducts = getPaginatedProducts();
 
   return (
-    <div className="space-y-6">
-      <SidebarHeaderBar
-        title="Items"
-        rightContent={
-          <HeaderActions.ActionGroup>
-            <Button variant="outline" size="sm">
-              <Upload className="h-4 w-4 mr-2" />
-              Import
-            </Button>
-            <Button size="sm" onClick={handleAddNew}>
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah Item
-            </Button>
-          </HeaderActions.ActionGroup>
-        }
-      />
-
-      {/* Filters and View Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-2 flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari produk..."
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-9 max-w-sm"
-            />
-          </div>
-          <Select value={filterCategory} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Pilih kategori" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Kategori</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterKategori1} onValueChange={handleKategori1Change}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Pilih kategori 1" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Kategori 1</SelectItem>
-              {kategori1Options.map((kategori1) => (
-                <SelectItem key={kategori1} value={kategori1}>
-                  {kategori1}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterKategori2} onValueChange={handleKategori2Change}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Pilih kategori 2" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Kategori 2</SelectItem>
-              {kategori2Options.map((kategori2) => (
-                <SelectItem key={kategori2} value={kategori2}>
-                  {kategori2}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Pilih status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Status</SelectItem>
-              <SelectItem value="active">Aktif</SelectItem>
-              <SelectItem value="inactive">Tidak Aktif</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center border rounded-lg">
-          <Button
-            size="sm"
-            variant={viewMode === "grid" ? "default" : "ghost"}
-            onClick={() => handleViewChange("grid")}
-            className="rounded-r-none"
-          >
-            <Grid3X3 className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant={viewMode === "list" ? "default" : "ghost"}
-            onClick={() => handleViewChange("list")}
-            className="border-x"
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant={viewMode === "table" ? "default" : "ghost"}
-            onClick={() => handleViewChange("table")}
-            className="rounded-l-none"
-          >
-            <TableIcon className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        {viewMode === "grid" && (
-          <ProductGridView
-            setSelectedProduct={setSelectedProduct}
-            setIsDetailOpen={setIsDetailOpen}
-            paginatedProducts={paginatedProducts}
-            handleDelete={handleDelete}
-          />
-        )}
-        {viewMode === "list" && <ListView />}
-        {viewMode === "table" && <TableView />}
-      </div>
-
-      {/* Pagination */}
-      <Pagination />
-
-      {/* Add/Edit Dialog */}
-      {isDialogOpen && (
-        <AddEditItemDialog
-          item={editingItem}
-          isOpen={isDialogOpen}
-          onClose={handleDialogClose}
-          onSave={handleDialogSave}
+      <div className="space-y-6">
+        <SidebarHeaderBar
+            title="Items"
+            rightContent={
+              <HeaderActions.ActionGroup>
+                <Button variant="outline" size="sm">
+                  <Upload className="h-4 w-4 mr-2"/>
+                  Import
+                </Button>
+                <Button size="sm" onClick={openAddDialog}>
+                  <Plus className="h-4 w-4 mr-2"/>
+                  Tambah Item
+                </Button>
+              </HeaderActions.ActionGroup>
+            }
         />
-      )}
-      <ProductDetailDialog
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        product={selectedProduct}
-      />
-    </div>
+
+        {/* Filters and View Controls */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-2 flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+              <Input
+                  placeholder="Cari produk..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="pl-9 max-w-sm"
+              />
+            </div>
+
+            <Select value={filterCategory} onValueChange={handleCategoryChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Pilih kategori"/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kategori</SelectItem>
+                {categories.map((category: string) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterKategori1} onValueChange={handleKategori1Change}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Pilih kategori 1"/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kategori 1</SelectItem>
+                {kategori1Options.map((kategori1: string) => (
+                    <SelectItem key={kategori1} value={kategori1}>
+                      {kategori1}
+                    </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterKategori2} onValueChange={handleKategori2Change}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Pilih kategori 2"/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kategori 2</SelectItem>
+                {kategori2Options.map((kategori2: string) => (
+                    <SelectItem key={kategori2} value={kategori2}>
+                      {kategori2}
+                    </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterStatus} onValueChange={handleStatusChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Pilih status"/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="active">Aktif</SelectItem>
+                <SelectItem value="inactive">Tidak Aktif</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center border rounded-lg">
+            <Button
+                size="sm"
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                onClick={() => handleViewChange("grid")}
+                className="rounded-r-none"
+            >
+              <Grid3X3 className="h-4 w-4"/>
+            </Button>
+            <Button
+                size="sm"
+                variant={viewMode === "list" ? "default" : "ghost"}
+                onClick={() => handleViewChange("list")}
+                className="border-x"
+            >
+              <List className="h-4 w-4"/>
+            </Button>
+            <Button
+                size="sm"
+                variant={viewMode === "table" ? "default" : "ghost"}
+                onClick={() => handleViewChange("table")}
+                className="rounded-l-none"
+            >
+              <TableIcon className="h-4 w-4"/>
+            </Button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          {viewMode === "grid" && (
+              <ProductGridView/>
+          )}
+          {viewMode === "list" && <ProductListView/>}
+          {viewMode === "table" && <ProductTableView/>}
+        </div>
+
+        {/* Pagination */}
+        <Pagination/>
+
+        {/* Dialogs */}
+        <AddEditItemDialog
+            item={editingItem}
+            isOpen={isAddEditDialogOpen}
+            onClose={closeAddEditDialog}
+            onSave={handleDialogSave}
+        />
+        {selectedProduct &&
+            <ProductDetailDialog
+            isOpen={isDetailDialogOpen}
+            onClose={closeDetailDialog}
+            product={selectedProduct}
+        />
+        }
+      </div>
   );
 }
+export default ProdukPage
