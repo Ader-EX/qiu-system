@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Plus, Search, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,15 +35,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -51,8 +45,9 @@ import {
   SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
 import toast from "react-hot-toast";
+import { VendorDetailDialog } from "@/components/vendor/VendorDetailDialog";
 
-interface Vendor {
+export interface Vendor {
   id: string;
   name: string;
   code: string;
@@ -101,6 +96,8 @@ export default function VendorPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -158,6 +155,16 @@ export default function VendorPage() {
     setEditingVendor(null);
     resetForm();
   };
+
+  const openDetailDialog = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    setDetailDialogOpen(true);
+  };
+
+  function closeDetailDialog() {
+    setSelectedVendor(null);
+    setDetailDialogOpen(false);
+  }
 
   const generateVendorCode = () => {
     const lastVendor = vendors.sort(
@@ -279,7 +286,7 @@ export default function VendorPage() {
                   <TableCell>
                     <Badge
                       variant={
-                        vendor.status === "active" ? "okay" : "destructive"
+                        vendor.status === "active" ? "okay" : "secondary"
                       }
                     >
                       {vendor.status === "active" ? "Aktif" : "Tidak Aktif"}
@@ -293,10 +300,13 @@ export default function VendorPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => openDetailDialog(vendor)}
+                        >
                           <Eye className="mr-2 h-4 w-4" />
                           Lihat Detail
                         </DropdownMenuItem>
+
                         <DropdownMenuItem
                           onClick={() => openEditDialog(vendor)}
                         >
@@ -448,6 +458,13 @@ export default function VendorPage() {
           </form>
         </DialogContent>
       </Dialog>
+      {selectedVendor && (
+        <VendorDetailDialog
+          isOpen={true}
+          onClose={() => setSelectedVendor(null)}
+          vendor={selectedVendor}
+        />
+      )}
     </div>
   );
 }

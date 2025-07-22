@@ -52,8 +52,9 @@ import {
   SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
 import toast from "react-hot-toast";
+import { CustomerDetailDialog } from "@/components/customer/CustomerDetailDialog";
 
-interface Customer {
+export interface Customer {
   id: string;
   name: string;
   code: string;
@@ -163,6 +164,9 @@ export default function CustomerPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null
+  );
 
   // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -383,7 +387,9 @@ export default function CustomerPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setSelectedCustomer(customer)}
+                        >
                           <Eye className="mr-2 h-4 w-4" />
                           Lihat Detail
                         </DropdownMenuItem>
@@ -519,7 +525,7 @@ export default function CustomerPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
+                <Label htmlFor="currency">Mata Uang</Label>
                 <Select
                   value={formData.currency}
                   onValueChange={(value) =>
@@ -582,6 +588,13 @@ export default function CustomerPage() {
           </form>
         </DialogContent>
       </Dialog>
+      {selectedCustomer && (
+        <CustomerDetailDialog
+          isOpen={!!selectedCustomer}
+          onClose={() => setSelectedCustomer(null)}
+          customer={selectedCustomer}
+        />
+      )}
     </div>
   );
 }
