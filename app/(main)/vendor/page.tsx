@@ -103,8 +103,8 @@ export default function VendorPage() {
     name: "",
     code: "",
     address: "",
-    currency: "IDR",
-    top: "CASH",
+    currency: "",
+    top: "",
     status: "active" as "active" | "inactive",
   });
 
@@ -124,8 +124,8 @@ export default function VendorPage() {
       name: "",
       code: "",
       address: "",
-      currency: "IDR",
-      top: "CASH",
+      currency: "",
+      top: "",
       status: "active",
     });
   };
@@ -143,8 +143,8 @@ export default function VendorPage() {
       name: vendor.name,
       code: vendor.code,
       address: vendor.address,
-      currency: vendor.currency,
-      top: vendor.top,
+      currency: vendor.currency || "-",
+      top: vendor.top || "-",
       status: vendor.status,
     });
     setIsDialogOpen(true);
@@ -172,7 +172,7 @@ export default function VendorPage() {
     )[0];
 
     const lastNumber = lastVendor ? parseInt(lastVendor.code.split("-")[1]) : 0;
-    return `VEN-${String(lastNumber + 1).padStart(3, "0")}`;
+    return `${String(lastNumber + 1).padStart(3, "0")}`;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -280,9 +280,11 @@ export default function VendorPage() {
                     {vendor.address}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {vendor.currency}
+                    {vendor.currency || "-"}
                   </TableCell>
-                  <TableCell className="font-medium">{vendor.top}</TableCell>
+                  <TableCell className="font-medium">
+                    {vendor.top || "-"}
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -406,7 +408,7 @@ export default function VendorPage() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Pilih mata uang" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="IDR">IDR</SelectItem>
@@ -424,7 +426,7 @@ export default function VendorPage() {
                   onValueChange={(value) => handleInputChange("top", value)}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Pilih jenis pembayaran" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="CASH">CASH</SelectItem>

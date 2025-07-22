@@ -178,8 +178,8 @@ export default function CustomerPage() {
     name: "",
     code: "",
     address: "",
-    currency: "IDR",
-    top: "NET 30",
+    currency: "",
+    top: "",
     status: "active" as "active" | "inactive",
   });
 
@@ -207,8 +207,8 @@ export default function CustomerPage() {
       name: "",
       code: "",
       address: "",
-      currency: "IDR",
-      top: "NET 30",
+      currency: "",
+      top: "",
       status: "active",
     });
   };
@@ -226,8 +226,8 @@ export default function CustomerPage() {
       name: customer.name,
       code: customer.code,
       address: customer.address,
-      currency: customer.currency,
-      top: customer.top,
+      currency: customer.currency || "-",
+      top: customer.top || "-",
       status: customer.status,
     });
     setIsDialogOpen(true);
@@ -367,9 +367,11 @@ export default function CustomerPage() {
                     {customer.address}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {customer.currency}
+                    {customer.currency || "-"}
                   </TableCell>
-                  <TableCell className="font-medium">{customer.top}</TableCell>
+                  <TableCell className="font-medium">
+                    {customer.top || "-"}
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -533,7 +535,7 @@ export default function CustomerPage() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Pilih mata uang" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="IDR">IDR</SelectItem>
@@ -551,7 +553,7 @@ export default function CustomerPage() {
                   onValueChange={(value) => handleInputChange("top", value)}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Pilih jenis pembayaran" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="CASH">CASH</SelectItem>
