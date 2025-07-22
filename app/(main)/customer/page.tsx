@@ -346,8 +346,8 @@ export default function CustomerPage() {
                 <TableHead>Id Customer</TableHead>
                 <TableHead>Nama Customer</TableHead>
                 <TableHead>Alamat</TableHead>
-                <TableHead>Currency</TableHead>
-                <TableHead>Term of Payment</TableHead>
+                <TableHead>Mata Uang</TableHead>
+                <TableHead>Jenis Pembayaran</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
@@ -539,7 +539,7 @@ export default function CustomerPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="top">Term of Payment</Label>
+                <Label htmlFor="top">Jenis Pembayaran</Label>
                 <Select
                   value={formData.top}
                   onValueChange={(value) => handleInputChange("top", value)}

@@ -279,7 +279,7 @@ export default function VendorPage() {
                   <TableCell>
                     <Badge
                       variant={
-                        vendor.status === "active" ? "okay" : "secondary"
+                        vendor.status === "active" ? "okay" : "destructive"
                       }
                     >
                       {vendor.status === "active" ? "Aktif" : "Tidak Aktif"}
@@ -388,7 +388,7 @@ export default function VendorPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
+                <Label htmlFor="currency">Mata Uang</Label>
                 <Select
                   value={formData.currency}
                   onValueChange={(value) =>
@@ -408,7 +408,7 @@ export default function VendorPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="top">Term of Payment</Label>
+                <Label htmlFor="top">Jenis Pembayaran</Label>
                 <Select
                   value={formData.top}
                   onValueChange={(value) => handleInputChange("top", value)}

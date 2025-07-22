@@ -330,8 +330,8 @@ export default function WarehousePage() {
           </Table>
 
           {/* Pagination Controls */}
-          <div className="flex justify-end pt-4">
-            <Pagination>
+          <div className="">
+            <Pagination className="flex w-full justify-end">
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious

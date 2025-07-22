@@ -19,7 +19,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Upload } from "lucide-react";
-import MultipleSelector from "../ui/MultipleSelector";
 
 // Data shape passed to onSave
 interface ItemData {
@@ -63,11 +62,20 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
     kategori1: "",
     kategori2: "",
   });
-  const vendorOptions = [
-    { label: "Vendor A", value: "Vendor A" },
-    { label: "Vendor B", value: "Vendor B" },
-    { label: "Vendor C", value: "Vendor C" },
+
+  const vendorOptions = ["Vendor A", "Vendor B", "Vendor C"];
+  const typeOptions = ["Elektronik", "Aksesoris", "Storage", "Hardware"];
+  const kategori1Options = [
+    "Komputer",
+    "Input Device",
+    "Display",
+    "Audio",
+    "Storage Device",
+    "Memory",
+    "Camera",
   ];
+  const kategori2Options = ["Premium", "Budget", "Gaming", "Professional"];
+
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   useEffect(() => {
@@ -83,8 +91,8 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         harga: item.harga?.toString() || "",
         satuan: item.satuan || "pcs",
         vendor: item.vendor || "",
-        kategori1: "",
-        kategori2: "",
+        kategori1: item.kategori1 || "",
+        kategori2: item.kategori2 || "",
       });
       setUploadedImages(item.gambar || []);
     } else {
@@ -131,8 +139,8 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
       satuan: formData.satuan,
       vendor: formData.vendor,
       gambar: uploadedImages,
-      kategori1: "",
-      kategori2: "",
+      kategori1: formData.kategori1,
+      kategori2: formData.kategori2,
     };
     onSave(newItem);
     onClose();
@@ -146,7 +154,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Row 1: type, status, id */}
+          {/* Row 1: nama, status */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="nama">Nama</Label>
@@ -157,9 +165,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 placeholder="Masukkan nama item"
               />
             </div>
-            {/* Type */}
 
-            {/* Status */}
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
@@ -175,13 +181,31 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            {/* ID */}
           </div>
 
-          {/* Row 2: nama, SKU, jumlah, harga */}
+          {/* Row 2: type, id */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="id"> Item ID</Label>
+              <Label htmlFor="type">Type</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(v) => handleInputChange("type", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {typeOptions.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="id">Item ID</Label>
               <Input
                 id="id"
                 value={formData.id}
@@ -189,19 +213,20 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 placeholder="JSD0001"
               />
             </div>
-            {/* Nama */}
+          </div>
 
-            {/* SKU */}
+          {/* Row 3: SKU, jumlah, harga */}
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="SKU">SKU</Label>
               <Input
                 id="SKU"
                 value={formData.SKU}
                 onChange={(e) => handleInputChange("SKU", e.target.value)}
-                placeholder=" SKU"
+                placeholder="SKU"
               />
             </div>
-            {/* Jumlah */}
+
             <div className="space-y-2">
               <Label htmlFor="jumlah">Jumlah Unit</Label>
               <Input
@@ -213,7 +238,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 min="0"
               />
             </div>
-            {/* Harga */}
+
             <div className="space-y-2">
               <Label htmlFor="harga">Harga Jual (Rp)</Label>
               <Input
@@ -227,10 +252,8 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
             </div>
           </div>
 
-          {/* Row 3: satuan, vendor */}
+          {/* Row 4: satuan, vendor */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Satuan */}
-
             <div className="space-y-2">
               <Label htmlFor="satuan">Satuan</Label>
               <Select
@@ -247,18 +270,65 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            {/* Vendor */}
+
             <div className="space-y-2">
               <Label htmlFor="vendor">Vendor</Label>
-              <MultipleSelector
-                defaultOptions={vendorOptions}
-                placeholder="Pilih Vendor"
-                emptyIndicator={
-                  <p className="text-center text-lg leading-10 text-gray-600 dark:text-gray-400">
-                    no results found.
-                  </p>
-                }
-              />
+              <Select
+                value={formData.vendor}
+                onValueChange={(v) => handleInputChange("vendor", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Vendor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendorOptions.map((vendor) => (
+                    <SelectItem key={vendor} value={vendor}>
+                      {vendor}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Row 5: categories */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="kategori1">Kategori 1</Label>
+              <Select
+                value={formData.kategori1}
+                onValueChange={(v) => handleInputChange("kategori1", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Kategori 1" />
+                </SelectTrigger>
+                <SelectContent>
+                  {kategori1Options.map((kategori) => (
+                    <SelectItem key={kategori} value={kategori}>
+                      {kategori}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="kategori2">Kategori 2</Label>
+              <Select
+                value={formData.kategori2}
+                onValueChange={(v) => handleInputChange("kategori2", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Kategori 2" />
+                </SelectTrigger>
+                <SelectContent>
+                  {kategori2Options.map((kategori) => (
+                    <SelectItem key={kategori} value={kategori}>
+                      {kategori}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -317,7 +387,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
             <Button
               onClick={handleSave}
               className="bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={!formData.nama || !formData.type}
+              disabled={!formData.nama}
             >
               {item ? "Update" : "Tambah"}
             </Button>
