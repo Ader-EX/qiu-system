@@ -1,126 +1,102 @@
 "use client";
 
 import {
-  Settings,
-  Package,
-  DollarSign,
-  CreditCard,
-  Warehouse,
-  Ruler,
+    Settings,
+    Package,
+    DollarSign,
+    CreditCard,
+    Warehouse,
+    Ruler,
 } from "lucide-react";
 import Link from "next/link";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import {
-  HeaderActions,
-  SidebarHeaderBar,
+    HeaderActions,
+    SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 
 const settingsItems = [
-  {
-    title: "Kategori 1",
-    description: "Kelola kategori utama untuk klasifikasi produk.",
-    icon: Package,
-    href: "/pengaturan/kategori-1",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-  },
-  {
-    title: "Kategori 2",
-    description: "Atur subkategori untuk detail pengelompokan produk.",
-    icon: Package,
-    href: "/pengaturan/kategori-2",
-    color: "text-green-600",
-    bgColor: "bg-green-50",
-  },
-  {
-    title: "Satuan",
-    description: "Kelola satuan produk (kg, pcs, liter, dll)",
-    icon: Ruler,
-    href: "/pengaturan/satuan",
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-  },
-  {
-    title: "Mata Uang",
-    description: "Kelola mata uang dan kurs",
-    icon: DollarSign,
-    href: "/pengaturan/mata-uang",
-    color: "text-yellow-600",
-    bgColor: "bg-yellow-50",
-  },
-  {
-    title: "Term Of Payment",
-    description: "Kelola metode pembayaran",
-    icon: CreditCard,
-    href: "/pengaturan/jenis-pembayaran",
-    color: "text-red-600",
-    bgColor: "bg-red-50",
-  },
-  {
-    title: "Warehouse",
-    description: "Kelola data gudang dan lokasi penyimpanan produk.",
-    icon: Warehouse,
-    href: "/pengaturan/warehouse",
-    color: "text-indigo-600",
-    bgColor: "bg-indigo-50",
-  },
+    {
+        title: "Kategori 1",
+        description: "Kelola kategori utama untuk klasifikasi produk.",
+        icon: Package,
+        href: "/pengaturan/kategori-1",
+        color: "text-blue-600",
+        bgColor: "bg-blue-50",
+    },
+    {
+        title: "Kategori 2",
+        description: "Atur subkategori untuk detail pengelompokan produk.",
+        icon: Package,
+        href: "/pengaturan/kategori-2",
+        color: "text-green-600",
+        bgColor: "bg-green-50",
+    },
+    {
+        title: "Satuan",
+        description: "Kelola satuan produk (kg, pcs, liter, dll)",
+        icon: Ruler,
+        href: "/pengaturan/satuan",
+        color: "text-purple-600",
+        bgColor: "bg-purple-50",
+    },
+    {
+        title: "Mata Uang",
+        description: "Kelola mata uang dan kurs",
+        icon: DollarSign,
+        href: "/pengaturan/mata-uang",
+        color: "text-yellow-600",
+        bgColor: "bg-yellow-50",
+    },
+    {
+        title: "Term Of Payment",
+        description: "Kelola metode pembayaran",
+        icon: CreditCard,
+        href: "/pengaturan/jenis-pembayaran",
+        color: "text-red-600",
+        bgColor: "bg-red-50",
+    },
+    {
+        title: "Warehouse",
+        description: "Kelola data gudang dan lokasi penyimpanan produk.",
+        icon: Warehouse,
+        href: "/pengaturan/warehouse",
+        color: "text-indigo-600",
+        bgColor: "bg-indigo-50",
+    },
 ];
 
 export default function PengaturanPage() {
-  return (
-    <div className="space-y-6">
-      <SidebarHeaderBar
-        title="Pengaturan"
-        rightContent={<HeaderActions.ActionGroup></HeaderActions.ActionGroup>}
-      />
-      <div className="flex items-center gap-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Settings className="h-6 w-6" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold">Pengaturan</h1>
-          <p className="text-muted-foreground">
-            Kelola pengaturan master data sistem inventory
-          </p>
-        </div>
-      </div>
+    return (
+        <div className="space-y-6">
+            <SidebarHeaderBar
+                title="Pengaturan"
+                rightContent={<HeaderActions.ActionGroup></HeaderActions.ActionGroup>}
+            />
+            <div className="flex items-center gap-4">
+                <Tabs defaultValue={"master"}>
+                    <TabsList>
+                        <TabsTrigger value={"master"}>Master Data</TabsTrigger>
+                        <TabsTrigger value={"akses"}>Akses Pengguna</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value={"master"}><MasterDataPengaturanTabs/></TabsContent>
+                    <TabsContent value={"akses"}>
+                        <div>Under Maintenance '-'</div>
+                        
+                    </TabsContent>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {settingsItems.map((item) => {
-          const IconComponent = item.icon;
-          return (
-            <Link key={item.href} href={item.href}>
-              <Card className="transition-all hover:shadow-md hover:scale-[1.02] min-h-[150px]">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-lg ${item.bgColor}`}
-                    >
-                      <IconComponent className={`h-5 w-5 ${item.color}`} />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{item.title}</CardTitle>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm">
-                    {item.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
+                </Tabs>
+            </div>
 
-      {/* <Card>
+
+            {/* <Card>
         <CardHeader>
           <CardTitle>Master Data Overview</CardTitle>
           <CardDescription>
@@ -174,6 +150,40 @@ export default function PengaturanPage() {
           </div>
         </CardContent>
       </Card> */}
-    </div>
-  );
+        </div>
+    );
+}
+
+const MasterDataPengaturanTabs = () => {
+    return (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {settingsItems.map((item) => {
+                const IconComponent = item.icon;
+                return (
+                    <Link key={item.href} href={item.href}>
+                        <Card className="transition-all hover:shadow-md hover:scale-[1.02] min-h-[150px]">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className={`flex h-10 w-10 items-center justify-center rounded-lg ${item.bgColor}`}
+                                    >
+                                        <IconComponent className={`h-5 w-5 ${item.color}`}/>
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg">{item.title}</CardTitle>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <CardDescription className="text-sm">
+                                    {item.description}
+                                </CardDescription>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                );
+            })}
+        </div>
+    )
+
 }

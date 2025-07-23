@@ -20,7 +20,6 @@ export interface Warehouse {
 }
 
 
-
 export interface Product {
     id: string;
     nama: string;
@@ -40,7 +39,7 @@ export interface Product {
 export interface Category {
     id: string;
     name: string;
-    status: "Aktif" | "Non Aktif";
+    status: boolean;
 }
 
 export interface Unit {

@@ -1,6 +1,7 @@
 import {
     Form,
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -15,65 +16,54 @@ import {z} from "zod";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 
+
 const formSchema = z.object({
+    status: z.boolean({required_error: "Status harus dipilih salah satu"}),
     name: z.string().min(2, {
-        message: "Nama harus minimal 2 karakter.",
+        message: "Nama harus memiliki minimal 2 karakter"
     }),
-    address: z.string().min(5, {
-        message: "Alamat harus minimal 5 karakter.",
-    }),
-    isActive: z.boolean({
-        required_error: "Status harus dipilih.",
-    }),
-});
 
-type FormData = z.infer<typeof formSchema>;
+})
 
-interface WarehouseFormProps {
-    editing?: boolean
-    initialData?: Partial<FormData>
-    onSubmit: (data: FormData) => void;
+type formData = z.infer<typeof formSchema>
+
+
+interface KategoriFormProps {
+    editing?: boolean;
+    initialdata?: Partial<formData>;
+    onSubmit: (data: formData) => void;
 }
 
-const WarehouseForm: React.FC<WarehouseFormProps> = ({editing = false, initialData, onSubmit}) => {
 
-    const form = useForm<FormData>({
+const KategoriForm: React.FC<KategoriFormProps> = ({editing = false, initialdata, onSubmit}) => {
+    const form = useForm<formData>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            name: initialData?.name || "",
-            address: initialData?.address || "",
-            isActive: initialData?.isActive || false
-
+            status: initialdata?.status || true,
+            name: initialdata?.name || "",
         }
     })
-
-    const handleSubmit = (data: FormData) => {
-        onSubmit(data)
+    const handleSubmit = (data: formData) => {
+        onSubmit(data);
     }
+
     return (
-        <Form {...form} >
+        <Form {...form}>
 
             <div className="grid grid-cols-1 gap-4 py-4">
                 <div className="flex flex-col space-y-4">
-
-                    <FormField name={"name"} render={({field}) => (
-                        <FormItem className="">
-                            <FormLabel className="text-right min-w-[80px]">
-                                Nama
-                            </FormLabel>
+                    <FormField control={form.control} name={"name"} render={({field}) => (
+                        <FormItem>
+                            <FormLabel className={"text-right min-w-[80px]"}>Nama</FormLabel>
                             <div className="flex-1">
                                 <FormControl>
-                                    <Input
-                                        placeholder="Masukkan nama warehouse"
-                                        {...field}
-                                    />
+                                    <Input placeholder="Masukkan Nama"
+                                           {...field}/>
                                 </FormControl>
-                                <FormMessage/>
                             </div>
                         </FormItem>
-                    )}
-                    />
 
+                    )}/>
                     <FormField control={form.control} render={({field}) => (
                         <FormItem className={""}>
                             <FormLabel className="text-right min-w-[80px]">Status</FormLabel>
@@ -98,25 +88,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({editing = false, initialDa
 
 
                         </FormItem>
-                    )} name={"isActive"}/>
-
-                    <FormField render={({field}) => (
-                        <FormItem>
-                            <FormLabel className="text-right min-w-[80px]">Alamat</FormLabel>
-                            <div className={"flex-1"}>
-                                <FormControl>
-                                    <Input
-                                        placeholder="Masukkan alamat"
-                                        {...field}
-                                    />
-                                </FormControl>
-                                <FormMessage/>
-                            </div>
-
-                        </FormItem>
-                    )} name={"address"}/>
-
-
+                    )} name={"status"}/>
                 </div>
             </div>
             <DialogFooter>
@@ -131,6 +103,6 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({editing = false, initialDa
             </DialogFooter>
         </Form>
     )
-}
 
-export default WarehouseForm;
+}
+export default KategoriForm
