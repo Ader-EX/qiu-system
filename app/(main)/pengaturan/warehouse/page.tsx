@@ -65,13 +65,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {Warehouse} from "@/types/types";
 
-interface Warehouse {
-  id: string;
-  name: string;
-  address: string;
-  isActive: boolean;
-}
 
 const initialWarehouses: Warehouse[] = [
   {

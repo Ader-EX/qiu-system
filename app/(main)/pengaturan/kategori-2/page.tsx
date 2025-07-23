@@ -49,12 +49,9 @@ import {
   HeaderActions,
   SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
+import {Category} from "@/types/types";
 
-interface Category {
-  id: string;
-  name: string;
-  status: "Aktif" | "Non Aktif";
-}
+
 
 const initialCategories: Category[] = [
   { id: "1", name: "Elektronik", status: "Aktif" },

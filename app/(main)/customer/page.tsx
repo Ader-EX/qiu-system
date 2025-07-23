@@ -53,16 +53,7 @@ import {
 } from "@/components/ui/SidebarHeaderBar";
 import toast from "react-hot-toast";
 import { CustomerDetailDialog } from "@/components/customer/CustomerDetailDialog";
-
-export interface Customer {
-  id: string;
-  name: string;
-  code: string;
-  address: string;
-  currency: string;
-  top: string;
-  status: "active" | "inactive";
-}
+import {Customer} from "@/types/types";
 
 const initialCustomers: Customer[] = [
   {

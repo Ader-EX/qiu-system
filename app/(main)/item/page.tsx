@@ -30,21 +30,7 @@ import carouseltwo from "@/public/carouseltwo.jpg";
 import carouselthree from "@/public/carouselthree.jpg";
 import ProductTableView from "@/components/Product/ProductTableView";
 import { Pagination } from "@/components/ui/pagination";
-
-export interface Product {
-  id: string;
-  nama: string;
-  SKU: string;
-  type: string;
-  status: "active" | "inactive";
-  jumlah: number;
-  harga: number;
-  satuan: string;
-  vendor: string;
-  gambar: (StaticImageData | string)[];
-  kategori1: string;
-  kategori2: string;
-}
+import {Product} from "@/types/types";
 
 const initialProducts: Product[] = [
   {
