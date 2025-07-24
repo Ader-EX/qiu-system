@@ -229,118 +229,106 @@ export default function VendorPage() {
         }
       />
 
-      <Card>
-        <CardHeader>
-          <div className="flex space-x-2">
-            <Search className="h-4 w-4 self-center text-muted-foreground" />
-            <Input
-              placeholder="Cari vendor..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-            <Select
-              value={filterStatus}
-              onValueChange={(value) => {
-                setFilterStatus(value);
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Pilih status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="active">Aktif</SelectItem>
-                <SelectItem value="inactive">Tidak Aktif</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Id Vendor</TableHead>
-                <TableHead>Nama Vendor</TableHead>
-                <TableHead>Alamat</TableHead>
-                <TableHead>Mata Uang</TableHead>
-                <TableHead>Jenis Pembayaran</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredVendors.map((vendor) => (
-                <TableRow key={vendor.id}>
-                  <TableCell>
-                    <span className="font-mono text-sm">{vendor.code}</span>
-                  </TableCell>
-                  <TableCell className="font-medium">{vendor.name}</TableCell>
-                  <TableCell className="font-medium">
-                    {vendor.address}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {vendor.currency || "-"}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {vendor.top || "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        vendor.status === "active" ? "okay" : "secondary"
-                      }
-                    >
-                      {vendor.status === "active" ? "Aktif" : "Tidak Aktif"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => openDetailDialog(vendor)}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          Lihat Detail
-                        </DropdownMenuItem>
+      <div className="flex space-x-2">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Cari vendor..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-7 w-full"
+          />
+        </div>
 
-                        <DropdownMenuItem
-                          onClick={() => openEditDialog(vendor)}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(vendor.id)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Hapus
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredVendors.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    Tidak ada vendor yang ditemukan
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        <Select
+          value={filterStatus}
+          onValueChange={(value) => {
+            setFilterStatus(value);
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Pilih status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Status</SelectItem>
+            <SelectItem value="active">Aktif</SelectItem>
+            <SelectItem value="inactive">Tidak Aktif</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Vendor Code</TableHead>
+            <TableHead>Nama Vendor</TableHead>
+            <TableHead>Alamat</TableHead>
+            <TableHead>Mata Uang</TableHead>
+            <TableHead>Jenis Pembayaran</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Aksi</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredVendors.map((vendor) => (
+            <TableRow key={vendor.id}>
+              <TableCell>
+                <span className="font-mono text-sm">{vendor.code}</span>
+              </TableCell>
+              <TableCell className="font-medium">{vendor.name}</TableCell>
+              <TableCell className="font-medium">{vendor.address}</TableCell>
+              <TableCell className="font-medium">
+                {vendor.currency || "-"}
+              </TableCell>
+              <TableCell className="font-medium">{vendor.top || "-"}</TableCell>
+              <TableCell>
+                <Badge
+                  variant={vendor.status === "active" ? "okay" : "secondary"}
+                >
+                  {vendor.status === "active" ? "Aktif" : "Tidak Aktif"}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => openDetailDialog(vendor)}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      Lihat Detail
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem onClick={() => openEditDialog(vendor)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleDelete(vendor.id)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Hapus
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+          {filteredVendors.length === 0 && (
+            <TableRow>
+              <TableCell
+                colSpan={7}
+                className="text-center py-8 text-muted-foreground"
+              >
+                Tidak ada vendor yang ditemukan
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={closeDialog}>

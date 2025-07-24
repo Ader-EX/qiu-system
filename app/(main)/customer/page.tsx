@@ -347,7 +347,7 @@ export default function CustomerPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Id Customer</TableHead>
+                <TableHead>Customer Code</TableHead>
                 <TableHead>Nama Customer</TableHead>
                 <TableHead>Alamat</TableHead>
                 <TableHead>Mata Uang</TableHead>
