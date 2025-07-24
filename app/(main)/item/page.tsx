@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect} from "react";
-import {Plus, Search, Grid3X3, List, Upload, TableIcon} from "lucide-react";
+import {Plus, Search, Grid3X3, List, Upload, TableIcon, ArrowUpDown} from "lucide-react";
 import {useRouter, useSearchParams, usePathname} from "next/navigation";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -37,7 +37,6 @@ const initialProducts: Product[] = [
         id: "1",
         nama: "Laptop Dell Inspiron 15",
         SKU: "DELL-INS-15-001",
-        type: "Elektronik",
         status: "active",
         jumlah: 25,
         harga: 8500000,
@@ -51,7 +50,7 @@ const initialProducts: Product[] = [
         id: "2",
         nama: "Mouse Wireless Logitech",
         SKU: "LOG-MOU-WL-002",
-        type: "Aksesoris",
+
         status: "active",
         jumlah: 100,
         harga: 150000,
@@ -65,7 +64,7 @@ const initialProducts: Product[] = [
         id: "3",
         nama: "Keyboard Mechanical RGB",
         SKU: "KEY-MEC-RGB-003",
-        type: "Aksesoris",
+
         status: "active",
         jumlah: 5,
         harga: 750000,
@@ -79,7 +78,7 @@ const initialProducts: Product[] = [
         id: "4",
         nama: "Monitor 24 inch 4K",
         SKU: "MON-24-4K-004",
-        type: "Elektronik",
+
         status: "inactive",
         jumlah: 0,
         harga: 3200000,
@@ -93,7 +92,7 @@ const initialProducts: Product[] = [
         id: "5",
         nama: "Headset Gaming RGB",
         SKU: "HEAD-GAM-RGB-005",
-        type: "Aksesoris",
+
         status: "active",
         jumlah: 15,
         harga: 450000,
@@ -107,7 +106,7 @@ const initialProducts: Product[] = [
         id: "6",
         nama: "SSD Samsung 1TB",
         SKU: "SAM-SSD-1TB-006",
-        type: "Storage",
+
         status: "active",
         jumlah: 8,
         harga: 1200000,
@@ -121,7 +120,7 @@ const initialProducts: Product[] = [
         id: "7",
         nama: "RAM DDR4 16GB",
         SKU: "RAM-DDR4-16GB-007",
-        type: "Hardware",
+
         status: "active",
         jumlah: 12,
         harga: 850000,
@@ -135,7 +134,7 @@ const initialProducts: Product[] = [
         id: "8",
         nama: "Webcam HD 1080p",
         SKU: "WEB-HD-1080-008",
-        type: "Aksesoris",
+
         status: "active",
         jumlah: 3,
         harga: 250000,
@@ -152,16 +151,19 @@ const ProdukPage = () => {
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    // Zustand store
+
     const {
         // State
         searchTerm,
         filterStatus,
         filterKategori1,
         filterKategori2,
+        filterVendor,
         filterCategory,
         viewMode,
         currentPage,
+        sortBy,
+        sortOrder,
         isAddEditDialogOpen,
         isDetailDialogOpen,
         editingItem,
@@ -174,11 +176,14 @@ const ProdukPage = () => {
         deleteProduct,
         setSearchTerm,
         setFilterStatus,
+        setVendorStatus,
         setFilterKategori1,
         setFilterKategori2,
         setFilterCategory,
         setViewMode,
         setCurrentPage,
+        setSortBy,
+        setSortOrder,
         openAddDialog,
         openEditDialog,
         closeAddEditDialog,
@@ -188,9 +193,11 @@ const ProdukPage = () => {
         // Computed values
         getFilteredProducts,
         getPaginatedProducts,
-        getCategories,
+
         getKategori1Options,
+        getVendorOptions,
         getKategori2Options,
+
     } = useProductStore();
 
     // Initialize products and sync with URL params
@@ -200,18 +207,24 @@ const ProdukPage = () => {
         // Sync URL params with store
         const search = searchParams.get("search") || "";
         const status = searchParams.get("status") || "";
+        const vendor = searchParams.get("vendor") || "";
         const kategori1 = searchParams.get("kategori1") || "";
         const kategori2 = searchParams.get("kategori2") || "";
         const category = searchParams.get("category") || "";
         const view =
             (searchParams.get("view") as "grid" | "list" | "table") || "grid";
         const page = parseInt(searchParams.get("page") || "1");
+        const sort = searchParams.get("sortBy") || "";
+        const order = (searchParams.get("sortOrder") as "asc" | "desc") || "asc";
 
         if (search) setSearchTerm(search);
         if (status) setFilterStatus(status);
+        if (vendor) setVendorStatus(vendor);
         if (kategori1) setFilterKategori1(kategori1);
         if (kategori2) setFilterKategori2(kategori2);
         if (category) setFilterCategory(category);
+        if (sort) setSortBy(sort);
+        setSortOrder(order);
         setViewMode(view);
         setCurrentPage(page);
     }, []);
@@ -235,6 +248,11 @@ const ProdukPage = () => {
     const handleStatusChange = (value: string) => {
         setFilterStatus(value);
         updateURL({status: value === "all" ? "" : value, page: "1"});
+    };
+
+    const handleVendorChange = (value: string) => {
+        setVendorStatus(value);
+        updateURL({vendor: value === "all" ? "" : value, page: "1"});
     };
 
     const handleCategoryChange = (value: string) => {
@@ -262,6 +280,17 @@ const ProdukPage = () => {
         updateURL({page: String(page)});
     };
 
+    const handleSortChange = (value: string) => {
+        const [field, order] = value.split("-");
+        setSortBy(field);
+        setSortOrder(order as "asc" | "desc");
+        updateURL({
+            sortBy: field || "",
+            sortOrder: order || "",
+            page: "1"
+        });
+    };
+
     // Dialog handlers
     const handleDialogSave = (itemData: Product) => {
         if (editingItem) {
@@ -280,10 +309,13 @@ const ProdukPage = () => {
     };
 
     // Get computed values
-    const categories = getCategories();
     const kategori1Options = getKategori1Options();
+    const vendorOptions = getVendorOptions()
     const kategori2Options = getKategori2Options();
     const paginatedProducts = getPaginatedProducts();
+
+    // Get current sort value for select
+    const currentSortValue = sortBy && sortOrder ? `${sortBy}-${sortOrder}` : "";
 
     return (
         <div className="space-y-6">
@@ -305,7 +337,7 @@ const ProdukPage = () => {
 
             {/* Filters and View Controls */}
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex flex-col sm:flex-row gap-2 flex-1">
+                <div className="flex flex-col sm:flex-row gap-2 ">
                     <div className="relative">
                         <Search
                             className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
@@ -313,26 +345,26 @@ const ProdukPage = () => {
                             placeholder="Cari produk..."
                             value={searchTerm}
                             onChange={(e) => handleSearchChange(e.target.value)}
-                            className="pl-9 max-w-sm"
+                            className="pl-9 w-auto"
                         />
                     </div>
 
-                    {/* <Select value={filterCategory} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Pilih kategori" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Kategori</SelectItem>
-              {categories.map((category: string) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select> */}
+                    <Select value={filterVendor} onValueChange={handleVendorChange}>
+                        <SelectTrigger className="w-auto">
+                            <SelectValue placeholder="Pilih Vendor"/>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Vendor</SelectItem>
+                            {vendorOptions.map((vendor: string) => (
+                                <SelectItem key={vendor} value={vendor || "elektronik"}>
+                                    {vendor}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
                     <Select value={filterKategori1} onValueChange={handleKategori1Change}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-auto">
                             <SelectValue placeholder="Pilih kategori 1"/>
                         </SelectTrigger>
                         <SelectContent>
@@ -346,7 +378,7 @@ const ProdukPage = () => {
                     </Select>
 
                     <Select value={filterKategori2} onValueChange={handleKategori2Change}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-auto">
                             <SelectValue placeholder="Pilih kategori 2"/>
                         </SelectTrigger>
                         <SelectContent>
@@ -360,7 +392,7 @@ const ProdukPage = () => {
                     </Select>
 
                     <Select value={filterStatus} onValueChange={handleStatusChange}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-auto">
                             <SelectValue placeholder="Pilih status"/>
                         </SelectTrigger>
                         <SelectContent>
@@ -369,34 +401,53 @@ const ProdukPage = () => {
                             <SelectItem value="inactive">Tidak Aktif</SelectItem>
                         </SelectContent>
                     </Select>
+
+
+                </div>
+                <div className={"flex space-x-2"}>
+                    <Select value={currentSortValue} onValueChange={handleSortChange}>
+                        <SelectTrigger className="w-auto">
+                            <ArrowUpDown className="h-4 w-4 mr-2"/>
+                            <SelectValue placeholder="Urutkan"/>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Tanpa Urutan</SelectItem>
+                            <SelectItem value="nama-asc">Nama A-Z</SelectItem>
+                            <SelectItem value="nama-desc">Nama Z-A</SelectItem>
+                            <SelectItem value="harga-asc">Harga Terendah</SelectItem>
+                            <SelectItem value="harga-desc">Harga Tertinggi</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <div className="flex items-center border rounded-lg">
+
+                        <Button
+                            size="sm"
+                            variant={viewMode === "grid" ? "default" : "ghost"}
+                            onClick={() => handleViewChange("grid")}
+                            className="rounded-r-none"
+                        >
+                            <Grid3X3 className="h-4 w-4"/>
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant={viewMode === "list" ? "default" : "ghost"}
+                            onClick={() => handleViewChange("list")}
+                            className="border-x"
+                        >
+                            <List className="h-4 w-4"/>
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant={viewMode === "table" ? "default" : "ghost"}
+                            onClick={() => handleViewChange("table")}
+                            className="rounded-l-none"
+                        >
+                            <TableIcon className="h-4 w-4"/>
+                        </Button>
+                    </div>
+
                 </div>
 
-                <div className="flex items-center border rounded-lg">
-                    <Button
-                        size="sm"
-                        variant={viewMode === "grid" ? "default" : "ghost"}
-                        onClick={() => handleViewChange("grid")}
-                        className="rounded-r-none"
-                    >
-                        <Grid3X3 className="h-4 w-4"/>
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant={viewMode === "list" ? "default" : "ghost"}
-                        onClick={() => handleViewChange("list")}
-                        className="border-x"
-                    >
-                        <List className="h-4 w-4"/>
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant={viewMode === "table" ? "default" : "ghost"}
-                        onClick={() => handleViewChange("table")}
-                        className="rounded-l-none"
-                    >
-                        <TableIcon className="h-4 w-4"/>
-                    </Button>
-                </div>
             </div>
 
             <div className="overflow-x-auto">

@@ -24,7 +24,7 @@ export interface Product {
     id: string;
     nama: string;
     SKU: string;
-    type: string;
+
     status: "active" | "inactive";
     jumlah: number;
     harga: number;
