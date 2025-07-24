@@ -49,13 +49,8 @@ import {
   HeaderActions,
   SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
+import {Unit} from "@/types/types";
 
-interface Unit {
-  id: string;
-  name: string;
-  symbol: string;
-  status: boolean;
-}
 
 const initialUnits: Unit[] = [
   { id: "1", name: "Kilogram", symbol: "kg", status: true },

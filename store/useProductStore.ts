@@ -1,22 +1,20 @@
-// stores/useProductStore.ts
-import { create } from 'zustand';
-import {Product} from "@/app/(main)/item/page";
-import { StaticImageData } from 'next/image';
+import {create} from 'zustand';
+import {Product} from '@/types/types';
 
 interface ProductStore {
-    // Products state
+    // Existing state
     products: Product[];
-    filteredProducts: Product[];
-
-    // UI state
     searchTerm: string;
     filterStatus: string;
     filterKategori1: string;
     filterKategori2: string;
+    filterVendor: string;
     filterCategory: string;
     viewMode: 'grid' | 'list' | 'table';
     currentPage: number;
-    itemsPerPage: number;
+
+    sortBy: string;
+    sortOrder: 'asc' | 'desc';
 
     // Dialog state
     isAddEditDialogOpen: boolean;
@@ -24,127 +22,92 @@ interface ProductStore {
     editingItem: Product | null;
     selectedProduct: Product | null;
 
-    // Actions
+    // Existing actions
     setProducts: (products: Product[]) => void;
     addProduct: (product: Product) => void;
     updateProduct: (product: Product) => void;
     deleteProduct: (id: string) => void;
-
-    // Filter actions
     setSearchTerm: (term: string) => void;
     setFilterStatus: (status: string) => void;
+    setVendorStatus: (vendor: string) => void;
     setFilterKategori1: (kategori1: string) => void;
     setFilterKategori2: (kategori2: string) => void;
     setFilterCategory: (category: string) => void;
     setViewMode: (mode: 'grid' | 'list' | 'table') => void;
     setCurrentPage: (page: number) => void;
 
-    // Dialog actions
+    setSortBy: (sortBy: string) => void;
+    setSortOrder: (sortOrder: 'asc' | 'desc') => void;
+
     openAddDialog: () => void;
-    openEditDialog: (product: Product) => void;
+    openEditDialog: (item: Product) => void;
     closeAddEditDialog: () => void;
     openDetailDialog: (product: Product) => void;
     closeDetailDialog: () => void;
 
-    // Computed values
     getFilteredProducts: () => Product[];
     getPaginatedProducts: () => Product[];
-    getTotalPages: () => number;
-    getCategories: () => string[];
     getKategori1Options: () => string[];
+    getVendorOptions: () => string[];
     getKategori2Options: () => string[];
 }
 
-const useProductStore = create<ProductStore>((set, get) => ({
-    // Initial state
-    products: [],
-    filteredProducts: [],
+const ITEMS_PER_PAGE = 10;
 
-    // UI state
+const useProductStore = create<ProductStore>((set, get) => ({
+    products: [],
     searchTerm: '',
-    filterStatus: '',
-    filterKategori1: '',
-    filterKategori2: '',
-    filterCategory: '',
+    filterStatus: 'all',
+    filterKategori1: 'all',
+    filterKategori2: 'all',
+    filterVendor: 'all',
+    filterCategory: 'all',
     viewMode: 'grid',
     currentPage: 1,
-    itemsPerPage: 6,
 
-    // Dialog state
+    sortBy: '',
+    sortOrder: 'asc',
+
     isAddEditDialogOpen: false,
     isDetailDialogOpen: false,
     editingItem: null,
     selectedProduct: null,
 
-    // Product actions
-    setProducts: (products) => {
-        set({ products });
-        get().getFilteredProducts();
-    },
+    setProducts: (products) => set({products}),
 
-    addProduct: (product) => {
-        const newProduct = { ...product, id: String(Date.now()) };
-        set((state) => ({
-            products: [newProduct, ...state.products]
-        }));
-        get().getFilteredProducts();
-    },
+    addProduct: (product) => set((state) => ({
+        products: [...state.products, {...product, id: Date.now().toString()}]
+    })),
 
-    updateProduct: (product) => {
-        set((state) => ({
-            products: state.products.map((p) =>
-                p.id === product.id ? product : p
-            )
-        }));
-        get().getFilteredProducts();
-    },
+    updateProduct: (updatedProduct) => set((state) => ({
+        products: state.products.map(p =>
+            p.id === updatedProduct.id ? updatedProduct : p
+        )
+    })),
 
-    deleteProduct: (id) => {
-        set((state) => ({
-            products: state.products.filter((p) => p.id !== id)
-        }));
-        get().getFilteredProducts();
-    },
+    deleteProduct: (id) => set((state) => ({
+        products: state.products.filter(p => p.id !== id)
+    })),
 
-    // Filter actions
-    setSearchTerm: (term) => {
-        set({ searchTerm: term, currentPage: 1 });
-        get().getFilteredProducts();
-    },
+    setSearchTerm: (searchTerm) => set({searchTerm, currentPage: 1}),
+    setFilterStatus: (filterStatus) => set({filterStatus, currentPage: 1}),
+    setVendorStatus: (filterVendor) => set({filterVendor, currentPage: 1}),
+    setFilterKategori1: (filterKategori1) => set({filterKategori1, currentPage: 1}),
+    setFilterKategori2: (filterKategori2) => set({filterKategori2, currentPage: 1}),
+    setFilterCategory: (filterCategory) => set({filterCategory, currentPage: 1}),
+    setViewMode: (viewMode) => set({viewMode}),
+    setCurrentPage: (currentPage) => set({currentPage}),
+    setSortBy: (sortBy) => set({sortBy, currentPage: 1}),
+    setSortOrder: (sortOrder) => set({sortOrder, currentPage: 1}),
 
-    setFilterStatus: (status) => {
-        set({ filterStatus: status, currentPage: 1 });
-        get().getFilteredProducts();
-    },
-
-    setFilterKategori1: (kategori1) => {
-        set({ filterKategori1: kategori1, currentPage: 1 });
-        get().getFilteredProducts();
-    },
-
-    setFilterKategori2: (kategori2) => {
-        set({ filterKategori2: kategori2, currentPage: 1 });
-        get().getFilteredProducts();
-    },
-
-    setFilterCategory: (category) => {
-        set({ filterCategory: category, currentPage: 1 });
-        get().getFilteredProducts();
-    },
-
-    setViewMode: (mode) => set({ viewMode: mode }),
-
-    setCurrentPage: (page) => set({ currentPage: page }),
-
-    // Dialog actions
     openAddDialog: () => set({
         isAddEditDialogOpen: true,
         editingItem: null
     }),
 
-    openEditDialog: (product) => set({
+    openEditDialog: (item) => set({
         isAddEditDialogOpen: true,
-        editingItem: product
+        editingItem: item
     }),
 
     closeAddEditDialog: () => set({
@@ -162,70 +125,89 @@ const useProductStore = create<ProductStore>((set, get) => ({
         selectedProduct: null
     }),
 
-    // Computed values
     getFilteredProducts: () => {
         const state = get();
-        const filtered = state.products.filter((p) => {
-            const matchesSearch =
-                p.nama.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
-                p.SKU.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
-                p.type.toLowerCase().includes(state.searchTerm.toLowerCase());
+        let filtered = state.products.filter((product) => {
+            const matchesSearch = product.nama
+                    .toLowerCase()
+                    .includes(state.searchTerm.toLowerCase()) ||
+                product.SKU.toLowerCase().includes(state.searchTerm.toLowerCase());
 
-            const matchesStatus =
-                !state.filterStatus ||
-                state.filterStatus === 'all' ||
-                p.status === state.filterStatus;
+            const matchesStatus = state.filterStatus === 'all' ||
+                product.status === state.filterStatus;
 
-            const matchesCat =
-                !state.filterCategory ||
-                state.filterCategory === 'all' ||
-                p.type === state.filterCategory;
+            const matchesVendor = state.filterVendor === 'all' ||
+                product.vendor === state.filterVendor;
 
-            const matchesKategori1 =
-                !state.filterKategori1 ||
-                state.filterKategori1 === 'all' ||
-                p.kategori1 === state.filterKategori1;
+            const matchesKategori1 = state.filterKategori1 === 'all' ||
+                product.kategori1 === state.filterKategori1;
 
-            const matchesKategori2 =
-                !state.filterKategori2 ||
-                state.filterKategori2 === 'all' ||
-                p.kategori2 === state.filterKategori2;
+            const matchesKategori2 = state.filterKategori2 === 'all' ||
+                product.kategori2 === state.filterKategori2;
 
-            return matchesSearch && matchesStatus && matchesCat &&
-                matchesKategori1 && matchesKategori2;
+            // Category filter (if you're using it)
+            const matchesCategory = state.filterCategory === 'all' ||
+                product.kategori1 === state.filterCategory;
+
+            return matchesSearch && matchesStatus && matchesVendor &&
+                matchesKategori1 && matchesKategori2 && matchesCategory;
         });
 
-        set({ filteredProducts: filtered });
+        // NEW: Apply sorting
+        if (state.sortBy) {
+            filtered.sort((a, b) => {
+                let aValue = a[state.sortBy as keyof Product];
+                let bValue = b[state.sortBy as keyof Product];
+
+                // Handle string comparison for names
+                if (state.sortBy === 'nama') {
+                    aValue = (aValue as string).toLowerCase();
+                    bValue = (bValue as string).toLowerCase();
+                }
+
+                // Handle numeric comparison for prices
+                if (state.sortBy === 'harga') {
+                    aValue = Number(aValue);
+                    bValue = Number(bValue);
+                }
+
+                if (aValue < bValue) return state.sortOrder === 'asc' ? -1 : 1;
+                if (aValue > bValue) return state.sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
         return filtered;
     },
 
     getPaginatedProducts: () => {
+        const filtered = get().getFilteredProducts();
         const state = get();
-        const startIndex = (state.currentPage - 1) * state.itemsPerPage;
-        return state.filteredProducts.slice(
-            startIndex,
-            startIndex + state.itemsPerPage
-        );
-    },
+        const totalItems = filtered.length;
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+        const startIndex = (state.currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const products = filtered.slice(startIndex, endIndex);
 
-    getTotalPages: () => {
-        const state = get();
-        return Math.ceil(state.filteredProducts.length / state.itemsPerPage);
-    },
-
-    getCategories: () => {
-        const state = get();
-        return Array.from(new Set(state.products.map((p) => p.type)));
+        return products;
     },
 
     getKategori1Options: () => {
         const state = get();
-        return Array.from(new Set(state.products.map((p) => p.kategori1)));
+        const uniqueKategori1 = [...new Set(state.products.map(p => p.kategori1))];
+        return uniqueKategori1.filter(Boolean);
+    },
+
+    getVendorOptions: () => {
+        const state = get();
+        const uniqueVendors = [...new Set(state.products.map(p => p.vendor))];
+        return uniqueVendors.filter(Boolean);
     },
 
     getKategori2Options: () => {
         const state = get();
-        return Array.from(new Set(state.products.map((p) => p.kategori2)));
+        const uniqueKategori2 = [...new Set(state.products.map(p => p.kategori2))];
+        return uniqueKategori2.filter(Boolean);
     },
 }));
 
