@@ -186,74 +186,73 @@ export default function Kategori2Page() {
                 </DialogContent>
             </Dialog>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Daftar Kategori 2</CardTitle>
-                    <CardDescription>
-                        Kelola kategori 2 produk untuk sistem inventory Anda.
-                    </CardDescription>
-                    <div className="flex items-center space-x-2 pt-2">
-                        <Search className="h-4 w-4 text-muted-foreground"/>
-                        <Input
-                            placeholder="Cari kategori..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="max-w-sm"
-                        />
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[10%]">ID</TableHead>
-                                <TableHead className="w-[60%]">Nama</TableHead>
-                                <TableHead className="w-[20%]">Status</TableHead>
-                                <TableHead className="w-[10%] text-right">Aksi</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredCategories.map((category) => (
-                                <TableRow key={category.id}>
-                                    <TableCell className="w-[10%]">{category.id}</TableCell>
-                                    <TableCell className="w-[60%] font-medium break-words">
-                                        {category.name}
-                                    </TableCell>
-                                    <TableCell className="w-[20%]">
-                                        <Badge
-                                            variant={
-                                                category.status ? "okay" : "destructive"
-                                            }
+
+            <CardTitle>Daftar Kategori 2</CardTitle>
+            <CardDescription>
+                Kelola kategori 2 produk untuk sistem inventory Anda.
+            </CardDescription>
+            <div className="flex items-center space-x-2 pt-2">
+                <div className="relative">
+                    <Search
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                    <Input
+                        placeholder="Cari produk..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-auto"
+                    />
+                </div>
+
+            </div>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-[10%]">ID</TableHead>
+                        <TableHead className="w-[60%]">Nama</TableHead>
+                        <TableHead className="w-[20%]">Status</TableHead>
+                        <TableHead className="w-[10%] text-right">Aksi</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredCategories.map((category) => (
+                        <TableRow key={category.id}>
+                            <TableCell className="w-[10%]">{category.id}</TableCell>
+                            <TableCell className="w-[60%] font-medium break-words">
+                                {category.name}
+                            </TableCell>
+                            <TableCell className="w-[20%]">
+                                <Badge
+                                    variant={
+                                        category.status ? "okay" : "destructive"
+                                    }
+                                >
+                                    {category.status}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="w-[10%] text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                            <MoreHorizontal className="h-4 w-4"/>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleEdit(category)}>
+                                            <Edit className="mr-2 h-4 w-4"/> Edit
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={() => handleDelete(category.id)}
+                                            className="text-red-600"
                                         >
-                                            {category.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="w-[10%] text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <MoreHorizontal className="h-4 w-4"/>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleEdit(category)}>
-                                                    <Edit className="mr-2 h-4 w-4"/> Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={() => handleDelete(category.id)}
-                                                    className="text-red-600"
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4"/> Hapus
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                                            <Trash2 className="mr-2 h-4 w-4"/> Hapus
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+
         </div>
     );
 }
