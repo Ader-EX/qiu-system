@@ -4,11 +4,57 @@ import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import React, { useState } from "react";
 import logo from "@/public/logo.png";
+import Cookies from "js-cookie";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import axios from "axios";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { jwtDecode } from "jwt-decode";
+import { useForm } from "react-hook-form";
+
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
+
+  const { router } = useRouter();
+
+  const onSubmit = async (data: any) => {
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_URL}/auth/login`,
+        {
+          username: data.username,
+          password: data.password,
+        }
+      );
+
+      const { access_token, refresh_token, detail } = response.data;
+
+      if (access_token && refresh_token) {
+        toast.dismiss();
+        toast.success("Login berhasil!");
+
+        Cookies.set("access_token", access_token);
+        Cookies.set("refresh_token", refresh_token);
+        router.push("/dashboard");
+      } else {
+        toast.dismiss();
+        toast.error(detail || "Invalid credentials");
+      }
+    } catch (error: any) {
+      const message =
+        error.response?.data?.detail || "Login gagal, silahkan coba lagi nanti";
+      toast.error(message);
+    }
+  };
+
   return (
     <section>
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
@@ -25,7 +71,10 @@ const LoginPage = () => {
               Selamat Datang
             </h1>
             <p className="text-black/60">Login untuk mengakses QIU Sistem</p>
-            <form className="space-y-4 md:space-y-6" action="#">
+            <form
+              className="space-y-4 md:space-y-6"
+              onSubmit={handleSubmit(onSubmit)}
+            >
               <div>
                 <label
                   htmlFor="username"
@@ -35,8 +84,8 @@ const LoginPage = () => {
                 </label>
                 <Input
                   type="text"
-                  name="username"
                   id="username"
+                  {...register("username", { required: true })}
                   className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   placeholder="Masukkan Username"
                 />
@@ -47,6 +96,7 @@ const LoginPage = () => {
                   <div className="relative">
                     <Input
                       id="password"
+                      {...register("password", { required: true })}
                       type={showPassword ? `text` : `password`}
                       placeholder="*******"
                     />
