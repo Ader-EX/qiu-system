@@ -24,7 +24,7 @@ export function NavMain({
   const pathname = usePathname();
 
   return (
-    <SidebarGroup>
+    <SidebarGroup className="border-t-2">
       <SidebarMenu>
         {items.map((item) => {
           const isActive =

@@ -4,7 +4,8 @@ import { LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
-
+import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
 export function NavUser({
   user,
 }: {
@@ -14,6 +15,7 @@ export function NavUser({
     avatar: string;
   };
 }) {
+  const router = useRouter();
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -41,6 +43,12 @@ export function NavUser({
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => {
+                Cookies.remove("access_token");
+
+                Cookies.remove("token_type");
+                router.push("/login");
+              }}
               className="h-8 w-8 p-0 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             >
               <LogOut className="h-4 w-4" />

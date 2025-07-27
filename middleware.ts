@@ -1,0 +1,42 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+// Helper to decode JWT
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString()
+    );
+    const exp = payload.exp;
+    if (!exp) return true;
+
+    const now = Math.floor(Date.now() / 1000); // Current time in seconds
+    return exp < now;
+  } catch {
+    return true; // If decoding fails, consider token invalid
+  }
+}
+
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // Allow the /login page
+  if (pathname === "/login") {
+    return NextResponse.next();
+  }
+
+  const token = req.cookies.get("access_token")?.value;
+
+  if (!token || isTokenExpired(token)) {
+    const loginUrl = req.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
+}
+
+// Apply to all routes except static files and API
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|login).*)"],
+};

@@ -83,7 +83,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" className="p-1" {...props}>
+    <Sidebar collapsible="icon" className=" " {...props}>
       <SidebarHeaderWrapper>
         <ConditionalSidebarHeader />
       </SidebarHeaderWrapper>

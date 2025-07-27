@@ -5,7 +5,7 @@ export function SidebarHeader({ open = true }: { open: boolean }) {
   return (
     <div
       className={`
-        flex items-center gap-8 border-b-2
+        flex items-center gap-8 
         ${open ? "px-2 py-3" : ""}
       `}
     >

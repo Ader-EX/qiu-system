@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import axios from "axios";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { jwtDecode } from "jwt-decode";
+
 import { useForm } from "react-hook-form";
 
 import toast from "react-hot-toast";
@@ -23,7 +23,7 @@ const LoginPage = () => {
     formState: { errors },
   } = useForm();
 
-  const { router } = useRouter();
+  const router = useRouter();
 
   const onSubmit = async (data: any) => {
     try {
