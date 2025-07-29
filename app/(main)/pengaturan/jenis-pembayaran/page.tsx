@@ -58,9 +58,9 @@ interface Unit {
 }
 
 const initialUnits: Unit[] = [
-    {id: "1", name: "Cash On Delivery", symbol: "COD", status: true},
-    {id: "2", name: "Cash", symbol: "CASH", status: false},
-    {id: "3", name: "Next 15 Days", symbol: "N/15", status: true},
+    {id: "1", name: "Cash On Delivery", symbol: "COD", is_active: true},
+    {id: "2", name: "Cash", symbol: "CASH", is_active: false},
+    {id: "3", name: "Next 15 Days", symbol: "N/15", is_active: true},
 ];
 
 export default function MataUangPage() {
@@ -75,7 +75,7 @@ export default function MataUangPage() {
     }>({
         name: "",
         symbol: "",
-        status: true,
+        is_active: true,
     });
 
     const filteredUnits = units.filter(
@@ -96,7 +96,7 @@ export default function MataUangPage() {
                             ...u,
                             name: formData.name,
                             symbol: formData.symbol,
-                            status: formData.status,
+                            is_active: formData.status,
                         }
                         : u
                 )
@@ -107,7 +107,7 @@ export default function MataUangPage() {
                 id: Date.now().toString(),
                 name: formData.name,
                 symbol: formData.symbol,
-                status: formData.status,
+                is_active: formData.status,
             };
             setUnits([...units, newUnit]);
             toast.success("jenis pembayaran berhasil ditambahkan!");
@@ -115,12 +115,12 @@ export default function MataUangPage() {
 
         setIsDialogOpen(false);
         setEditingUnit(null);
-        setFormData({name: "", symbol: "", status: true});
+        setFormData({name: "", symbol: "", is_active: true});
     };
 
     const handleEdit = (unit: Unit) => {
         setEditingUnit(unit);
-        setFormData({name: unit.name, symbol: unit.symbol, status: unit.status});
+        setFormData({name: unit.name, symbol: unit.symbol, is_active: unit.status});
         setIsDialogOpen(true);
     };
 
@@ -131,7 +131,7 @@ export default function MataUangPage() {
 
     const openAddDialog = () => {
         setEditingUnit(null);
-        setFormData({name: "", symbol: "", status: true});
+        setFormData({name: "", symbol: "", is_active: true});
         setIsDialogOpen(true);
     };
 
@@ -199,7 +199,7 @@ export default function MataUangPage() {
                                 <Select
                                     value={formData.status.toString()}
                                     onValueChange={(value) =>
-                                        setFormData({...formData, status: value === "true"})
+                                        setFormData({...formData, is_active: value === "true"})
                                     }
                                 >
                                     <SelectTrigger>

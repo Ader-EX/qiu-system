@@ -18,7 +18,7 @@ import {zodResolver} from "@hookform/resolvers/zod";
 
 
 const formSchema = z.object({
-    status: z.boolean({required_error: "Status harus dipilih salah satu"}),
+    is_active: z.boolean({required_error: "Status harus dipilih salah satu"}),
     name: z.string().min(2, {
         message: "Nama harus memiliki minimal 2 karakter"
     }),
@@ -39,7 +39,7 @@ const KategoriForm: React.FC<KategoriFormProps> = ({editing = false, initialdata
     const form = useForm<formData>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            status: initialdata?.status || true,
+            is_active: initialdata?.is_active || true,
             name: initialdata?.name || "",
         }
     })
@@ -88,7 +88,7 @@ const KategoriForm: React.FC<KategoriFormProps> = ({editing = false, initialdata
 
 
                         </FormItem>
-                    )} name={"status"}/>
+                    )} name={"is_active"}/>
                 </div>
             </div>
             <DialogFooter>

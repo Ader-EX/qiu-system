@@ -53,10 +53,10 @@ import {Unit} from "@/types/types";
 
 
 const initialUnits: Unit[] = [
-    {id: "1", name: "Kilogram", symbol: "kg", status: true},
-    {id: "2", name: "Meter", symbol: "m", status: false},
-    {id: "3", name: "Liter", symbol: "L", status: true},
-    {id: "4", name: "Pieces", symbol: "pcs", status: true},
+    {id: "1", name: "Kilogram", symbol: "kg", is_active: true},
+    {id: "2", name: "Meter", symbol: "m", is_active: false},
+    {id: "3", name: "Liter", symbol: "L", is_active: true},
+    {id: "4", name: "Pieces", symbol: "pcs", is_active: true},
 ];
 
 export default function SatuanPage() {
@@ -71,14 +71,14 @@ export default function SatuanPage() {
     }>({
         name: "",
         symbol: "",
-        status: true,
+        is_active: true,
     });
 
     const filteredUnits = units.filter(
         (unit) =>
             unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             unit.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (unit.status ? "aktif" : "non aktif").includes(searchTerm.toLowerCase())
+            (unit.is_active ? "aktif" : "non aktif").includes(searchTerm.toLowerCase())
     );
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -92,7 +92,7 @@ export default function SatuanPage() {
                             ...u,
                             name: formData.name,
                             symbol: formData.symbol,
-                            status: formData.status,
+                            is_active: formData.status,
                         }
                         : u
                 )
@@ -103,7 +103,7 @@ export default function SatuanPage() {
                 id: Date.now().toString(),
                 name: formData.name,
                 symbol: formData.symbol,
-                status: formData.status,
+                is_active: formData.status,
             };
             setUnits([...units, newUnit]);
             toast.success("Satuan berhasil ditambahkan!");
@@ -111,12 +111,12 @@ export default function SatuanPage() {
 
         setIsDialogOpen(false);
         setEditingUnit(null);
-        setFormData({name: "", symbol: "", status: true});
+        setFormData({name: "", symbol: "", is_active: true});
     };
 
     const handleEdit = (unit: Unit) => {
         setEditingUnit(unit);
-        setFormData({name: unit.name, symbol: unit.symbol, status: unit.status});
+        setFormData({name: unit.name, symbol: unit.symbol, is_active: unit.is_active});
         setIsDialogOpen(true);
     };
 
@@ -127,7 +127,7 @@ export default function SatuanPage() {
 
     const openAddDialog = () => {
         setEditingUnit(null);
-        setFormData({name: "", symbol: "", status: true});
+        setFormData({name: "", symbol: "", is_active: true});
         setIsDialogOpen(true);
     };
 
@@ -193,7 +193,7 @@ export default function SatuanPage() {
                                 <Select
                                     value={formData.status.toString()}
                                     onValueChange={(value) =>
-                                        setFormData({...formData, status: value === "true"})
+                                        setFormData({...formData, is_active: value === "true"})
                                     }
                                 >
                                     <SelectTrigger>
@@ -253,8 +253,8 @@ export default function SatuanPage() {
                                 <Badge variant="secondary">{unit.symbol}</Badge>
                             </TableCell>
                             <TableCell className="w-[15%]">
-                                <Badge variant={unit.status ? "okay" : "destructive"}>
-                                    {unit.status ? "Aktif" : "Non Aktif"}
+                                <Badge variant={unit.is_active ? "okay" : "destructive"}>
+                                    {unit.is_active ? "Aktif" : "Non Aktif"}
                                 </Badge>
                             </TableCell>
                             <TableCell className="w-[10%] text-right">

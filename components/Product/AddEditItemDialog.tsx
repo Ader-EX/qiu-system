@@ -37,7 +37,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                                              }) => {
     const [formData, setFormData] = useState({
 
-        status: "Aktif",
+        is_active: true,
         id: "",
         nama: "",
         SKU: "",
@@ -70,7 +70,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         if (!isOpen) return;
         if (item) {
             setFormData({
-                status: item.status === "active" ? "Aktif" : "Tidak Aktif",
+                is_active: item.is_active === true,
                 id: item.id || "",
                 nama: item.nama || "",
                 SKU: item.SKU || "",
@@ -91,7 +91,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         } else {
             setFormData({
 
-                status: "Aktif",
+                is_active: true,
                 id: "",
                 nama: "",
                 SKU: "",
@@ -106,7 +106,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         }
     }, [isOpen, item]);
 
-    const handleInputChange = (field: keyof typeof formData, value: string) => {
+    const handleInputChange = (field: keyof typeof formData, value: string | boolean) => {
         setFormData((prev) => ({...prev, [field]: value}));
     };
 
@@ -123,7 +123,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
     const handleSave = () => {
         const newItem: Product = {
 
-            status: formData.status === "Aktif" ? "active" : "inactive",
+            is_active: formData.is_active,
             id: formData.id,
             nama: formData.nama,
             SKU: formData.SKU,
@@ -168,21 +168,21 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                             />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="status">Status</Label>
-                            <Select
-                                value={formData.status}
-                                onValueChange={(v) => handleInputChange("status", v)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Aktif">Aktif</SelectItem>
-                                    <SelectItem value="Tidak Aktif">Tidak Aktif</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <Select
+                            value={String(formData.is_active)}
+                            onValueChange={(v) =>
+                                handleInputChange("is_active", v === "true")
+                            }
+                        >
+                            <SelectTrigger>
+                                <SelectValue/>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="true">Aktif</SelectItem>
+                                <SelectItem value="false">Tidak Aktif</SelectItem>
+                            </SelectContent>
+                        </Select>
+
                     </div>
 
                     {/* Row 2: type, id */}
