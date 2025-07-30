@@ -1,5 +1,5 @@
 // services/currencyService.ts
-import {Unit} from "@/types/types";
+import {TOPUnit} from "@/types/types";
 import Cookies from "js-cookie";
 
 const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -18,17 +18,22 @@ export interface MataUangUpdate {
 }
 
 export type MataUangListResponse = {
-    data: Unit[];
+    data: TOPUnit[];
     total: number;
 };
 
 class MataUangService {
-    private baseUrl = `${NEXT_PUBLIC_API_URL}/currency`;
+    private baseUrl: string;
+
+    constructor(destination: string = "currency") {
+        this.baseUrl = `${NEXT_PUBLIC_API_URL}/${destination}`;
+    }
 
     async getAllMataUang({
                              skip = 0,
                              limit = 10,
                              search = "",
+
                          }: {
         skip: number;
         limit: number;
@@ -53,18 +58,18 @@ class MataUangService {
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to fetch categories: ${response.statusText}`);
+                throw new Error(`Failed to fetch currencies: ${response.statusText}`);
             }
 
             const result = (await response.json()) as MataUangListResponse;
             return result;
         } catch (error) {
-            console.error("Error fetching categories:", error);
+            console.error("Error fetching currencies.h:", error);
             throw error;
         }
     }
 
-    async getMataUang(id: string): Promise<Unit> {
+    async getMataUang(id: string): Promise<TOPUnit> {
         try {
             const response = await fetch(`${this.baseUrl}/${id}`, {
                 method: "GET",
@@ -82,7 +87,7 @@ class MataUangService {
         }
     }
 
-    async createMataUang(currencyData: unitService): Promise<Unit> {
+    async createMataUang(currencyData: unitService): Promise<TOPUnit> {
         try {
             const response = await fetch(this.baseUrl, {
                 method: "POST",
@@ -105,7 +110,7 @@ class MataUangService {
     async updateMataUang(
         id: number,
         mataUangUpdate: MataUangUpdate
-    ): Promise<Unit> {
+    ): Promise<TOPUnit> {
         try {
             const response = await fetch(`${this.baseUrl}/${id}`, {
                 method: "PUT",
@@ -151,4 +156,7 @@ class MataUangService {
     }
 }
 
-export const mataUangService = new MataUangService();
+
+export const mataUangService = new MataUangService("currency");
+export const jenisPembayaranService = new MataUangService("top")
+export const satuanService = new MataUangService("satuan")

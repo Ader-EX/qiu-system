@@ -43,20 +43,21 @@ import {
     HeaderActions,
     SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
-import {Unit} from "@/types/types";
-import KategoriForm from "@/components/kategori/KategoriForm";
+import {TOPUnit} from "@/types/types";
+
 import {mataUangService} from "@/services/mataUangService";
 import Cookies from "js-cookie";
 import GlobalPaginationFunction from "@/components/pagination-global";
+import CurrencyForm from "@/components/currency/CurrencyForm";
 
 export default function CurrencyPage() {
-    const [units, setUnits] = useState<Unit[]>([]);
+    const [units, setUnits] = useState<TOPUnit[]>([]);
     const [total, setTotal] = useState(0)
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [searchTerm, setSearchTerm] = useState("");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingCategory, setEditingCategory] = useState<Unit | null>(null);
+    const [editingCurrency, setEditingCurrency] = useState<TOPUnit | null>(null);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<{
         name: string;
@@ -75,18 +76,13 @@ export default function CurrencyPage() {
         loadUnits(page, "", rowsPerPage);
     }, [page, rowsPerPage]);
 
-    // Remove client-side filtering since server handles it
-    // const filteredCategories = units?.filter((cat) =>
-    //     cat.name.toLowerCase().includes(searchTerm.toLowerCase())
-    // );
-
     const loadUnits = async (page: number, searchTerm: string, limit: number) => {
         try {
             console.log('Loading units with:', {page, searchTerm, limit}); // Debug log
             setLoading(true);
             const response = await mataUangService.getAllMataUang({
                 skip: (page - 1) * limit,
-                limit: limit,
+                limit: 1000,
                 search: searchTerm,
             });
 
@@ -95,7 +91,7 @@ export default function CurrencyPage() {
             setTotal(response.total || 0)
         } catch (error) {
             console.error("Error loading units:", error);
-            toast.error("Gagal memuat data kategori");
+            toast.error("Gagal memuat data mata uang");
         } finally {
             setLoading(false);
         }
@@ -117,10 +113,10 @@ export default function CurrencyPage() {
         try {
             setLoading(true);
 
-            if (editingCategory) {
-                if (editingCategory.id) {
-                    const updatedCategory = await mataUangService.updateMataUang(
-                        editingCategory.id,
+            if (editingCurrency) {
+                if (editingCurrency.id) {
+                    const updatedCurrency = await mataUangService.updateMataUang(
+                        editingCurrency.id,
                         {
                             name: data.name,
                             symbol: data.symbol,
@@ -132,34 +128,34 @@ export default function CurrencyPage() {
                     // Reload data to get fresh results from server
                     await loadUnits(page, searchTerm, rowsPerPage);
                 }
-                toast.success("Kategori berhasil diperbarui!");
+                toast.success("mata uang berhasil diperbarui!");
             } else {
-                const newCategory = await mataUangService.createMataUang({
+                const newCurrency = await mataUangService.createMataUang({
                     name: data.name,
                     symbol: data.symbol,
                     is_active: data.is_active,
 
                 });
 
-                // Reload data to get fresh results from server
+
                 await loadUnits(page, searchTerm, rowsPerPage);
-                toast.success("Kategori berhasil ditambahkan!");
+                toast.success("mata uang berhasil ditambahkan!");
             }
 
             setIsDialogOpen(false);
-            setEditingCategory(null);
+            setEditingCurrency(null);
             setFormData({name: "", symbol: "", is_active: true});
 
         } catch (error) {
             console.error("Error submitting form:", error);
-            toast.error(editingCategory ? "Gagal memperbarui kategori" : "Gagal menambahkan kategori");
+            toast.error(editingCurrency ? "Gagal memperbarui mata uang" : "Gagal menambahkan mata uang");
         } finally {
             setLoading(false);
         }
     };
 
-    const handleEdit = (unit: Unit) => {
-        setEditingCategory(unit);
+    const handleEdit = (unit: TOPUnit) => {
+        setEditingCurrency(unit);
         setFormData({
             name: unit.name,
             symbol: unit.symbol,
@@ -175,17 +171,17 @@ export default function CurrencyPage() {
 
             // Reload data to get fresh results from server
             await loadUnits(page, searchTerm, rowsPerPage);
-            toast.success("Kategori berhasil dihapus!");
+            toast.success("mata uang berhasil dihapus!");
         } catch (error) {
             console.error("Error deleting category:", error);
-            toast.error("Gagal menghapus kategori");
+            toast.error("Gagal menghapus mata uang");
         } finally {
             setLoading(false);
         }
     };
 
     const openAddDialog = () => {
-        setEditingCategory(null);
+        setEditingCurrency(null);
         setFormData({name: "", symbol: "", is_active: true});
         setIsDialogOpen(true);
     };
@@ -209,15 +205,15 @@ export default function CurrencyPage() {
                 title=""
                 leftContent={
                     <CustomBreadcrumb
-                        listData={["Pengaturan", "Master Data", "Kategori 1"]}
-                        linkData={["pengaturan", "kategori-1", "kategori-1"]}
+                        listData={["Pengaturan", "Master Data", "Mata Uang"]}
+                        linkData={["pengaturan", "mata-uang", "mata-uang"]}
                     />
                 }
                 rightContent={
                     <HeaderActions.ActionGroup>
                         <Button size="sm" onClick={openAddDialog} disabled={loading}>
                             <Plus className="h-4 w-4 mr-2"/>
-                            Tambah Kategori
+                            Tambah mata uang
                         </Button>
                     </HeaderActions.ActionGroup>
                 }
@@ -227,17 +223,17 @@ export default function CurrencyPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {editingCategory ? "Edit Kategori" : "Tambah Kategori Baru"}
+                            {editingCurrency ? "Edit mata uang" : "Tambah mata uang Baru"}
                         </DialogTitle>
                         <DialogDescription>
-                            {editingCategory
-                                ? "Perbarui informasi kategori di bawah ini."
-                                : "Masukkan informasi kategori baru di bawah ini."}
+                            {editingCurrency
+                                ? "Perbarui informasi mata uang di bawah ini."
+                                : "Masukkan informasi mata uang baru di bawah ini."}
                         </DialogDescription>
                     </DialogHeader>
-                    <KategoriForm
-                        initialdata={editingCategory ? formData : undefined}
-                        editing={!!editingCategory}
+                    <CurrencyForm
+                        initialdata={editingCurrency ? formData : undefined}
+                        editing={!!editingCurrency}
                         onSubmit={handleSubmit}
                         // loading={loading}
                     />
@@ -249,7 +245,7 @@ export default function CurrencyPage() {
                     <Search
                         className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                     <Input
-                        placeholder="Cari kategori..."
+                        placeholder="Cari mata uang..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={handleSearchKeyDown}
@@ -272,6 +268,7 @@ export default function CurrencyPage() {
                         <TableRow>
                             <TableHead className="w-[10%]">ID</TableHead>
                             <TableHead className="w-[60%]">Nama</TableHead>
+                            <TableHead className="w-[60%]">Symbol</TableHead>
                             <TableHead className="w-[20%]">Status</TableHead>
                             <TableHead className="w-[10%] text-right">Aksi</TableHead>
                         </TableRow>
@@ -280,7 +277,7 @@ export default function CurrencyPage() {
                         {units.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                                    {searchTerm ? "Tidak ada kategori yang ditemukan" : "Belum ada data kategori"}
+                                    {searchTerm ? "Tidak ada mata uang yang ditemukan" : "Belum ada data mata uang"}
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -289,6 +286,9 @@ export default function CurrencyPage() {
                                     <TableCell>{category.id}</TableCell>
                                     <TableCell className="font-medium">
                                         {category.name}
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                        {category.symbol}
                                     </TableCell>
                                     <TableCell>
                                         <Badge
@@ -335,14 +335,7 @@ export default function CurrencyPage() {
                 </Table>
             )}
 
-            <GlobalPaginationFunction
-                page={page}
-                total={total}
-                totalPages={totalPages}
-                rowsPerPage={rowsPerPage}
-                handleRowsPerPageChange={handleRowsPerPageChange}
-                handlePageChange={handlePageChange}
-            />
+
         </div>
     );
 }

@@ -40,8 +40,8 @@ export interface Unit {
     category_type: number
 }
 
-export interface Unit {
-    id: string;
+export interface TOPUnit {
+    id?: number;
     name: string;
     symbol: string;
     is_active: boolean;
