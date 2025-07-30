@@ -11,6 +11,17 @@ export interface Customer {
     status: "active" | "inactive";
 }
 
+export interface Vendor {
+    id: string;
+    name: string;
+    address: string;
+
+    curr_rel: TOPUnit;
+    top_rel: TOPUnit
+    is_active: boolean;
+}
+
+
 export interface Warehouse {
     id: number;
     name: string;

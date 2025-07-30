@@ -68,15 +68,10 @@ export default function Kategori1Page() {
 
     const totalPages = Math.ceil(total / rowsPerPage);
 
-    // Load categories on component mount and when page/rowsPerPage changes
     useEffect(() => {
         loadCategories(page, "", rowsPerPage);
     }, [page, rowsPerPage]);
 
-    // Remove client-side filtering since server handles it
-    // const filteredCategories = categories?.filter((cat) =>
-    //     cat.name.toLowerCase().includes(searchTerm.toLowerCase())
-    // );
 
     const loadCategories = async (page: number, searchTerm: string, limit: number) => {
         try {

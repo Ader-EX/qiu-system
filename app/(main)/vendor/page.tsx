@@ -1,10 +1,10 @@
 "use client";
 
-import {Fragment, useState} from "react";
-import {Plus, Search, MoreHorizontal, Edit, Trash2, Eye} from "lucide-react";
+import React, {useState, useEffect} from "react";
+import {Plus, Search, MoreHorizontal, Edit, Trash2, Eye, Search as SearchIcon} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
-import {Card, CardContent, CardHeader} from "@/components/ui/card";
+
 import {
     Table,
     TableBody,
@@ -20,7 +20,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {Badge} from "@/components/ui/badge";
-import {AlertSuccess} from "@/components/alert-success";
 import {
     Select,
     SelectContent,
@@ -35,9 +34,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
-
 import {Label} from "@/components/ui/label";
 import {Textarea} from "@/components/ui/textarea";
 import {
@@ -46,53 +43,25 @@ import {
 } from "@/components/ui/SidebarHeaderBar";
 import toast from "react-hot-toast";
 import {VendorDetailDialog} from "@/components/vendor/VendorDetailDialog";
-
-export interface Vendor {
-    id: string;
-    name: string;
-    code: string;
-    address: string;
-    currency: number;
-    top: number;
-    is_active: boolean;
-}
-
-const initialVendors: Vendor[] = [
-    {
-        id: "1",
-        name: "PT. Supplier Utama",
-        code: "VEN-001",
-        address: "Jl. Sudirman No. 123, Jakarta",
-        is_active: "active",
-        currency: "USD",
-        top: "COD",
-    },
-    {
-        id: "2",
-        name: "CV. Distributor Jaya",
-        code: "VEN-002",
-        address: "Jl. Pemuda No. 456, Surabaya",
-        is_active: "active",
-        currency: "IDR",
-        top: "CASH",
-    },
-    {
-        id: "3",
-        name: "UD. Grosir Murah",
-        code: "VEN-003",
-        address: "Jl. Asia Afrika No. 789, Bandung",
-        is_active: "inactive",
-        currency: "USD",
-        top: "COD",
-    },
-];
-
+import {
+    vendorService,
+    VendorCreate,
+    VendorUpdate
+} from "@/services/vendorService";
+import {jenisPembayaranService, MataUangListResponse, mataUangService} from "@/services/mataUangService";
+import {TOPUnit, Vendor} from "@/types/types";
+import GlobalPaginationFunction from "@/components/pagination-global";
 
 export default function VendorPage() {
-    const [vendors, setVendors] = useState<Vendor[]>(initialVendors);
+    const [vendors, setVendors] = useState<Vendor[]>([]);
+    const [currencies, setCurrencies] = useState<MataUangListResponse>();
+    const [termsOfPayment, setTermsOfPayment] = useState<MataUangListResponse>();
     const [searchTerm, setSearchTerm] = useState("");
-
-    const [filterStatus, setFilterStatus] = useState("all");
+    const [filterStatus, setFilterStatus] = useState<string>("all");
+    const [loading, setLoading] = useState(false);
+    const [totalCount, setTotalCount] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
@@ -100,40 +69,114 @@ export default function VendorPage() {
     const [detailDialogOpen, setDetailDialogOpen] = useState(false);
     const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
 
+    const totalPages = Math.ceil(totalCount / rowsPerPage);
+
     const [formData, setFormData] = useState({
+        id: "",
         name: "",
-        code: "",
         address: "",
-        currency: "",
-        top: "",
+        currency_id: "",
+        top_id: "",
         is_active: true,
     });
 
-    const filteredVendors = vendors.filter((vendor) => {
-        const matchesSearch =
-            vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            vendor.code.toLowerCase().includes(searchTerm.toLowerCase());
+    // Load initial data
+    useEffect(() => {
+        loadVendors();
+        loadCurrencies();
+        loadTermsOfPayment();
+    }, [currentPage, rowsPerPage, filterStatus]);
 
-        const matchesStatus =
-            filterStatus === "all" || vendor.is_active === filterStatus;
 
-        return matchesSearch && matchesStatus;
-    });
+    const handleSearch = async () => {
+        console.log('Search clicked, searchTerm:', searchTerm); // Debug log
+        setCurrentPage(1);
+        await loadVendors(); // Direct API call
+    };
+
+    // Handle Enter key in search input
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            handleSearch();
+        }
+    };
+
+    const handleRowsPerPageChange = (value: number) => {
+        setRowsPerPage(value);
+        setCurrentPage(1)
+    };
+
+
+    const loadVendors = async () => {
+        try {
+            setLoading(true);
+            const filters = {
+                page: currentPage,
+                rowsPerPage,
+                ...(searchTerm && {search_key: searchTerm}),
+                ...(filterStatus !== "all" && {is_active: filterStatus === "active"}),
+            };
+
+            const response = await vendorService.getAllVendors(filters);
+            console.log(response)
+            setVendors(response.data);
+            setTotalCount(response.total);
+        } catch (error) {
+            console.error("Error loading vendors:", error);
+            toast.error("Gagal memuat data vendor");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadCurrencies = async () => {
+        try {
+            const currencyData = await mataUangService.getAllMataUang({
+                skip: 1,
+                limit: 1000,
+                search: "",
+            });
+            setCurrencies(currencyData);
+        } catch (error) {
+            console.error("Error loading currencies:", error);
+            toast.error("Gagal memuat data mata uang");
+        }
+    };
+
+    const loadTermsOfPayment = async () => {
+        try {
+            const topData = await jenisPembayaranService.getAllMataUang({
+                skip: 1,
+                limit: 1000,
+                search: "",
+            });
+            setTermsOfPayment(topData);
+        } catch (error) {
+            console.error("Error loading terms of payment:", error);
+            toast.error("Gagal memuat data jenis pembayaran");
+        }
+    };
 
     const resetForm = () => {
         setFormData({
+            id: "",
             name: "",
-            code: "",
             address: "",
-            currency: "",
-            top: "",
+            currency_id: "",
+            top_id: "",
             is_active: true,
         });
+    };
+
+    const generateVendorId = () => {
+        // Generate a simple ID based on timestamp and random number
+        return `VEN-${Date.now()}-${Math.floor(Math.random() * 10)}`;
     };
 
     const openAddDialog = () => {
         setDialogMode("add");
         resetForm();
+        setFormData(prev => ({...prev, id: generateVendorId()}));
         setIsDialogOpen(true);
     };
 
@@ -141,11 +184,11 @@ export default function VendorPage() {
         setDialogMode("edit");
         setEditingVendor(vendor);
         setFormData({
+            id: vendor.id,
             name: vendor.name,
-            code: vendor.code,
             address: vendor.address,
-            currency: vendor.currency || "-",
-            top: vendor.top || "-",
+            currency_id: vendor?.curr_rel?.id?.toString() || "",
+            top_id: vendor?.top_rel?.id?.toString() || "",
             is_active: vendor.is_active,
         });
         setIsDialogOpen(true);
@@ -162,54 +205,76 @@ export default function VendorPage() {
         setDetailDialogOpen(true);
     };
 
-    function closeDetailDialog() {
+    const closeDetailDialog = () => {
         setSelectedVendor(null);
         setDetailDialogOpen(false);
-    }
-
-    const generateVendorCode = () => {
-        const lastVendor = vendors.sort(
-            (a, b) => parseInt(b.code.split("-")[1]) - parseInt(a.code.split("-")[1])
-        )[0];
-
-        const lastNumber = lastVendor ? parseInt(lastVendor.code.split("-")[1]) : 0;
-        return `${String(lastNumber + 1).padStart(3, "0")}`;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.name.trim() || !formData.address.trim()) {
+        if (!formData.name.trim() || !formData.address.trim() || !formData.currency_id || !formData.top_id) {
+            toast.error("Semua field wajib diisi");
             return;
         }
 
-        if (dialogMode === "add") {
-            const newVendor: Vendor = {
-                id: Date.now().toString(),
-                ...formData,
-                code: formData.code || generateVendorCode(),
-            };
+        try {
+            setLoading(true);
 
-            setVendors([...vendors, newVendor]);
-            toast.success("Vendor berhasil ditambahkan!");
-        } else if (editingVendor) {
-            const updatedVendors = vendors.map((vendor) =>
-                vendor.id === editingVendor.id ? {...vendor, ...formData} : vendor
-            );
+            if (dialogMode === "add") {
+                const newVendorData: VendorCreate = {
+                    id: formData.id,
+                    name: formData.name,
+                    address: formData.address,
+                    currency_id: parseInt(formData.currency_id),
+                    top_id: parseInt(formData.top_id),
+                    is_active: formData.is_active,
+                };
 
-            setVendors(updatedVendors);
-            toast.success("Vendor berhasil diperbarui!");
+                await vendorService.createVendor(newVendorData);
+                toast.success("Vendor berhasil ditambahkan!");
+            } else if (editingVendor) {
+                const updateData: VendorUpdate = {
+                    name: formData.name,
+                    address: formData.address,
+                    currency_id: parseInt(formData.currency_id),
+                    top_id: parseInt(formData.top_id),
+                    is_active: formData.is_active,
+                };
+
+                await vendorService.updateVendor(editingVendor.id, updateData);
+                toast.success("Vendor berhasil diperbarui!");
+            }
+
+            closeDialog();
+            loadVendors();
+        } catch (error: any) {
+            console.error("Error saving vendor:", error);
+            toast.error(error.message || "Gagal menyimpan vendor");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Apakah Anda yakin ingin menghapus vendor ini?")) {
+            return;
         }
 
-        closeDialog();
+        try {
+            setLoading(true);
+            await vendorService.deleteVendor(id);
+            toast.success("Vendor berhasil dihapus!");
+            loadVendors();
+        } catch (error: any) {
+            console.error("Error deleting vendor:", error);
+            toast.error(error.message || "Gagal menghapus vendor");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleDelete = (id: string) => {
-        setVendors(vendors.filter((vendor) => vendor.id !== id));
-        toast.success("Vendor berhasil dihapus!");
-    };
-
-    const handleInputChange = (field: keyof typeof formData, value: string) => {
+    const handleInputChange = (field: keyof typeof formData, value: string | boolean) => {
         setFormData((prev) => ({
             ...prev,
             [field]: value,
@@ -222,7 +287,7 @@ export default function VendorPage() {
                 title="Vendor"
                 rightContent={
                     <HeaderActions.ActionGroup>
-                        <Button size="sm" onClick={openAddDialog}>
+                        <Button size="sm" onClick={openAddDialog} disabled={loading}>
                             <Plus className="h-4 w-4 mr-2"/>
                             Tambah Vendor
                         </Button>
@@ -231,21 +296,29 @@ export default function VendorPage() {
             />
 
             <div className="flex space-x-2">
-                <div className="relative max-w-sm">
-                    <Search
-                        className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
-                    <Input
-                        placeholder="Cari vendor..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-7 w-full"
-                    />
-                </div>
 
+                <div className="flex w-full  space-x-2">
+                    <div className="relative max-w-sm">
+                        <Search
+                            className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
+                        <Input
+                            placeholder="Cari kategori..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyDown={handleSearchKeyDown}
+                            className="pl-7 w-full"
+                        />
+                    </div>
+
+                    <Button onClick={handleSearch} disabled={loading}>
+                        <SearchIcon className="mr-2 h-4 w-4"/> Cari
+                    </Button>
+                </div>
                 <Select
                     value={filterStatus}
                     onValueChange={(value) => {
                         setFilterStatus(value);
+                        setCurrentPage(1);
                     }}
                 >
                     <SelectTrigger className="w-[180px]">
@@ -262,7 +335,7 @@ export default function VendorPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Vendor Code</TableHead>
+                        <TableHead>Vendor ID</TableHead>
                         <TableHead>Nama Vendor</TableHead>
                         <TableHead>Alamat</TableHead>
                         <TableHead>Mata Uang</TableHead>
@@ -272,65 +345,80 @@ export default function VendorPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredVendors.map((vendor) => (
-                        <TableRow key={vendor.id}>
-                            <TableCell>
-                                <span className="font-mono text-sm">{vendor.code}</span>
-                            </TableCell>
-                            <TableCell className="font-medium">{vendor.name}</TableCell>
-                            <TableCell className="font-medium">{vendor.address}</TableCell>
-                            <TableCell className="font-medium">
-                                {vendor.currency || "-"}
-                            </TableCell>
-                            <TableCell className="font-medium">{vendor.top || "-"}</TableCell>
-                            <TableCell>
-                                <Badge
-                                    variant={vendor.is_active === "active" ? "okay" : "secondary"}
-                                >
-                                    {vendor.is_active === "active" ? "Aktif" : "Tidak Aktif"}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                            <MoreHorizontal className="h-4 w-4"/>
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => openDetailDialog(vendor)}>
-                                            <Eye className="mr-2 h-4 w-4"/>
-                                            Lihat Detail
-                                        </DropdownMenuItem>
-
-                                        <DropdownMenuItem onClick={() => openEditDialog(vendor)}>
-                                            <Edit className="mr-2 h-4 w-4"/>
-                                            Edit
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            onClick={() => handleDelete(vendor.id)}
-                                            className="text-red-600"
-                                        >
-                                            <Trash2 className="mr-2 h-4 w-4"/>
-                                            Hapus
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                    {loading ? (
+                        <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8">
+                                Loading...
                             </TableCell>
                         </TableRow>
-                    ))}
-                    {filteredVendors.length === 0 && (
+                    ) : vendors.length > 0 ? (
+                        vendors.map((vendor) => (
+                            <TableRow key={vendor.id}>
+                                <TableCell>
+                                    <span className="font-mono text-sm">{vendor.id}</span>
+                                </TableCell>
+                                <TableCell className="font-medium">{vendor.name}</TableCell>
+                                <TableCell className="max-w-xs truncate">{vendor.address}</TableCell>
+                                <TableCell>
+                                    {vendor.curr_rel?.symbol || '-'}
+                                </TableCell>
+                                <TableCell>
+                                    {vendor.top_rel?.symbol || '-'}
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={vendor.is_active ? "okay" : "secondary"}>
+                                        {vendor.is_active ? "Aktif" : "Tidak Aktif"}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <MoreHorizontal className="h-4 w-4"/>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => openDetailDialog(vendor)}>
+                                                <Eye className="mr-2 h-4 w-4"/>
+                                                Lihat Detail
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => openEditDialog(vendor)}>
+                                                <Edit className="mr-2 h-4 w-4"/>
+                                                Edit
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() => handleDelete(vendor.id)}
+                                                className="text-red-600"
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4"/>
+                                                Hapus
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    ) : (
                         <TableRow>
-                            <TableCell
-                                colSpan={7}
-                                className="text-center py-8 text-muted-foreground"
-                            >
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                                 Tidak ada vendor yang ditemukan
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
             </Table>
+
+
+            <GlobalPaginationFunction
+                page={currentPage}
+                total={totalCount}
+                totalPages={totalPages}
+                rowsPerPage={rowsPerPage}
+                handleRowsPerPageChange={handleRowsPerPageChange}
+                handlePageChange={setCurrentPage}
+
+            />
+
 
             {/* Add/Edit Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
@@ -349,21 +437,22 @@ export default function VendorPage() {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="code">Kode Vendor</Label>
+                                <Label htmlFor="id">ID Vendor</Label>
                                 <Input
-                                    id="code"
-                                    value={formData.code}
-                                    onChange={(e) => handleInputChange("code", e.target.value)}
-                                    placeholder={dialogMode === "add" ? "JDS001" : "VEN-001"}
+                                    id="id"
+                                    value={formData.id}
+                                    onChange={(e) => handleInputChange("id", e.target.value)}
+                                    placeholder="VEN-001"
                                     disabled={dialogMode === "edit"}
+                                    required
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="status">Status</Label>
                                 <Select
-                                    value={formData.status}
-                                    onValueChange={(value: "active" | "inactive") =>
-                                        handleInputChange("status", value)
+                                    value={formData.is_active ? "active" : "inactive"}
+                                    onValueChange={(value) =>
+                                        handleInputChange("is_active", value === "active")
                                     }
                                 >
                                     <SelectTrigger>
@@ -376,6 +465,7 @@ export default function VendorPage() {
                                 </Select>
                             </div>
                         </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="name">Nama Vendor</Label>
                             <Input
@@ -391,19 +481,20 @@ export default function VendorPage() {
                             <div className="space-y-2">
                                 <Label htmlFor="currency">Mata Uang</Label>
                                 <Select
-                                    value={formData.currency}
+                                    value={formData.currency_id}
                                     onValueChange={(value) =>
-                                        handleInputChange("currency", value)
+                                        handleInputChange("currency_id", value)
                                     }
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Pilih mata uang"/>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="IDR">IDR</SelectItem>
-                                        <SelectItem value="USD">USD</SelectItem>
-                                        <SelectItem value="EUR">EUR</SelectItem>
-                                        <SelectItem value="SGD">SGD</SelectItem>
+                                        {currencies?.data?.map((currency: any) => (
+                                            <SelectItem key={currency.id} value={currency.id.toString()}>
+                                                {currency.symbol} - {currency.name}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -411,22 +502,23 @@ export default function VendorPage() {
                             <div className="space-y-2">
                                 <Label htmlFor="top">Jenis Pembayaran</Label>
                                 <Select
-                                    value={formData.top}
-                                    onValueChange={(value) => handleInputChange("top", value)}
+                                    value={formData.top_id}
+                                    onValueChange={(value) => handleInputChange("top_id", value)}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Pilih jenis pembayaran"/>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="CASH">CASH</SelectItem>
-                                        <SelectItem value="COD">COD</SelectItem>
-                                        <SelectItem value="NET30">NET 30</SelectItem>
-                                        <SelectItem value="NET60">NET 60</SelectItem>
-                                        <SelectItem value="NET90">NET 90</SelectItem>
+                                        {termsOfPayment?.data?.map((top: any) => (
+                                            <SelectItem key={top.id} value={top.id.toString()}>
+                                                {top.symbol} - {top.name}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="address">Alamat</Label>
                             <Textarea
@@ -438,21 +530,23 @@ export default function VendorPage() {
                                 required
                             />
                         </div>
+
                         <DialogFooter className="gap-2">
                             <Button type="button" variant="outline" onClick={closeDialog}>
                                 Batal
                             </Button>
-                            <Button type="submit">
-                                {dialogMode === "add" ? "Tambah Vendor" : "Simpan Perubahan"}
+                            <Button type="submit" disabled={loading}>
+                                {loading ? "Loading..." : (dialogMode === "add" ? "Tambah Vendor" : "Simpan Perubahan")}
                             </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
+
             {selectedVendor && (
                 <VendorDetailDialog
-                    isOpen={true}
-                    onClose={() => setSelectedVendor(null)}
+                    isOpen={detailDialogOpen}
+                    onClose={closeDetailDialog}
                     vendor={selectedVendor}
                 />
             )}
