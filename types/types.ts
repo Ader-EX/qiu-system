@@ -52,7 +52,7 @@ export interface Unit {
 }
 
 export interface TOPUnit {
-    id?: number;
+    id: number;
     name: string;
     symbol: string;
     is_active: boolean;

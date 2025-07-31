@@ -51,11 +51,10 @@ import {
 import {jenisPembayaranService, MataUangListResponse, mataUangService} from "@/services/mataUangService";
 import {TOPUnit, Vendor} from "@/types/types";
 import GlobalPaginationFunction from "@/components/pagination-global";
+import SearchableSelect from "@/components/SearchableSelect";
 
 export default function VendorPage() {
     const [vendors, setVendors] = useState<Vendor[]>([]);
-    const [currencies, setCurrencies] = useState<MataUangListResponse>();
-    const [termsOfPayment, setTermsOfPayment] = useState<MataUangListResponse>();
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState<string>("all");
     const [loading, setLoading] = useState(false);
@@ -83,8 +82,6 @@ export default function VendorPage() {
     // Load initial data
     useEffect(() => {
         loadVendors();
-        loadCurrencies();
-        loadTermsOfPayment();
     }, [currentPage, rowsPerPage, filterStatus]);
 
 
@@ -126,34 +123,6 @@ export default function VendorPage() {
             toast.error("Gagal memuat data vendor");
         } finally {
             setLoading(false);
-        }
-    };
-
-    const loadCurrencies = async () => {
-        try {
-            const currencyData = await mataUangService.getAllMataUang({
-                skip: 1,
-                limit: 1000,
-                search: "",
-            });
-            setCurrencies(currencyData);
-        } catch (error) {
-            console.error("Error loading currencies:", error);
-            toast.error("Gagal memuat data mata uang");
-        }
-    };
-
-    const loadTermsOfPayment = async () => {
-        try {
-            const topData = await jenisPembayaranService.getAllMataUang({
-                skip: 1,
-                limit: 1000,
-                search: "",
-            });
-            setTermsOfPayment(topData);
-        } catch (error) {
-            console.error("Error loading terms of payment:", error);
-            toast.error("Gagal memuat data jenis pembayaran");
         }
     };
 
@@ -281,6 +250,8 @@ export default function VendorPage() {
         }));
     };
 
+    // @ts-ignore
+    // @ts-ignore
     return (
         <div className="space-y-6">
             <SidebarHeaderBar
@@ -420,7 +391,6 @@ export default function VendorPage() {
             />
 
 
-            {/* Add/Edit Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
@@ -478,45 +448,29 @@ export default function VendorPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="currency">Mata Uang</Label>
-                                <Select
-                                    value={formData.currency_id}
-                                    onValueChange={(value) =>
-                                        handleInputChange("currency_id", value)
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih mata uang"/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {currencies?.data?.map((currency: any) => (
-                                            <SelectItem key={currency.id} value={currency.id.toString()}>
-                                                {currency.symbol} - {currency.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="top">Jenis Pembayaran</Label>
-                                <Select
-                                    value={formData.top_id}
-                                    onValueChange={(value) => handleInputChange("top_id", value)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih jenis pembayaran"/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {termsOfPayment?.data?.map((top: any) => (
-                                            <SelectItem key={top.id} value={top.id.toString()}>
-                                                {top.symbol} - {top.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+
+                            <SearchableSelect<TOPUnit>
+                                label="Mata Uang"
+                                placeholder="Pilih mata uang"
+                                value={formData.currency_id}
+                                onChange={(val) => handleInputChange("currency_id", val)}
+                                fetchData={(search) =>
+                                    mataUangService.getAllMataUang({skip: 0, limit: 5, search})
+                                }
+                                renderLabel={(item) => `${item.symbol} - ${item.name}`}
+                            />
+
+                            <SearchableSelect<TOPUnit>
+                                label="Jenis Pembayaran"
+                                placeholder="Pilih jenis pembayaran"
+                                value={formData.top_id}
+                                onChange={(val) => handleInputChange("top_id", val)}
+                                fetchData={(search) =>
+                                    jenisPembayaranService.getAllMataUang({skip: 0, limit: 5, search})
+                                }
+                                renderLabel={(item) => `${item.symbol} - ${item.name}`}
+                            />
                         </div>
 
                         <div className="space-y-2">
