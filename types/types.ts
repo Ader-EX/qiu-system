@@ -1,14 +1,15 @@
 import carouselone from "@/public/carouselone.jpg";
 import {StaticImageData} from "next/image";
+import {ItemTypeEnum} from "@/services/itemService";
 
 export interface Customer {
     id: string;
     name: string;
     code: string;
     address: string;
-    currency: string;
-    top: string;
-    status: "active" | "inactive";
+    curr_rel: TOPUnit;
+    top_rel: TOPUnit;
+    is_active: boolean;
 }
 
 export interface Vendor {
@@ -29,19 +30,20 @@ export interface Warehouse {
     is_active: boolean;
 }
 
-export interface Product {
+export interface Item {
     id: string;
-    nama: string;
-    SKU: string;
+    type: ItemTypeEnum;
+    name: string;
+    sku: string;
 
     is_active: boolean;
-    jumlah: number;
-    harga: number;
-    satuan: string;
-    vendor: string;
+    total_item: number;
+    price: number;
+    satuan_rel: TOPUnit;
+    vendor_rel: TOPUnit;
     gambar: (StaticImageData | string)[];
-    kategori1: string;
-    kategori2: string;
+    category_one_rel: TOPUnit;
+    category_two_rel: TOPUnit;
 }
 
 export interface Unit {

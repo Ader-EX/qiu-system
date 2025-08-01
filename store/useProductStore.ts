@@ -1,9 +1,9 @@
 import {create} from 'zustand';
-import {Product} from '@/types/types';
+import {Item} from '@/types/types';
 
 interface ProductStore {
     // Existing state
-    products: Product[];
+    products: Item[];
     searchTerm: string;
     filterStatus: string;
     filterKategori1: string;
@@ -19,13 +19,13 @@ interface ProductStore {
     // Dialog state
     isAddEditDialogOpen: boolean;
     isDetailDialogOpen: boolean;
-    editingItem: Product | null;
-    selectedProduct: Product | null;
+    editingItem: Item | null;
+    selectedProduct: Item | null;
 
     // Existing actions
-    setProducts: (products: Product[]) => void;
-    addProduct: (product: Product) => void;
-    updateProduct: (product: Product) => void;
+    setProducts: (products: Item[]) => void;
+    addProduct: (product: Item) => void;
+    updateProduct: (product: Item) => void;
     deleteProduct: (id: string) => void;
     setSearchTerm: (term: string) => void;
     setFilterStatus: (status: string) => void;
@@ -40,13 +40,13 @@ interface ProductStore {
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
 
     openAddDialog: () => void;
-    openEditDialog: (item: Product) => void;
+    openEditDialog: (item: Item) => void;
     closeAddEditDialog: () => void;
-    openDetailDialog: (product: Product) => void;
+    openDetailDialog: (product: Item) => void;
     closeDetailDialog: () => void;
 
-    getFilteredProducts: () => Product[];
-    getPaginatedProducts: () => Product[];
+    getFilteredProducts: () => Item[];
+    getPaginatedProducts: () => Item[];
     getKategori1Options: () => string[];
     getVendorOptions: () => string[];
     getKategori2Options: () => string[];
@@ -128,26 +128,26 @@ const useProductStore = create<ProductStore>((set, get) => ({
     getFilteredProducts: () => {
         const state = get();
         let filtered = state.products.filter((product) => {
-            const matchesSearch = product.nama
+            const matchesSearch = product.name
                     .toLowerCase()
                     .includes(state.searchTerm.toLowerCase()) ||
-                product.SKU.toLowerCase().includes(state.searchTerm.toLowerCase());
+                product.sku.toLowerCase().includes(state.searchTerm.toLowerCase());
 
             const matchesStatus = state.filterStatus === 'all' ||
-                product.status === state.filterStatus;
+                product.is_active === state.filterStatus;
 
             const matchesVendor = state.filterVendor === 'all' ||
-                product.vendor === state.filterVendor;
+                product.vendor_rel === state.filterVendor;
 
             const matchesKategori1 = state.filterKategori1 === 'all' ||
-                product.kategori1 === state.filterKategori1;
+                product.category_one_rel === state.filterKategori1;
 
             const matchesKategori2 = state.filterKategori2 === 'all' ||
-                product.kategori2 === state.filterKategori2;
+                product.category_two_rel === state.filterKategori2;
 
             // Category filter (if you're using it)
             const matchesCategory = state.filterCategory === 'all' ||
-                product.kategori1 === state.filterCategory;
+                product.category_one_rel === state.filterCategory;
 
             return matchesSearch && matchesStatus && matchesVendor &&
                 matchesKategori1 && matchesKategori2 && matchesCategory;
@@ -156,8 +156,8 @@ const useProductStore = create<ProductStore>((set, get) => ({
         // NEW: Apply sorting
         if (state.sortBy) {
             filtered.sort((a, b) => {
-                let aValue = a[state.sortBy as keyof Product];
-                let bValue = b[state.sortBy as keyof Product];
+                let aValue = a[state.sortBy as keyof Item];
+                let bValue = b[state.sortBy as keyof Item];
 
                 // Handle string comparison for names
                 if (state.sortBy === 'nama') {
@@ -194,19 +194,19 @@ const useProductStore = create<ProductStore>((set, get) => ({
 
     getKategori1Options: () => {
         const state = get();
-        const uniqueKategori1 = [...new Set(state.products.map(p => p.kategori1))];
+        const uniqueKategori1 = [...new Set(state.products.map(p => p.category_one_rel))];
         return uniqueKategori1.filter(Boolean);
     },
 
     getVendorOptions: () => {
         const state = get();
-        const uniqueVendors = [...new Set(state.products.map(p => p.vendor))];
+        const uniqueVendors = [...new Set(state.products.map(p => p.vendor_rel))];
         return uniqueVendors.filter(Boolean);
     },
 
     getKategori2Options: () => {
         const state = get();
-        const uniqueKategori2 = [...new Set(state.products.map(p => p.kategori2))];
+        const uniqueKategori2 = [...new Set(state.products.map(p => p.category_two_rel))];
         return uniqueKategori2.filter(Boolean);
     },
 }));

@@ -19,14 +19,14 @@ import {Label} from "@/components/ui/label";
 import {Button} from "@/components/ui/button";
 import {Badge} from "@/components/ui/badge";
 import {X, Upload} from "lucide-react";
-import {Product} from "@/types/types";
+import {Item} from "@/types/types";
 import {StaticImageData} from "next/image";
 
 interface AddEditItemDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (item: Product) => void;
-    item?: Partial<Product> | null;
+    onSave: (item: Item) => void;
+    item?: Partial<Item> | null;
 }
 
 const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
@@ -121,19 +121,19 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
     };
 
     const handleSave = () => {
-        const newItem: Product = {
+        const newItem: Item = {
 
             is_active: formData.is_active,
             id: formData.id,
-            nama: formData.nama,
-            SKU: formData.SKU,
-            jumlah: parseInt(formData.jumlah, 10),
-            harga: parseInt(formData.harga, 10),
+            name: formData.nama,
+            sku: formData.SKU,
+            total_item: parseInt(formData.jumlah, 10),
+            price: parseInt(formData.harga, 10),
             gambar: uploadedImages,
-            satuan: formData.satuan || "",
-            vendor: formData.vendor || "",
-            kategori1: formData.kategori1 || "",
-            kategori2: formData.kategori2 || "",
+            satuan_rel: formData.satuan || "",
+            vendor_rel: formData.vendor || "",
+            category_one_rel: formData.kategori1 || "",
+            category_two_rel: formData.kategori2 || "",
         };
         onSave(newItem);
         onClose();

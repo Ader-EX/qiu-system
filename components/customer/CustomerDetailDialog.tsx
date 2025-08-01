@@ -10,6 +10,7 @@ import {
 import {Badge} from "@/components/ui/badge";
 import {Customer} from "@/types/types";
 
+
 interface CustomerDetailDialogProps {
     isOpen: boolean;
     onClose: () => void;
@@ -21,7 +22,7 @@ export const CustomerDetailDialog: React.FC<CustomerDetailDialogProps> = ({
                                                                               onClose,
                                                                               customer,
                                                                           }) => {
-    const statusLabel = customer.status === "active" ? "Aktif" : "Tidak Aktif";
+    const statusLabel = customer.is_active ? "Aktif" : "Tidak Aktif";
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -36,7 +37,7 @@ export const CustomerDetailDialog: React.FC<CustomerDetailDialogProps> = ({
                         <p className="text-sm font-medium text-gray-500">Status</p>
                         <Badge
                             className="mt-1 inline-block px-2 py-1 text-xs font-semibold rounded-full"
-                            variant={customer.status === "active" ? "okay" : "secondary"}
+                            variant={customer.is_active ? "okay" : "secondary"}
                         >
                             {statusLabel}
                         </Badge>
@@ -53,12 +54,12 @@ export const CustomerDetailDialog: React.FC<CustomerDetailDialogProps> = ({
                     {/* Column 2 */}
                     <div>
                         <p className="text-sm font-medium text-gray-500">Mata Uang</p>
-                        <p className="mt-1">{customer.currency}</p>
+                        <p className="mt-1">{customer?.curr_rel?.name}</p>
 
                         <p className="text-sm font-medium text-gray-500 mt-4">
                             Jenis Pembayaran
                         </p>
-                        <p className="mt-1">{customer.top}</p>
+                        <p className="mt-1">{customer.top_rel?.name}</p>
 
                         <p className="text-sm font-medium text-gray-500 mt-4">Alamat</p>
                         <p className="mt-1">{customer.address}</p>

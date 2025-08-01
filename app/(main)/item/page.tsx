@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect} from "react";
+import {useEffect, useState, useCallback} from "react";
 import {
     Plus,
     Search,
@@ -27,215 +27,128 @@ import {
     SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
 import {ProductDetailDialog} from "@/components/Product/ProductDetailDialog";
-import useProductStore from "@/store/useProductStore";
 import toast from "react-hot-toast";
 import ProductListView from "@/components/Product/ProductListView";
-import {StaticImageData} from "next/image";
-import carouselone from "@/public/carouselone.jpg";
-
-import carouseltwo from "@/public/carouseltwo.jpg";
-
-import carouselthree from "@/public/carouselthree.jpg";
 import ProductTableView from "@/components/Product/ProductTableView";
 import {Pagination} from "@/components/ui/pagination";
-import {Product} from "@/types/types";
+import {Item} from "@/types/types";
+import {itemService, ItemFilters, ItemTypeEnum, ItemCreate, ItemUpdate} from "@/services/itemService";
+import GlobalPaginationFunction from "@/components/pagination-global";
 
-const initialProducts: Product[] = [
-    {
-        id: "1",
-        nama: "Laptop Dell Inspiron 15",
-        SKU: "DELL-INS-15-001",
-        is_active: "active",
-        jumlah: 25,
-        harga: 8500000,
-        satuan: "pcs",
-        vendor: "Dell",
-        gambar: [carouselone, carouseltwo, carouselthree],
-        kategori1: "Komputer",
-        kategori2: "Premium",
-    },
-    {
-        id: "2",
-        nama: "Mouse Wireless Logitech",
-        SKU: "LOG-MOU-WL-002",
+export interface TOPUnit {
+    id: string;
+    name: string;
+}
 
-        is_active: "active",
-        jumlah: 100,
-        harga: 150000,
-        satuan: "pcs",
-        vendor: "Logitech",
-        gambar: [carouselone, carouseltwo, carouselthree],
-        kategori1: "Input Device",
-        kategori2: "Budget",
-    },
-    {
-        id: "3",
-        nama: "Keyboard Mechanical RGB",
-        SKU: "KEY-MEC-RGB-003",
-
-        is_active: "active",
-        jumlah: 5,
-        harga: 750000,
-        satuan: "pcs",
-        vendor: "Generic",
-        gambar: [carouselone, carouseltwo, carouselthree],
-        kategori1: "Input Device",
-        kategori2: "Gaming",
-    },
-    {
-        id: "4",
-        nama: "Monitor 24 inch 4K",
-        SKU: "MON-24-4K-004",
-
-        is_active: "inactive",
-        jumlah: 0,
-        harga: 3200000,
-        satuan: "pcs",
-        vendor: "Generic",
-        gambar: [carouselone, carouseltwo, carouselthree],
-        kategori1: "Display",
-        kategori2: "Premium",
-    },
-    {
-        id: "5",
-        nama: "Headset Gaming RGB",
-        SKU: "HEAD-GAM-RGB-005",
-
-        is_active: "active",
-        jumlah: 15,
-        harga: 450000,
-        satuan: "pcs",
-        vendor: "Generic",
-        gambar: [carouselone, carouseltwo, carouselthree],
-        kategori1: "Audio",
-        kategori2: "Gaming",
-    },
-    {
-        id: "6",
-        nama: "SSD Samsung 1TB",
-        SKU: "SAM-SSD-1TB-006",
-
-        is_active: "active",
-        jumlah: 8,
-        harga: 1200000,
-        satuan: "pcs",
-        vendor: "Samsung",
-        gambar: [carouselone, carouseltwo, carouselthree],
-        kategori1: "Storage Device",
-        kategori2: "Professional",
-    },
-    {
-        id: "7",
-        nama: "RAM DDR4 16GB",
-        SKU: "RAM-DDR4-16GB-007",
-
-        is_active: "active",
-        jumlah: 12,
-        harga: 850000,
-        satuan: "pcs",
-        vendor: "Generic",
-        gambar: [carouselone, carouseltwo, carouselthree],
-        kategori1: "Memory",
-        kategori2: "Professional",
-    },
-    {
-        id: "8",
-        nama: "Webcam HD 1080p",
-        SKU: "WEB-HD-1080-008",
-
-        is_active: "active",
-        jumlah: 3,
-        harga: 250000,
-        satuan: "pcs",
-        vendor: "Generic",
-        gambar: [carouselone, carouseltwo, carouselthree],
-        kategori1: "Camera",
-        kategori2: "Budget",
-    },
-];
+interface ProdukPageState {
+    items: Item[];
+    loading: boolean;
+    error: string | null;
+    total: number;
+    searchTerm: string;
+    filterStatus: string;
+    filterItemType: string;
+    filterVendor: string;
+    viewMode: "grid" | "list" | "table";
+    currentPage: number;
+    rowsPerPage: number;
+    sortBy: string;
+    sortOrder: "asc" | "desc";
+    isAddEditDialogOpen: boolean;
+    isDetailDialogOpen: boolean;
+    editingItem: Item | null;
+    selectedProduct: Item | null;
+}
 
 const ProdukPage = () => {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
 
-    const {
-        // State
-        searchTerm,
-        filterStatus,
-        filterKategori1,
-        filterKategori2,
-        filterVendor,
-        filterCategory,
-        viewMode,
-        currentPage,
-        sortBy,
-        sortOrder,
-        isAddEditDialogOpen,
-        isDetailDialogOpen,
-        editingItem,
-        selectedProduct,
+    const [state, setState] = useState<ProdukPageState>({
+        items: [],
+        loading: false,
+        error: null,
+        total: 0,
+        searchTerm: "",
+        filterStatus: "all",
+        filterItemType: "all",
+        filterVendor: "all",
+        viewMode: "grid",
+        currentPage: 1,
+        rowsPerPage: 12,
+        sortBy: "",
+        sortOrder: "asc",
+        isAddEditDialogOpen: false,
+        isDetailDialogOpen: false,
+        editingItem: null,
+        selectedProduct: null,
+    });
 
-        // Actions
-        setProducts,
-        addProduct,
-        updateProduct,
-        deleteProduct,
-        setSearchTerm,
-        setFilterStatus,
-        setVendorStatus,
-        setFilterKategori1,
-        setFilterKategori2,
-        setFilterCategory,
-        setViewMode,
-        setCurrentPage,
-        setSortBy,
-        setSortOrder,
-        openAddDialog,
-        openEditDialog,
-        closeAddEditDialog,
-        openDetailDialog,
-        closeDetailDialog,
+    // Fetch items from API
+    const fetchItems = useCallback(async () => {
+        setState(prev => ({...prev, loading: true, error: null}));
 
-        // Computed values
-        getFilteredProducts,
-        getPaginatedProducts,
+        try {
+            const filters: ItemFilters = {
+                page: state.currentPage,
+                rowsPerPage: state.rowsPerPage,
+                search_key: state.searchTerm || undefined,
+                is_active: state.filterStatus === "all" ? undefined : state.filterStatus === "active",
+                item_type: state.filterItemType === "all" ? undefined : state.filterItemType as ItemTypeEnum,
+            };
 
-        getKategori1Options,
-        getVendorOptions,
-        getKategori2Options,
-    } = useProductStore();
+            const response = await itemService.getAllItems(filters);
 
-    // Initialize products and sync with URL params
+            setState(prev => ({
+                ...prev,
+                items: response.data,
+                total: response.total,
+                loading: false,
+            }));
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to fetch items";
+            setState(prev => ({
+                ...prev,
+                error: errorMessage,
+                loading: false,
+            }));
+            toast.error(errorMessage);
+        }
+    }, [state.currentPage, state.rowsPerPage, state.searchTerm, state.filterStatus, state.filterItemType]);
+
+    // Initialize from URL params and fetch data
     useEffect(() => {
-        setProducts(initialProducts);
-
-        // Sync URL params with store
+        // Sync URL params with state
         const search = searchParams.get("search") || "";
-        const status = searchParams.get("status") || "";
-        const vendor = searchParams.get("vendor") || "";
-        const kategori1 = searchParams.get("kategori1") || "";
-        const kategori2 = searchParams.get("kategori2") || "";
-        const category = searchParams.get("category") || "";
-        const view =
-            (searchParams.get("view") as "grid" | "list" | "table") || "grid";
+        const status = searchParams.get("status") || "all";
+        const itemType = searchParams.get("itemType") || "all";
+        const vendor = searchParams.get("vendor") || "all";
+        const view = (searchParams.get("view") as "grid" | "list" | "table") || "grid";
         const page = parseInt(searchParams.get("page") || "1");
         const sort = searchParams.get("sortBy") || "";
         const order = (searchParams.get("sortOrder") as "asc" | "desc") || "asc";
 
-        if (search) setSearchTerm(search);
-        if (status) setFilterStatus(status);
-        if (vendor) setVendorStatus(vendor);
-        if (kategori1) setFilterKategori1(kategori1);
-        if (kategori2) setFilterKategori2(kategori2);
-        if (category) setFilterCategory(category);
-        if (sort) setSortBy(sort);
-        setSortOrder(order);
-        setViewMode(view);
-        setCurrentPage(page);
-    }, []);
+        setState(prev => ({
+            ...prev,
+            searchTerm: search,
+            filterStatus: status,
+            filterItemType: itemType,
+            filterVendor: vendor,
+            viewMode: view,
+            currentPage: page,
+            sortBy: sort,
+            sortOrder: order,
+        }));
+    }, [searchParams]);
 
-    // URL sync helper
+    // Fetch items when dependencies change
+    useEffect(() => {
+        fetchItems();
+    }, [fetchItems]);
+
     const updateURL = (params: Record<string, string>) => {
         const current = new URLSearchParams(Array.from(searchParams.entries()));
         Object.entries(params).forEach(([k, v]) => {
@@ -247,81 +160,161 @@ const ProdukPage = () => {
 
     // Handlers with URL sync
     const handleSearchChange = (value: string) => {
-        setSearchTerm(value);
+        setState(prev => ({...prev, searchTerm: value, currentPage: 1}));
         updateURL({search: value, page: "1"});
     };
 
     const handleStatusChange = (value: string) => {
-        setFilterStatus(value);
+        setState(prev => ({...prev, filterStatus: value, currentPage: 1}));
         updateURL({status: value === "all" ? "" : value, page: "1"});
     };
 
+    const handleRowsPerPageChange = (value: number) => {
+        setRowsPerPage(value);
+        setCurrentPage(1)
+    };
     const handleVendorChange = (value: string) => {
-        setVendorStatus(value);
+        setState(prev => ({...prev, filterVendor: value, currentPage: 1}));
         updateURL({vendor: value === "all" ? "" : value, page: "1"});
     };
 
-    const handleCategoryChange = (value: string) => {
-        setFilterCategory(value);
-        updateURL({category: value === "all" ? "" : value, page: "1"});
-    };
-
-    const handleKategori1Change = (value: string) => {
-        setFilterKategori1(value);
-        updateURL({kategori1: value === "all" ? "" : value, page: "1"});
-    };
-
-    const handleKategori2Change = (value: string) => {
-        setFilterKategori2(value);
-        updateURL({kategori2: value === "all" ? "" : value, page: "1"});
+    const handleItemTypeChange = (value: string) => {
+        setState(prev => ({...prev, filterItemType: value, currentPage: 1}));
+        updateURL({itemType: value === "all" ? "" : value, page: "1"});
     };
 
     const handleViewChange = (mode: "grid" | "list" | "table") => {
-        setViewMode(mode);
+        setState(prev => ({...prev, viewMode: mode}));
         updateURL({view: mode});
     };
 
     const handlePageChange = (page: number) => {
-        setCurrentPage(page);
+        setState(prev => ({...prev, currentPage: page}));
         updateURL({page: String(page)});
     };
 
     const handleSortChange = (value: string) => {
-        const [field, order] = value.split("-");
-        setSortBy(field);
-        setSortOrder(order as "asc" | "desc");
-        updateURL({
-            sortBy: field || "",
-            sortOrder: order || "",
-            page: "1",
-        });
+        if (value === "all") {
+            setState(prev => ({...prev, sortBy: "", sortOrder: "asc"}));
+            updateURL({sortBy: "", sortOrder: "", page: "1"});
+        } else {
+            const [field, order] = value.split("-");
+            setState(prev => ({
+                ...prev,
+                sortBy: field,
+                sortOrder: order as "asc" | "desc",
+                currentPage: 1
+            }));
+            updateURL({
+                sortBy: field || "",
+                sortOrder: order || "",
+                page: "1",
+            });
+        }
     };
 
     // Dialog handlers
-    const handleDialogSave = (itemData: Product) => {
-        if (editingItem) {
-            updateProduct(itemData);
-            toast.success("Produk berhasil diperbarui!");
-        } else {
-            addProduct(itemData);
-            toast.success("Produk berhasil ditambahkan!");
+    const openAddDialog = () => {
+        setState(prev => ({
+            ...prev,
+            isAddEditDialogOpen: true,
+            editingItem: null
+        }));
+    };
+
+    const openEditDialog = (item: Item) => {
+        setState(prev => ({
+            ...prev,
+            isAddEditDialogOpen: true,
+            editingItem: item
+        }));
+    };
+
+    const closeAddEditDialog = () => {
+        setState(prev => ({
+            ...prev,
+            isAddEditDialogOpen: false,
+            editingItem: null
+        }));
+    };
+
+    const openDetailDialog = (product: Item) => {
+        setState(prev => ({
+            ...prev,
+            isDetailDialogOpen: true,
+            selectedProduct: product
+        }));
+    };
+
+    const closeDetailDialog = () => {
+        setState(prev => ({
+            ...prev,
+            isDetailDialogOpen: false,
+            selectedProduct: null
+        }));
+    };
+
+    const handleDialogSave = async (itemData: Item) => {
+        try {
+            if (state.editingItem) {
+                // Update existing item
+                const updateData: ItemUpdate = {
+                    type: itemData.type,
+                    name: itemData.name,
+                    sku: itemData.sku,
+                    is_active: itemData.is_active,
+                    total_item: itemData.total_item,
+                    price: itemData.price,
+
+                    satuan_id: itemData.satuan_rel?.id,
+                    vendor_id: itemData.vendor_rel?.id,
+                    category_one_id: itemData.category_one_rel?.id,
+                    category_two_id: itemData.category_two_rel?.id,
+                };
+                await itemService.updateItem(state.editingItem.id, updateData);
+                toast.success("Item berhasil diperbarui!");
+            } else {
+                // Create new item
+                const createData: ItemCreate = {
+                    id: itemData.id,
+                    type: itemData.type,
+                    name: itemData.name,
+                    sku: itemData.sku,
+                    is_active: itemData.is_active,
+                    total_item: itemData.total_item,
+                    price: itemData.price,
+                    satuan_id: itemData.satuan_rel?.id,
+                    vendor_id: itemData.vendor_rel?.id,
+                    category_one_id: itemData.category_one_rel?.id,
+                    category_two_id: itemData.category_two_rel?.id,
+                };
+                await itemService.createItem(createData);
+                toast.success("Item berhasil ditambahkan!");
+            }
+            closeAddEditDialog();
+            fetchItems(); // Refresh the list
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to save item";
+            toast.error(errorMessage);
         }
-        closeAddEditDialog();
     };
 
-    const handleDelete = (id: string) => {
-        deleteProduct(id);
-        toast.success("Produk berhasil dihapus!");
+    const handleDelete = async (id: string) => {
+        try {
+            await itemService.deleteItem(id);
+            toast.success("Item berhasil dihapus!");
+            fetchItems(); // Refresh the list
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to delete item";
+            toast.error(errorMessage);
+        }
     };
-
-    // Get computed values
-    const kategori1Options = getKategori1Options();
-    const vendorOptions = getVendorOptions();
-    const kategori2Options = getKategori2Options();
-    const paginatedProducts = getPaginatedProducts();
 
     // Get current sort value for select
-    const currentSortValue = sortBy && sortOrder ? `${sortBy}-${sortOrder}` : "";
+    const currentSortValue = state.sortBy && state.sortOrder ? `${state.sortBy}-${state.sortOrder}` : "all";
+
+    // Calculate total pages
+    const totalPages = Math.ceil(state.total / state.rowsPerPage);
 
     return (
         <div className="space-y-6">
@@ -343,61 +336,41 @@ const ProdukPage = () => {
 
             {/* Filters and View Controls */}
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex flex-col sm:flex-row gap-2 ">
+                <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative">
                         <Search
                             className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                         <Input
-                            placeholder="Cari produk..."
-                            value={searchTerm}
+                            placeholder="Cari item..."
+                            value={state.searchTerm}
                             onChange={(e) => handleSearchChange(e.target.value)}
                             className="pl-9 w-auto"
                         />
                     </div>
 
-                    <Select value={filterVendor} onValueChange={handleVendorChange}>
+                    <Select value={state.filterItemType} onValueChange={handleItemTypeChange}>
+                        <SelectTrigger className="w-auto">
+                            <SelectValue placeholder="Pilih Tipe Item"/>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Tipe</SelectItem>
+                            <SelectItem value="FINISH_GOOD">Finish Good</SelectItem>
+                            <SelectItem value="RAW_MATERIAL">Raw Material</SelectItem>
+                            <SelectItem value="SERVICE">Service</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={state.filterVendor} onValueChange={handleVendorChange}>
                         <SelectTrigger className="w-auto">
                             <SelectValue placeholder="Pilih Vendor"/>
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Semua Vendor</SelectItem>
-                            {vendorOptions.map((vendor: string) => (
-                                <SelectItem key={vendor} value={vendor || "elektronik"}>
-                                    {vendor}
-                                </SelectItem>
-                            ))}
+                            {/* You can populate this with actual vendor options from your items */}
                         </SelectContent>
                     </Select>
 
-                    <Select value={filterKategori1} onValueChange={handleKategori1Change}>
-                        <SelectTrigger className="w-auto">
-                            <SelectValue placeholder="Pilih kategori 1"/>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Kategori 1</SelectItem>
-                            {kategori1Options.map((kategori1: string) => (
-                                <SelectItem key={kategori1} value={kategori1 || "elektronik"}>
-                                    {kategori1}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select value={filterKategori2} onValueChange={handleKategori2Change}>
-                        <SelectTrigger className="w-auto">
-                            <SelectValue placeholder="Pilih kategori 2"/>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Kategori 2</SelectItem>
-                            {kategori2Options.map((kategori2: string) => (
-                                <SelectItem key={kategori2} value={kategori2 || "elektronik"}>
-                                    {kategori2}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    <Select value={filterStatus} onValueChange={handleStatusChange}>
+                    <Select value={state.filterStatus} onValueChange={handleStatusChange}>
                         <SelectTrigger className="w-auto">
                             <SelectValue placeholder="Pilih status"/>
                         </SelectTrigger>
@@ -408,7 +381,8 @@ const ProdukPage = () => {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className={"flex space-x-2"}>
+
+                <div className="flex space-x-2">
                     <Select value={currentSortValue} onValueChange={handleSortChange}>
                         <SelectTrigger className="w-auto">
                             <ArrowUpDown className="h-4 w-4 mr-2"/>
@@ -416,16 +390,19 @@ const ProdukPage = () => {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Tanpa Urutan</SelectItem>
-                            <SelectItem value="nama-asc">Nama A-Z</SelectItem>
-                            <SelectItem value="nama-desc">Nama Z-A</SelectItem>
-                            <SelectItem value="harga-asc">Harga Terendah</SelectItem>
-                            <SelectItem value="harga-desc">Harga Tertinggi</SelectItem>
+                            <SelectItem value="name-asc">Nama A-Z</SelectItem>
+                            <SelectItem value="name-desc">Nama Z-A</SelectItem>
+                            <SelectItem value="price-asc">Harga Terendah</SelectItem>
+                            <SelectItem value="price-desc">Harga Tertinggi</SelectItem>
+                            <SelectItem value="sku-asc">SKU A-Z</SelectItem>
+                            <SelectItem value="sku-desc">SKU Z-A</SelectItem>
                         </SelectContent>
                     </Select>
+
                     <div className="flex items-center border rounded-lg">
                         <Button
                             size="sm"
-                            variant={viewMode === "grid" ? "default" : "ghost"}
+                            variant={state.viewMode === "grid" ? "default" : "ghost"}
                             onClick={() => handleViewChange("grid")}
                             className="rounded-r-none"
                         >
@@ -433,7 +410,7 @@ const ProdukPage = () => {
                         </Button>
                         <Button
                             size="sm"
-                            variant={viewMode === "list" ? "default" : "ghost"}
+                            variant={state.viewMode === "list" ? "default" : "ghost"}
                             onClick={() => handleViewChange("list")}
                             className="border-x"
                         >
@@ -441,7 +418,7 @@ const ProdukPage = () => {
                         </Button>
                         <Button
                             size="sm"
-                            variant={viewMode === "table" ? "default" : "ghost"}
+                            variant={state.viewMode === "table" ? "default" : "ghost"}
                             onClick={() => handleViewChange("table")}
                             className="rounded-l-none"
                         >
@@ -451,29 +428,93 @@ const ProdukPage = () => {
                 </div>
             </div>
 
-            <div className="overflow-x-auto">
-                {viewMode === "grid" && <ProductGridView/>}
-                {viewMode === "list" && <ProductListView/>}
-                {viewMode === "table" && <ProductTableView/>}
-            </div>
 
-            <Pagination/>
+            {state.loading && (
+                <div className="flex justify-center items-center py-8">
+                    <div className="text-muted-foreground">Loading items...</div>
+                </div>
+            )}
 
-            {/* Dialogs */}
+            {state.error && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                    <div className="text-destructive">{state.error}</div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={fetchItems}
+                        className="mt-2"
+                    >
+                        Retry
+                    </Button>
+                </div>
+            )}
+
+            {/* Content Views */}
+            {!state.loading && !state.error && (
+                <div className="overflow-x-auto">
+                    {state.viewMode === "grid" && (
+                        <ProductGridView
+                            products={state.items}
+                            onEdit={openEditDialog}
+                            onDelete={handleDelete}
+                            onView={openDetailDialog}
+                        />
+                    )}
+                    {state.viewMode === "list" && (
+                        <ProductListView
+                            products={state.items}
+                            onEdit={openEditDialog}
+                            onDelete={handleDelete}
+                            onView={openDetailDialog}
+                        />
+                    )}
+                    {state.viewMode === "table" && (
+                        <ProductTableView
+                            products={state.items}
+                            onEdit={openEditDialog}
+                            onDelete={handleDelete}
+                            onView={openDetailDialog}
+                        />
+                    )}
+                </div>
+            )}
+
+            {/* Pagination */}
+            {!state.loading && !state.error && state.total > 0 && (
+                <GlobalPaginationFunction
+                    page={state.currentPage}
+                    totalPages={totalPages}
+                    handlePageChange={handlePageChange}
+                    total={state.total}
+                    rowsPerPage={rowsPerPage}
+                    handleRowsPerPageChange={handleRowsPerPageChange}
+
+                />
+            )}
+
+            {!state.loading && !state.error && state.items.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                    No items found. Try adjusting your search or filters.
+                </div>
+            )}
+
+
             <AddEditItemDialog
-                item={editingItem}
-                isOpen={isAddEditDialogOpen}
+                item={state.editingItem}
+                isOpen={state.isAddEditDialogOpen}
                 onClose={closeAddEditDialog}
                 onSave={handleDialogSave}
             />
-            {selectedProduct && (
+
+            {state.selectedProduct && (
                 <ProductDetailDialog
-                    isOpen={isDetailDialogOpen}
+                    isOpen={state.isDetailDialogOpen}
                     onClose={closeDetailDialog}
-                    product={selectedProduct}
+                    product={state.selectedProduct}
                 />
             )}
         </div>
     );
 };
+
 export default ProdukPage;

@@ -8,7 +8,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import {Badge} from "@/components/ui/badge";
-import {Vendor} from "@/app/(main)/vendor/page";
+
+import {Vendor} from "@/types/types";
 
 interface VendorDetailDialogProps {
     isOpen: boolean;
@@ -21,7 +22,7 @@ export const VendorDetailDialog: React.FC<VendorDetailDialogProps> = ({
                                                                           onClose,
                                                                           vendor,
                                                                       }) => {
-    const statusLabel = vendor.is_active === "active" ? "Aktif" : "Tidak Aktif";
+    const statusLabel = vendor.is_active ? "Aktif" : "Tidak Aktif";
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -38,7 +39,7 @@ export const VendorDetailDialog: React.FC<VendorDetailDialogProps> = ({
                         <p className="text-sm font-medium text-gray-500">Status</p>
                         <Badge
                             className="mt-1 inline-block px-2 py-1 text-xs font-semibold rounded-full"
-                            variant={vendor.is_active === "active" ? "okay" : "destructive"}
+                            variant={vendor.is_active ? "okay" : "destructive"}
                         >
                             {statusLabel}
                         </Badge>
@@ -46,7 +47,7 @@ export const VendorDetailDialog: React.FC<VendorDetailDialogProps> = ({
                         <p className="text-sm font-medium text-gray-500 mt-4">
                             Vendor Code
                         </p>
-                        <p className="mt-1 font-mono">{vendor.code}</p>
+                        <p className="mt-1 font-mono">{vendor.id}</p>
 
                         <p className="text-sm font-medium text-gray-500 mt-4">
                             Nama Vendor
@@ -57,12 +58,12 @@ export const VendorDetailDialog: React.FC<VendorDetailDialogProps> = ({
                     {/* Column 2 */}
                     <div>
                         <p className="text-sm font-medium text-gray-500">Mata Uang</p>
-                        <p className="mt-1">{vendor.currency}</p>
+                        <p className="mt-1">{vendor?.curr_rel?.name}</p>
 
                         <p className="text-sm font-medium text-gray-500 mt-4">
                             Jenis Pembayaran
                         </p>
-                        <p className="mt-1">{vendor.top}</p>
+                        <p className="mt-1">{vendor?.top_rel?.name}</p>
 
                         <p className="text-sm font-medium text-gray-500 mt-4">Alamat</p>
                         <p className="mt-1">{vendor.address}</p>

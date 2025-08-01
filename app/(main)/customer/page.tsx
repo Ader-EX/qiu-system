@@ -1,19 +1,10 @@
 "use client";
 
-import {useState} from "react";
-import {
-    Plus,
-    Search,
-    MoreHorizontal,
-    Edit,
-    Trash2,
-    Eye,
-    ChevronLeft,
-    ChevronRight,
-} from "lucide-react";
+import React, {useState, useEffect} from "react";
+import {Plus, Search, MoreHorizontal, Edit, Trash2, Eye, Search as SearchIcon} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
-import {Card, CardContent, CardHeader} from "@/components/ui/card";
+
 import {
     Table,
     TableBody,
@@ -29,7 +20,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {Badge} from "@/components/ui/badge";
-import {AlertSuccess} from "@/components/alert-success";
 import {
     Select,
     SelectContent,
@@ -52,174 +42,118 @@ import {
     SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
 import toast from "react-hot-toast";
-import {CustomerDetailDialog} from "@/components/customer/CustomerDetailDialog";
-import {Customer} from "@/types/types";
 
-const initialCustomers: Customer[] = [
-    {
-        id: "1",
-        name: "PT. Maju Bersama",
-        code: "CUS-001",
-        address: "Jl. Gatot Subroto No. 123, Jakarta",
-        is_active: "active",
-        currency: "USD",
-        top: "NET 30",
-    },
-    {
-        id: "2",
-        name: "CV. Sukses Mandiri",
-        code: "CUS-002",
-        address: "Jl. Pahlawan No. 456, Surabaya",
-        is_active: "active",
-        currency: "IDR",
-        top: "NET 15",
-    },
-    {
-        id: "3",
-        name: "UD. Berkah Jaya",
-        code: "CUS-003",
-        address: "Jl. Diponegoro No. 789, Bandung",
-        is_active: "inactive",
-        currency: "USD",
-        top: "COD",
-    },
-    {
-        id: "4",
-        name: "PT. Global Solutions",
-        code: "CUS-004",
-        address: "Jl. Thamrin No. 321, Jakarta",
-        is_active: "active",
-        currency: "USD",
-        top: "NET 45",
-    },
-    {
-        id: "5",
-        name: "CV. Makmur Sejahtera",
-        code: "CUS-005",
-        address: "Jl. Ahmad Yani No. 654, Medan",
-        is_active: "active",
-        currency: "IDR",
-        top: "NET 30",
-    },
-    {
-        id: "6",
-        name: "UD. Harapan Baru",
-        code: "CUS-006",
-        address: "Jl. Veteran No. 987, Yogyakarta",
-        is_active: "inactive",
-        currency: "IDR",
-        top: "CASH",
-    },
-    {
-        id: "7",
-        name: "PT. Teknologi Nusantara",
-        code: "CUS-007",
-        address: "Jl. Sudirman No. 111, Jakarta",
-        is_active: "active",
-        currency: "USD",
-        top: "NET 60",
-    },
-    {
-        id: "8",
-        name: "CV. Karya Utama",
-        code: "CUS-008",
-        address: "Jl. Malioboro No. 222, Yogyakarta",
-        is_active: "active",
-        currency: "IDR",
-        top: "NET 15",
-    },
-    {
-        id: "9",
-        name: "UD. Sinar Harapan",
-        code: "CUS-009",
-        address: "Jl. Gajah Mada No. 333, Semarang",
-        is_active: "inactive",
-        currency: "USD",
-        top: "COD",
-    },
-    {
-        id: "10",
-        name: "PT. Mitra Sejati",
-        code: "CUS-010",
-        address: "Jl. Hayam Wuruk No. 444, Jakarta",
-        is_active: "active",
-        currency: "IDR",
-        top: "NET 30",
-    },
-];
+import {jenisPembayaranService, MataUangListResponse, mataUangService} from "@/services/mataUangService";
+import {TOPUnit, Customer} from "@/types/types";
+import GlobalPaginationFunction from "@/components/pagination-global";
+import SearchableSelect from "@/components/SearchableSelect";
+import {CustomerCreate, customerService, CustomerUpdate} from "@/services/customerService";
+import {CustomerDetailDialog} from "@/components/customer/CustomerDetailDialog";
 
 export default function CustomerPage() {
-    const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+    const [Customers, setCustomers] = useState<Customer[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
-
-    const [filterStatus, setFilterStatus] = useState("");
+    const [filterStatus, setFilterStatus] = useState<string>("all");
+    const [loading, setLoading] = useState(false);
+    const [totalCount, setTotalCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
-    const [rowsPerPage, setRowsPerPage] = useState(5);
-    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-        null
-    );
+    const [rowsPerPage, setRowsPerPage] = useState(10);
 
-    // Dialog states
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+    const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
-    // Form states
+    const totalPages = Math.ceil(totalCount / rowsPerPage);
+
     const [formData, setFormData] = useState({
+        id: "",
         name: "",
-        code: "",
         address: "",
-        currency: "",
-        top: "",
-        status: "active" as "active" | "inactive",
+        currency_id: "",
+        top_id: "",
+        is_active: true,
     });
 
-    const filteredCustomers = customers.filter((customer) => {
-        const matchesSearch =
-            customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            customer.code.toLowerCase().includes(searchTerm.toLowerCase());
+    // Load initial data
+    useEffect(() => {
+        loadCustomers();
+    }, [currentPage, rowsPerPage, filterStatus]);
 
-        const matchesStatus =
-            filterStatus === "" ||
-            filterStatus === "all" ||
-            customer.status === filterStatus;
 
-        return matchesSearch && matchesStatus;
-    });
+    const handleSearch = async () => {
 
-    // Pagination logic
-    const totalPages = Math.ceil(filteredCustomers.length / rowsPerPage);
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    const currentCustomers = filteredCustomers.slice(startIndex, endIndex);
+        setCurrentPage(1);
+        await loadCustomers();
+    };
+
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            handleSearch();
+        }
+    };
+
+    const handleRowsPerPageChange = (value: number) => {
+        setRowsPerPage(value);
+        setCurrentPage(1)
+    };
+
+
+    const loadCustomers = async () => {
+        try {
+            setLoading(true);
+            const filters = {
+                page: currentPage,
+                rowsPerPage,
+                ...(searchTerm && {search_key: searchTerm}),
+                ...(filterStatus !== "all" && {is_active: filterStatus === "active"}),
+            };
+
+            const response = await customerService.getAllCustomers(filters);
+            console.log(response)
+            setCustomers(response.data);
+            setTotalCount(response.total);
+        } catch (error) {
+            console.error("Error loading Customers:", error);
+            toast.error("Gagal memuat data Customer");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const resetForm = () => {
         setFormData({
+            id: "",
             name: "",
-            code: "",
             address: "",
-            currency: "",
-            top: "",
-            is_active: "active",
+            currency_id: "",
+            top_id: "",
+            is_active: true,
         });
+    };
+
+    const generateCustomerId = () => {
+        return `CUS-${Date.now() % 1000}-${Math.floor(Math.random() * 10)}`;
     };
 
     const openAddDialog = () => {
         setDialogMode("add");
         resetForm();
+        setFormData(prev => ({...prev, id: generateCustomerId()}));
         setIsDialogOpen(true);
     };
 
-    const openEditDialog = (customer: Customer) => {
+    const openEditDialog = (Customer: Customer) => {
         setDialogMode("edit");
-        setEditingCustomer(customer);
+        setEditingCustomer(Customer);
         setFormData({
-            name: customer.name,
-            code: customer.code,
-            address: customer.address,
-            currency: customer.currency || "-",
-            top: customer.top || "-",
-            is_active: customer.status,
+            id: Customer.id,
+            name: Customer.name,
+            address: Customer.address,
+            currency_id: Customer?.curr_rel?.id?.toString() || "",
+            top_id: Customer?.top_rel?.id?.toString() || "",
+            is_active: Customer.is_active,
         });
         setIsDialogOpen(true);
     };
@@ -230,75 +164,96 @@ export default function CustomerPage() {
         resetForm();
     };
 
-    const generateCustomerCode = () => {
-        const lastCustomer = customers.sort(
-            (a, b) => parseInt(b.code.split("-")[1]) - parseInt(a.code.split("-")[1])
-        )[0];
-
-        const lastNumber = lastCustomer
-            ? parseInt(lastCustomer.code.split("-")[1])
-            : 0;
-        return `CUS-${String(lastNumber + 1).padStart(3, "0")}`;
+    const openDetailDialog = (Customer: Customer) => {
+        setSelectedCustomer(Customer);
+        setDetailDialogOpen(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const closeDetailDialog = () => {
+        setSelectedCustomer(null);
+        setDetailDialogOpen(false);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.name.trim() || !formData.address.trim()) {
+        if (!formData.name.trim() || !formData.address.trim() || !formData.currency_id || !formData.top_id) {
+            toast.error("Semua field wajib diisi");
             return;
         }
 
-        if (dialogMode === "add") {
-            const newCustomer: Customer = {
-                id: Date.now().toString(),
-                ...formData,
-                code: formData.code || generateCustomerCode(),
-            };
+        try {
+            setLoading(true);
 
-            setCustomers([...customers, newCustomer]);
-            toast.success("Customer berhasil ditambahkan!");
-        } else if (editingCustomer) {
-            const updatedCustomers = customers.map((customer) =>
-                customer.id === editingCustomer.id
-                    ? {...customer, ...formData}
-                    : customer
-            );
+            if (dialogMode === "add") {
+                const newCustomerData: CustomerCreate = {
+                    id: formData.id,
+                    name: formData.name,
+                    address: formData.address,
+                    currency_id: parseInt(formData.currency_id),
+                    top_id: parseInt(formData.top_id),
+                    is_active: formData.is_active,
+                };
 
-            setCustomers(updatedCustomers);
-            toast.success("Customer berhasil diperbarui!");
+                await customerService.createCustomer(newCustomerData);
+                toast.success("Customer berhasil ditambahkan!");
+            } else if (editingCustomer) {
+                const updateData: CustomerUpdate = {
+                    name: formData.name,
+                    address: formData.address,
+                    currency_id: parseInt(formData.currency_id),
+                    top_id: parseInt(formData.top_id),
+                    is_active: formData.is_active,
+                };
+
+                await customerService.updateCustomer(editingCustomer.id, updateData);
+                toast.success("Customer berhasil diperbarui!");
+            }
+
+            closeDialog();
+            loadCustomers();
+        } catch (error: any) {
+            console.error("Error saving Customer:", error);
+            toast.error(error.detail || "Gagal menyimpan Customer");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Apakah Anda yakin ingin menghapus Customer ini?")) {
+            return;
         }
 
-        closeDialog();
+        try {
+            setLoading(true);
+            await customerService.deleteCustomer(id);
+            toast.success("Customer berhasil dihapus!");
+            loadCustomers();
+        } catch (error: any) {
+            console.error("Error deleting Customer:", error);
+            toast.error(error.detail || "Gagal menghapus Customer");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleDelete = (id: string) => {
-        setCustomers(customers.filter((customer) => customer.id !== id));
-        toast.success("Customer berhasil dihapus!");
-    };
-
-    const handleInputChange = (field: keyof typeof formData, value: string) => {
+    const handleInputChange = (field: keyof typeof formData, value: string | boolean) => {
         setFormData((prev) => ({
             ...prev,
             [field]: value,
         }));
     };
 
-    const handlePageChange = (page: number) => {
-        setCurrentPage(page);
-    };
-
-    const handleRowsPerPageChange = (rows: string) => {
-        setRowsPerPage(parseInt(rows));
-        setCurrentPage(1); // Reset to first page when changing rows per page
-    };
-
+    // @ts-ignore
+    // @ts-ignore
     return (
         <div className="space-y-6">
             <SidebarHeaderBar
                 title="Customer"
                 rightContent={
                     <HeaderActions.ActionGroup>
-                        <Button size="sm" onClick={openAddDialog}>
+                        <Button size="sm" onClick={openAddDialog} disabled={loading}>
                             <Plus className="h-4 w-4 mr-2"/>
                             Tambah Customer
                         </Button>
@@ -306,23 +261,30 @@ export default function CustomerPage() {
                 }
             />
 
-
             <div className="flex space-x-2">
 
-                <div className="relative">
-                    <Search
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                    <Input
-                        placeholder="Cari produk..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-auto"
-                    />
+                <div className="flex w-full  space-x-2">
+                    <div className="relative max-w-sm">
+                        <Search
+                            className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
+                        <Input
+                            placeholder="Cari kategori..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyDown={handleSearchKeyDown}
+                            className="pl-7 w-full"
+                        />
+                    </div>
+
+                    <Button onClick={handleSearch} disabled={loading}>
+                        <SearchIcon className="mr-2 h-4 w-4"/> Cari
+                    </Button>
                 </div>
                 <Select
                     value={filterStatus}
                     onValueChange={(value) => {
                         setFilterStatus(value);
-                        setCurrentPage(1); // Reset to first page when filtering
+                        setCurrentPage(1);
                     }}
                 >
                     <SelectTrigger className="w-[180px]">
@@ -339,7 +301,7 @@ export default function CustomerPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Customer Code</TableHead>
+                        <TableHead>Customer ID</TableHead>
                         <TableHead>Nama Customer</TableHead>
                         <TableHead>Alamat</TableHead>
                         <TableHead>Mata Uang</TableHead>
@@ -349,138 +311,113 @@ export default function CustomerPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {currentCustomers.map((customer) => (
-                        <TableRow key={customer.id}>
-                            <TableCell>
-                                <span className="font-mono text-sm">{customer.code}</span>
-                            </TableCell>
-                            <TableCell className="font-medium">{customer.name}</TableCell>
-                            <TableCell className="font-medium">
-                                {customer.address}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                                {customer.currency || "-"}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                                {customer.top || "-"}
-                            </TableCell>
-                            <TableCell>
-                                <Badge
-                                    variant={
-                                        customer.status === "active" ? "okay" : "secondary"
-                                    }
-                                >
-                                    {customer.status === "active" ? "Aktif" : "Tidak Aktif"}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                            <MoreHorizontal className="h-4 w-4"/>
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem
-                                            onClick={() => setSelectedCustomer(customer)}
-                                        >
-                                            <Eye className="mr-2 h-4 w-4"/>
-                                            Lihat Detail
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            onClick={() => openEditDialog(customer)}
-                                        >
-                                            <Edit className="mr-2 h-4 w-4"/>
-                                            Edit
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            onClick={() => handleDelete(customer.id)}
-                                            className="text-red-600"
-                                        >
-                                            <Trash2 className="mr-2 h-4 w-4"/>
-                                            Hapus
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                    {loading ? (
+                        <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8">
+                                Loading...
                             </TableCell>
                         </TableRow>
-                    ))}
-                    {currentCustomers.length === 0 && (
+                    ) : Customers.length > 0 ? (
+                        Customers.map((Customer) => (
+                            <TableRow key={Customer.id}>
+                                <TableCell>
+                                    <span className="font-mono text-sm">{Customer.id}</span>
+                                </TableCell>
+                                <TableCell className="font-medium">{Customer.name}</TableCell>
+                                <TableCell className="max-w-xs truncate">{Customer.address}</TableCell>
+                                <TableCell>
+                                    {Customer.curr_rel?.symbol || '-'}
+                                </TableCell>
+                                <TableCell>
+                                    {Customer.top_rel?.symbol || '-'}
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={Customer.is_active ? "okay" : "secondary"}>
+                                        {Customer.is_active ? "Aktif" : "Tidak Aktif"}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <MoreHorizontal className="h-4 w-4"/>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => openDetailDialog(Customer)}>
+                                                <Eye className="mr-2 h-4 w-4"/>
+                                                Lihat Detail
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => openEditDialog(Customer)}>
+                                                <Edit className="mr-2 h-4 w-4"/>
+                                                Edit
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() => handleDelete(Customer.id)}
+                                                className="text-red-600"
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4"/>
+                                                Hapus
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    ) : (
                         <TableRow>
-                            <TableCell
-                                colSpan={7}
-                                className="text-center py-8 text-muted-foreground"
-                            >
-                                Tidak ada customer yang ditemukan
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                Tidak ada Customer yang ditemukan
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
             </Table>
 
-            {/* Pagination */}
-            <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center space-x-2">
-              <span className="text-sm text-muted-foreground">
-                Baris per halaman:
-              </span>
-                    <Select
-                        value={rowsPerPage.toString()}
-                        onValueChange={handleRowsPerPageChange}
-                    >
-                        <SelectTrigger className="w-[70px]">
-                            <SelectValue/>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="5">5</SelectItem>
-                            <SelectItem value="10">10</SelectItem>
-                            <SelectItem value="20">20</SelectItem>
-                            <SelectItem value="50">50</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
 
-                <div className="flex items-center space-x-2">
-              <span className="text-sm text-muted-foreground">
-                Halaman {currentPage} dari {totalPages} (
-                  {filteredCustomers.length} total)
-              </span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                    >
-                        <ChevronLeft className="h-4 w-4"/>
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages || totalPages === 0}
-                    >
-                        <ChevronRight className="h-4 w-4"/>
-                    </Button>
-                </div>
-            </div>
+            <GlobalPaginationFunction
+                page={currentPage}
+                total={totalCount}
+                totalPages={totalPages}
+                rowsPerPage={rowsPerPage}
+                handleRowsPerPageChange={handleRowsPerPageChange}
+                handlePageChange={setCurrentPage}
 
-            {/* Add/Edit Dialog */}
+            />
+
+
             <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
-                        <DialogTitle className="text-left">
-                            {dialogMode === "add" ? "Tambah Customer" : "Edit Customer"}
+                        <DialogTitle>
+                            {dialogMode === "add" ? "Tambah Customer Baru" : "Edit Customer"}
                         </DialogTitle>
+                        <DialogDescription>
+                            {dialogMode === "add"
+                                ? "Masukkan informasi Customer baru di bawah ini."
+                                : "Perbarui informasi Customer di bawah ini."}
+                        </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
+                                <Label htmlFor="id">ID Customer</Label>
+                                <Input
+                                    id="id"
+                                    value={formData.id}
+                                    onChange={(e) => handleInputChange("id", e.target.value)}
+                                    placeholder="VEN-001"
+                                    disabled={dialogMode === "edit"}
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
                                 <Label htmlFor="status">Status</Label>
                                 <Select
-                                    value={formData.status}
-                                    onValueChange={(value: "active" | "inactive") =>
-                                        handleInputChange("status", value)
+                                    value={formData.is_active ? "active" : "inactive"}
+                                    onValueChange={(value) =>
+                                        handleInputChange("is_active", value === "active")
                                     }
                                 >
                                     <SelectTrigger>
@@ -492,78 +429,52 @@ export default function CustomerPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="code">Kode Customer</Label>
-                                <Input
-                                    id="code"
-                                    value={formData.code}
-                                    onChange={(e) => handleInputChange("code", e.target.value)}
-                                    placeholder={dialogMode === "add" ? "JSD001" : "CUS-001"}
-                                    disabled={dialogMode === "edit"}
-                                />
-                            </div>
                         </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="name">Nama Customer</Label>
                             <Input
                                 id="name"
                                 value={formData.name}
                                 onChange={(e) => handleInputChange("name", e.target.value)}
-                                placeholder="Masukkan nama customer"
+                                placeholder="Nama Customer"
                                 required
                             />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="currency">Mata Uang</Label>
-                                <Select
-                                    value={formData.currency}
-                                    onValueChange={(value) =>
-                                        handleInputChange("currency", value)
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih mata uang"/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="IDR">IDR</SelectItem>
-                                        <SelectItem value="USD">USD</SelectItem>
-                                        <SelectItem value="EUR">EUR</SelectItem>
-                                        <SelectItem value="SGD">SGD</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="top">Jenis Pembayaran</Label>
-                                <Select
-                                    value={formData.top}
-                                    onValueChange={(value) => handleInputChange("top", value)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Pilih jenis pembayaran"/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="CASH">CASH</SelectItem>
-                                        <SelectItem value="COD">COD</SelectItem>
-                                        <SelectItem value="NET 15">NET 15</SelectItem>
-                                        <SelectItem value="NET 30">NET 30</SelectItem>
-                                        <SelectItem value="NET 45">NET 45</SelectItem>
-                                        <SelectItem value="NET 60">NET 60</SelectItem>
-                                        <SelectItem value="NET 90">NET 90</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+
+                            <SearchableSelect<TOPUnit>
+                                label="Mata Uang"
+                                placeholder="Pilih mata uang"
+                                value={formData.currency_id}
+                                onChange={(val) => handleInputChange("currency_id", val)}
+                                fetchData={(search) =>
+                                    mataUangService.getAllMataUang({skip: 0, limit: 5, search})
+                                }
+                                renderLabel={(item) => `${item.symbol} - ${item.name}`}
+                            />
+
+                            <SearchableSelect<TOPUnit>
+                                label="Jenis Pembayaran"
+                                placeholder="Pilih jenis pembayaran"
+                                value={formData.top_id}
+                                onChange={(val) => handleInputChange("top_id", val)}
+                                fetchData={(search) =>
+                                    jenisPembayaranService.getAllMataUang({skip: 0, limit: 5, search})
+                                }
+                                renderLabel={(item) => `${item.symbol} - ${item.name}`}
+                            />
                         </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="address">Alamat</Label>
                             <Textarea
                                 id="address"
                                 value={formData.address}
                                 onChange={(e) => handleInputChange("address", e.target.value)}
-                                placeholder="Masukkan alamat lengkap customer"
+                                placeholder="Masukkan alamat lengkap Customer"
                                 rows={3}
                                 required
                             />
@@ -573,17 +484,18 @@ export default function CustomerPage() {
                             <Button type="button" variant="outline" onClick={closeDialog}>
                                 Batal
                             </Button>
-                            <Button type="submit">
-                                {dialogMode === "add" ? "Tambah Customer" : "Simpan Perubahan"}
+                            <Button type="submit" disabled={loading}>
+                                {loading ? "Loading..." : (dialogMode === "add" ? "Tambah Customer" : "Simpan Perubahan")}
                             </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
+
             {selectedCustomer && (
                 <CustomerDetailDialog
-                    isOpen={!!selectedCustomer}
-                    onClose={() => setSelectedCustomer(null)}
+                    isOpen={detailDialogOpen}
+                    onClose={closeDetailDialog}
                     customer={selectedCustomer}
                 />
             )}

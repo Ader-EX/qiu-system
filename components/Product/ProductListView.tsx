@@ -12,8 +12,17 @@ import {
 import {getStockStatus} from "@/lib/utils";
 import Image from "next/image";
 import carouselone from "@/public/carouselone.jpg";
+import {Item} from "@/types/types";
 
-export default function ProductListView() {
+
+interface ProductListViewProps {
+    products?: Item[],
+    onEdit?: (item: Item) => void,
+    onDelete?: (id: string) => Promise<void>,
+    onView?: (product: Item) => void
+}
+
+export default function ProductListView({products, onEdit, onDelete, onView}: ProductListViewProps) {
     const {
         getPaginatedProducts,
         openDetailDialog,
@@ -26,7 +35,7 @@ export default function ProductListView() {
     return (
         <div className="space-y-2 ">
             {paginatedProducts?.map((product) => {
-                const stockStatus = getStockStatus(product.jumlah);
+                const stockStatus = getStockStatus(product.total_item);
                 return (
                     <Card
                         key={product.id}
@@ -45,7 +54,7 @@ export default function ProductListView() {
                                     <div className="flex-1 min-w-0">
                                         <div className={"flex w-full justify-between"}>
                                             <h3 className="font-medium text-base truncate">
-                                                {product.nama}
+                                                {product.name}
                                             </h3>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -74,7 +83,7 @@ export default function ProductListView() {
 
                                         </div>
                                         <p className="text-sm text-gray-500">
-                                            SKU : {product.SKU}
+                                            SKU : {product.sku}
                                         </p>
 
                                         <div className={"flex w-full justify-between"}>
@@ -82,14 +91,14 @@ export default function ProductListView() {
                                             <div className="flex items-center space-x-4 mt-1">
 
                                                 <p className="text-sm font-semibold text-green-600">
-                                                    Rp {product.harga}
+                                                    Rp {product.price}
                                                 </p>
                                             </div>
                                             <Badge
                                                 className="text-sm  mb-1"
-                                                variant={product.jumlah <= 10 ? `secondary` : `destructive`}
+                                                variant={product.total_item <= 10 ? `secondary` : `destructive`}
                                             >
-                                                {product.jumlah} unit tersisa
+                                                {product.total_item} unit tersisa
                                             </Badge>
                                         </div>
 

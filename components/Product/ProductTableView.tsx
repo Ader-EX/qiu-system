@@ -17,8 +17,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {Item} from "@/types/types";
 
-export default function ProductTableView() {
+interface ProductTableViewProps {
+    products?: Item[],
+    onEdit?: (item: Item) => void,
+    onDelete?: (id: string) => Promise<void>,
+    onView?: (product: Item) => void
+}
+
+export default function ProductTableView({products, onEdit, onDelete, onView}: ProductTableViewProps) {
     const {
         getPaginatedProducts,
         openDetailDialog,
@@ -49,14 +57,14 @@ export default function ProductTableView() {
                         {paginatedProducts?.map((product) => (
                             <TableRow key={product.id} className="hover:bg-gray-50">
                                 <TableCell className="font-medium">{product.id}</TableCell>
-                                <TableCell className="font-medium">{product.nama}</TableCell>
-                                <TableCell>{product.jumlah}</TableCell>
+                                <TableCell className="font-medium">{product.name}</TableCell>
+                                <TableCell>{product.total_item}</TableCell>
 
-                                <TableCell>{product.satuan}</TableCell>
-                                <TableCell className="font-semibold">{product.harga}</TableCell>
-                                <TableCell>{product.vendor || "-"}</TableCell>
+                                <TableCell>{product?.satuan_rel?.name}</TableCell>
+                                <TableCell className="font-semibold">{product.price}</TableCell>
+                                <TableCell>{product?.vendor_rel?.name || "-"}</TableCell>
                                 <TableCell>
-                                    {product.jumlah <= 50 ? (
+                                    {product.total_item <= 50 ? (
                                         <Badge className="bg-red-500 hover:bg-red-500 text-white text-xs">
                                             Tidak Aktif
                                         </Badge>

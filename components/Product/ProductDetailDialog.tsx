@@ -11,7 +11,7 @@ import {Button} from "@/components/ui/button";
 import {Badge} from "@/components/ui/badge";
 import Image from "next/image";
 import {X} from "lucide-react";
-import {Product} from "@/types/types";
+import {Item} from "@/types/types";
 import SimpleCarousel from "@/components/ui/simple-carousel";
 import carouselone from "@/public/carouselone.jpg";
 
@@ -19,7 +19,7 @@ import carouselone from "@/public/carouselone.jpg";
 interface ProductDetailDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    product: Product;
+    product: Item;
 }
 
 export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
@@ -44,7 +44,7 @@ export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
                         {product.gambar.length > 0 ? (
                             <SimpleCarousel
                                 images={product.gambar}
-                                alt={product.nama}
+                                alt={product.name}
                             />
                         ) : (
                             <div className="w-[300px] h-[300px] bg-gray-200 rounded"/>
@@ -60,19 +60,19 @@ export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
                             <p className="mt-1">{product.id}</p>
 
                             <p className="text-sm font-medium text-gray-500 mt-4">Kategori 1</p>
-                            <p className="mt-1">{product.kategori1}</p>
+                            <p className="mt-1">{product.category_one_rel}</p>
 
 
                             <p className="text-sm font-medium text-gray-500 mt-4">SKU</p>
-                            <p className="mt-1">{product.SKU}</p>
+                            <p className="mt-1">{product.sku}</p>
 
                             <p className="text-sm font-medium text-gray-500 mt-4">
                                 Harga Jual (Rp)
                             </p>
-                            <p className="mt-1">{product.harga.toLocaleString("id-ID")}</p>
+                            <p className="mt-1">{product.price.toLocaleString("id-ID")}</p>
 
                             <p className="text-sm font-medium text-gray-500 mt-4">Vendor</p>
-                            <p className="mt-1">{product.vendor}</p>
+                            <p className="mt-1">{product.vendor_rel}</p>
                         </div>
 
                         {/* Column 2 */}
@@ -91,19 +91,19 @@ export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
                             <p className="text-sm font-medium text-gray-500 mt-4">
                                 Nama Item
                             </p>
-                            <p className="mt-1">{product.nama}</p>
+                            <p className="mt-1">{product.name}</p>
                             <p className="text-sm font-medium text-gray-500 mt-4">Kategori 2</p>
-                            <p className="mt-1">{product.kategori2}</p>
+                            <p className="mt-1">{product.category_two_rel}</p>
 
                             <p className="text-sm font-medium text-gray-500 mt-4">
                                 Jumlah Item
                             </p>
                             <p className="mt-1">
-                                {product.jumlah.toLocaleString()} {product.satuan}
+                                {product.total_item.toLocaleString()} {product.satuan_rel}
                             </p>
 
                             <p className="text-sm font-medium text-gray-500 mt-4">Satuan</p>
-                            <p className="mt-1">{product.satuan}</p>
+                            <p className="mt-1">{product.satuan_rel}</p>
                         </div>
                     </div>
                 </div>

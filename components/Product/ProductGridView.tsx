@@ -20,7 +20,8 @@ import {
 import carouselone from "@/public/carouselone.jpg";
 import {Badge} from "@/components/ui/badge";
 import Image, {StaticImageData} from "next/image";
-import {Product} from "@/types/types";
+import {Item} from "@/types/types";
+
 
 interface ImageCarouselProps {
     photos: (StaticImageData | string)[];
@@ -134,7 +135,12 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
     );
 };
 
-export const ProductGridView: React.FC<{}> = ({}) => {
+export const ProductGridView: React.FC<{
+    products?: Item[],
+    onEdit?: (item: Item) => void,
+    onDelete?: (id: string) => Promise<void>,
+    onView?: (product: Item) => void
+}> = ({products, onEdit, onDelete, onView}) => {
     const {
         getPaginatedProducts,
         deleteProduct,
@@ -151,30 +157,30 @@ export const ProductGridView: React.FC<{}> = ({}) => {
                     <CardHeader className="pb-2 relative p-3">
                         <ImageCarousel
                             photos={product.gambar}
-                            productName={product.nama}
-                            jumlah={product.jumlah}
+                            productName={product.name}
+                            jumlah={product.total_item}
                         />
                         <Badge
                             className="text-xs absolute top-4 right-4"
-                            variant={product.jumlah <= 10 ? `secondary` : `destructive`}
+                            variant={product.total_item <= 10 ? `secondary` : `destructive`}
                         >
-                            {product.jumlah} unit tersisa
+                            {product.total_item} unit tersisa
                         </Badge>
                     </CardHeader>
 
                     <CardContent className="space-y-2 p-3">
                         <div>
                             <CardTitle className="text-sm line-clamp-2 leading-tight">
-                                {product.nama}
+                                {product.name}
                             </CardTitle>
                             <CardDescription className="font-mono text-xs">
-                                SKU: {product.SKU}
+                                SKU: {product.sku}
                             </CardDescription>
                         </div>
 
                         <div className="flex w-full justify-between items-center">
                             <p className="text-sm font-bold text-green-600">
-                                Rp {Number(product.harga).toLocaleString("id-ID")}
+                                Rp {Number(product.price).toLocaleString("id-ID")}
                             </p>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
