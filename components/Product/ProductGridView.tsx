@@ -46,13 +46,10 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
   );
 
   // 2. Get image URLs (prefer the generated URL, fallback to file_path)
-  const imageUrls = imageAttachments.map(
-    (att) =>
-      att.url ||
-      `/static/${att.file_path.replace(/\\/g, "/").replace("uploads/", "")}`
-  );
+  const imageUrls = imageAttachments
+    .map((att) => att.url)
+    .filter((url): url is string => typeof url === "string");
 
-  // 3. If no images, use placeholder
   const displayPhotos: (string | StaticImageData)[] =
     imageUrls.length > 0 ? imageUrls : [carouselone];
 

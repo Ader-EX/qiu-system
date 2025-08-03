@@ -39,17 +39,13 @@ export default function ProductListView({
     }
 
     const firstImage = imageAttachments[0];
-    return (
-      firstImage.url ||
-      `/static/${firstImage.file_path
-        .replace(/\\/g, "/")
-        .replace("uploads/", "")}`
-    );
+    return firstImage.url;
   };
   return (
     <div className="space-y-2 ">
       {paginatedProducts?.map((product) => {
-        const productImage = getProductImage(product.attachments);
+        const productImage =
+          getProductImage(product.attachments) ?? carouselone;
         return (
           <Card
             key={product.id}
