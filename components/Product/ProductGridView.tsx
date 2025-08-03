@@ -151,7 +151,7 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
 export const ProductGridView: React.FC<{
   products?: Item[];
   onEdit?: (item: Item) => void;
-  onDelete?: (id: number) => Promise<void>; // Changed from string to number
+  onDelete?: (id: number) => Promise<void>;
   onView?: (product: Item) => void;
 }> = ({ products, onEdit, onDelete, onView }) => {
   const paginatedProducts = products;
@@ -186,7 +186,7 @@ export const ProductGridView: React.FC<{
 
             <div className="flex w-full justify-between items-center">
               <p className="text-sm font-bold text-green-600">
-                Rp {Number(product.price).toLocaleString("id-ID")}
+                {Number(product.price)}
               </p>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

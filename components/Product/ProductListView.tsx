@@ -41,11 +41,13 @@ export default function ProductListView({
     const firstImage = imageAttachments[0];
     return firstImage.url;
   };
+
   return (
     <div className="space-y-2 ">
       {paginatedProducts?.map((product) => {
         const productImage =
           getProductImage(product.attachments) ?? carouselone;
+        console.log("productImage:", productImage);
         return (
           <Card
             key={product.id}

@@ -8,7 +8,8 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ["qiu-system.qiuparts.com", "localhost"],
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;
