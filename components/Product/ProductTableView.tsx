@@ -22,7 +22,7 @@ import { Item } from "@/types/types";
 interface ProductTableViewProps {
   products?: Item[];
   onEdit?: (item: Item) => void;
-  onDelete?: (id: string) => Promise<void>;
+  onDelete?: (id: number) => Promise<void>;
   onView?: (product: Item) => void;
 }
 

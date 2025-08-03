@@ -45,9 +45,12 @@ export interface PaginatedResponse<T> {
 export interface ItemFilters {
   page?: number;
   rowsPerPage?: number;
+  search_key?: string;
   is_active?: boolean;
   item_type?: ItemTypeEnum;
-  search_key?: string;
+  sortBy?: string;
+  vendor?: string;
+  sortOrder?: "asc" | "desc";
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -78,14 +81,23 @@ class ItemService {
   ): Promise<PaginatedResponse<Item>> {
     const params = new URLSearchParams();
 
+    // Pagination
     if (filters.page) params.append("page", filters.page.toString());
     if (filters.rowsPerPage)
       params.append("rowsPerPage", filters.rowsPerPage.toString());
+
+    // Filtering
     if (filters.is_active !== undefined)
       params.append("is_active", filters.is_active.toString());
     if (filters.item_type !== undefined)
       params.append("item_type", filters.item_type.toString());
     if (filters.search_key) params.append("search_key", filters.search_key);
+
+    if (filters.sortBy) params.append("sortBy", filters.sortBy);
+    if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
+    if (filters.vendor) params.append("vendor", filters.vendor);
+
+    console.log(filters);
 
     const response = await fetch(`${this.baseUrl}?${params.toString()}`, {
       method: "GET",
@@ -98,7 +110,6 @@ class ItemService {
 
     return response.json();
   }
-
   async getItemById(id: string): Promise<Item> {
     const response = await fetch(`${this.baseUrl}/${id}`, {
       method: "GET",
@@ -134,7 +145,7 @@ class ItemService {
   }
 
   // NEW: FormData method for updating items with images
-  async updateItemWithFormData(id: string, formData: FormData): Promise<Item> {
+  async updateItemWithFormData(id: number, formData: FormData): Promise<Item> {
     const response = await fetch(`${this.baseUrl}/${id}`, {
       method: "PUT",
       headers: this.getAuthHeadersForFormData(),
@@ -186,7 +197,7 @@ class ItemService {
     return response.json();
   }
 
-  async deleteItem(id: string): Promise<void> {
+  async deleteItem(id: number): Promise<void> {
     const response = await fetch(`${this.baseUrl}/${id}`, {
       method: "DELETE",
       headers: this.getAuthHeaders(),

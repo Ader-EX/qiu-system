@@ -9,6 +9,7 @@ import {
   Upload,
   TableIcon,
   ArrowUpDown,
+  SearchIcon,
 } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ import GlobalPaginationFunction from "@/components/pagination-global";
 import { satuanService } from "@/services/mataUangService";
 import { vendorService } from "@/services/vendorService";
 import { kategoriService } from "@/services/kategoriService";
+import SearchableSelect from "@/components/SearchableSelect";
 
 export interface TOPUnit {
   id: string;
@@ -55,6 +57,7 @@ interface ProdukPageState {
   error: string | null;
   total: number;
   searchTerm: string;
+  searchInput: string;
   filterStatus: string;
   filterItemType: string;
   filterVendor: string;
@@ -80,12 +83,13 @@ const ProdukPage = () => {
     error: null,
     total: 0,
     searchTerm: "",
+    searchInput: "",
     filterStatus: "all",
     filterItemType: "all",
     filterVendor: "all",
     viewMode: "grid",
     currentPage: 1,
-    rowsPerPage: 12,
+    rowsPerPage: 5,
     sortBy: "",
     sortOrder: "asc",
     isAddEditDialogOpen: false,
@@ -94,80 +98,58 @@ const ProdukPage = () => {
     selectedProduct: null,
   });
 
-  // Fetch items from API
-  const fetchItems = useCallback(
-    async (params?: {
-      currentPage?: number;
-      rowsPerPage?: number;
-      searchTerm?: string;
-      filterStatus?: string;
-      filterItemType?: string;
-    }) => {
-      setState((prev) => ({ ...prev, loading: true, error: null }));
+  // Fetch items from API - Fixed to use current state values
+  const fetchItems = useCallback(async () => {
+    setState((prev) => ({ ...prev, loading: true, error: null }));
 
-      try {
-        // Use parameters if provided, otherwise use current state
-        const currentParams = {
-          currentPage: params?.currentPage ?? state.currentPage,
-          rowsPerPage: params?.rowsPerPage ?? state.rowsPerPage,
-          searchTerm: params?.searchTerm ?? state.searchTerm,
-          filterStatus: params?.filterStatus ?? state.filterStatus,
-          filterItemType: params?.filterItemType ?? state.filterItemType,
-        };
+    try {
+      const filters: ItemFilters = {
+        page: state.currentPage,
+        rowsPerPage: state.rowsPerPage || 10,
+        search_key: state.searchTerm || undefined,
+        is_active:
+          state.filterStatus === "all"
+            ? undefined
+            : state.filterStatus === "active",
+        item_type:
+          state.filterItemType === "all"
+            ? undefined
+            : (state.filterItemType as ItemTypeEnum),
+        sortBy: state.sortBy || undefined, // Fixed: use current state
+        sortOrder: state.sortOrder || undefined, // Fixed: use current state
+        vendor: state.filterVendor || undefined,
+      };
 
-        const filters: ItemFilters = {
-          page: currentParams.currentPage,
-          rowsPerPage: currentParams.rowsPerPage,
-          search_key: currentParams.searchTerm || undefined,
-          is_active:
-            currentParams.filterStatus === "all"
-              ? undefined
-              : currentParams.filterStatus === "active",
-          item_type:
-            currentParams.filterItemType === "all"
-              ? undefined
-              : (currentParams.filterItemType as ItemTypeEnum),
-        };
+      const response = await itemService.getAllItems(filters);
 
-        const response = await itemService.getAllItems(filters);
-
-        setState((prev) => ({
-          ...prev,
-          items: response.data,
-          total: response.total,
-          loading: false,
-        }));
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Failed to fetch items";
-        setState((prev) => ({
-          ...prev,
-          error: errorMessage,
-          loading: false,
-        }));
-        toast.error(errorMessage);
-      }
-    },
-    []
-  ); // Empty dependency array
-
-  useEffect(() => {
-    fetchItems({
-      currentPage: state.currentPage,
-      rowsPerPage: state.rowsPerPage,
-      searchTerm: state.searchTerm,
-      filterStatus: state.filterStatus,
-      filterItemType: state.filterItemType,
-    });
+      setState((prev) => ({
+        ...prev,
+        items: response.data,
+        total: response.total,
+        loading: false,
+      }));
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch items";
+      setState((prev) => ({
+        ...prev,
+        error: errorMessage,
+        loading: false,
+      }));
+      toast.error(errorMessage);
+    }
   }, [
     state.currentPage,
     state.rowsPerPage,
     state.searchTerm,
     state.filterStatus,
+    state.filterVendor,
     state.filterItemType,
-    fetchItems,
+    state.sortBy, // Include sortBy in dependencies
+    state.sortOrder, // Include sortOrder in dependencies
   ]);
 
+  // Initialize state from URL params
   useEffect(() => {
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "all";
@@ -176,13 +158,14 @@ const ProdukPage = () => {
     const view =
       (searchParams.get("view") as "grid" | "list" | "table") || "grid";
     const page = parseInt(searchParams.get("page") || "1");
-    const rowsPerPage = parseInt(searchParams.get("rowsPerPage") || "12");
+    const rowsPerPage = parseInt(searchParams.get("rowsPerPage") || "10");
     const sort = searchParams.get("sortBy") || "";
     const order = (searchParams.get("sortOrder") as "asc" | "desc") || "asc";
 
     setState((prev) => ({
       ...prev,
       searchTerm: search,
+      searchInput: search,
       filterStatus: status,
       filterItemType: itemType,
       filterVendor: vendor,
@@ -194,7 +177,7 @@ const ProdukPage = () => {
     }));
   }, [searchParams]);
 
-  // Fetch items when dependencies change
+  // Fetch items when state changes
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
@@ -208,10 +191,24 @@ const ProdukPage = () => {
     router.push(`${pathname}${q ? `?${q}` : ""}`);
   };
 
-  // Handlers with URL sync
-  const handleSearchChange = (value: string) => {
-    setState((prev) => ({ ...prev, searchTerm: value, currentPage: 1 }));
-    updateURL({ search: value, page: "1" });
+  // Search handlers
+  const handleSearchInputChange = (value: string) => {
+    setState((prev) => ({ ...prev, searchInput: value }));
+  };
+
+  const handleSearchSubmit = () => {
+    setState((prev) => ({
+      ...prev,
+      searchTerm: state.searchInput,
+      currentPage: 1,
+    }));
+    updateURL({ search: state.searchInput, page: "1" });
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSearchSubmit();
+    }
   };
 
   const handleStatusChange = (value: string) => {
@@ -227,6 +224,7 @@ const ProdukPage = () => {
     }));
     updateURL({ rowsPerPage: String(value), page: "1" });
   };
+
   const handleVendorChange = (value: string) => {
     setState((prev) => ({ ...prev, filterVendor: value, currentPage: 1 }));
     updateURL({ vendor: value === "all" ? "" : value, page: "1" });
@@ -247,9 +245,17 @@ const ProdukPage = () => {
     updateURL({ page: String(page) });
   };
 
+  // Fixed sort handler
   const handleSortChange = (value: string) => {
+    console.log("Sort changed to:", value); // Debug log
+
     if (value === "all") {
-      setState((prev) => ({ ...prev, sortBy: "", sortOrder: "asc" }));
+      setState((prev) => ({
+        ...prev,
+        sortBy: "",
+        sortOrder: "asc",
+        currentPage: 1,
+      }));
       updateURL({ sortBy: "", sortOrder: "", page: "1" });
     } else {
       const [field, order] = value.split("-");
@@ -308,23 +314,20 @@ const ProdukPage = () => {
     }));
   };
 
-  // Updated parent component handler to work with FormData
   const handleDialogSave = async (itemFormData: FormData) => {
     try {
       if (state.editingItem) {
-        // Update existing item using FormData
         await itemService.updateItemWithFormData(
           state.editingItem.id,
           itemFormData
         );
         toast.success("Item berhasil diperbarui!");
       } else {
-        // Create new item using FormData
         await itemService.createItemWithFormData(itemFormData);
         toast.success("Item berhasil ditambahkan!");
       }
       closeAddEditDialog();
-      fetchItems(); // Refresh the list
+      fetchItems();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to save item";
@@ -332,11 +335,11 @@ const ProdukPage = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     try {
       await itemService.deleteItem(id);
       toast.success("Item berhasil dihapus!");
-      fetchItems(); // Refresh the list
+      fetchItems();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to delete item";
@@ -370,24 +373,51 @@ const ProdukPage = () => {
           </HeaderActions.ActionGroup>
         }
       />
+
       {/* Filters and View Controls */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari item..."
-              value={state.searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-9 w-auto"
-            />
+          <div className="flex mt-2">
+            <div className="">
+              {/* <Search className="absolute left-3 top-1/3 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" /> */}
+              <Input
+                placeholder="Cari item..."
+                value={state.searchInput}
+                onChange={(e) => handleSearchInputChange(e.target.value)}
+                onKeyPress={handleSearchKeyPress}
+                className=" rounded-r-none border-r-0"
+              />
+            </div>
+            <Button
+              onClick={handleSearchSubmit}
+              className="rounded-l-none"
+              size="default"
+            >
+              <SearchIcon />
+            </Button>
           </div>
+
+          <SearchableSelect<TOPUnit>
+            label=""
+            placeholder="Semua vendor"
+            value={state.filterVendor}
+            onChange={handleVendorChange}
+            fetchData={(search: string) =>
+              vendorService.getAllVendors({
+                page: 0,
+                rowsPerPage: 5,
+                is_active: true,
+                search_key: search,
+              })
+            }
+            renderLabel={(item: any) => `${item.name}`}
+          />
 
           <Select
             value={state.filterItemType}
             onValueChange={handleItemTypeChange}
           >
-            <SelectTrigger className="w-auto">
+            <SelectTrigger className="w-auto mt-2">
               <SelectValue placeholder="Pilih Tipe Item" />
             </SelectTrigger>
             <SelectContent>
@@ -398,18 +428,8 @@ const ProdukPage = () => {
             </SelectContent>
           </Select>
 
-          <Select value={state.filterVendor} onValueChange={handleVendorChange}>
-            <SelectTrigger className="w-auto">
-              <SelectValue placeholder="Pilih Vendor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Vendor</SelectItem>
-              {/* You can populate this with actual vendor options from your items */}
-            </SelectContent>
-          </Select>
-
           <Select value={state.filterStatus} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-auto">
+            <SelectTrigger className="w-auto mt-2">
               <SelectValue placeholder="Pilih status" />
             </SelectTrigger>
             <SelectContent>
@@ -422,7 +442,7 @@ const ProdukPage = () => {
 
         <div className="flex space-x-2">
           <Select value={currentSortValue} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-auto">
+            <SelectTrigger className="w-auto mt-2">
               <ArrowUpDown className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Urutkan" />
             </SelectTrigger>
@@ -437,7 +457,7 @@ const ProdukPage = () => {
             </SelectContent>
           </Select>
 
-          <div className="flex items-center border rounded-lg">
+          <div className="flex items-center border rounded-lg mt-2">
             <Button
               size="sm"
               variant={state.viewMode === "grid" ? "default" : "ghost"}
@@ -465,11 +485,13 @@ const ProdukPage = () => {
           </div>
         </div>
       </div>
+
       {state.loading && (
         <div className="flex justify-center items-center py-8">
           <div className="text-muted-foreground">Loading items...</div>
         </div>
       )}
+
       {/* Content Views */}
       {!state.loading && !state.error && (
         <div className="overflow-x-auto">
@@ -499,19 +521,21 @@ const ProdukPage = () => {
           )}
         </div>
       )}
+
+      {!state.loading && !state.error && state?.items?.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          Produk tidak ditemukan
+        </div>
+      )}
+
       <GlobalPaginationFunction
         page={state.currentPage}
         totalPages={totalPages}
         handlePageChange={handlePageChange}
         total={state.total}
-        rowsPerPage={state.rowsPerPage || 10}
+        rowsPerPage={state.rowsPerPage}
         handleRowsPerPageChange={handleRowsPerPageChange}
       />
-      {!state.loading && !state.error && state?.items?.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          No items found. Try adjusting your search or filters.
-        </div>
-      )}
 
       <AddEditItemDialog
         isOpen={state.isAddEditDialogOpen}
@@ -522,6 +546,7 @@ const ProdukPage = () => {
         vendorService={vendorService}
         kategoriService={kategoriService}
       />
+
       {state.selectedProduct && (
         <ProductDetailDialog
           isOpen={state.isDetailDialogOpen}

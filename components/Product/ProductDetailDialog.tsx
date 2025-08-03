@@ -2,112 +2,136 @@
 
 import React from "react";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
-import {Button} from "@/components/ui/button";
-import {Badge} from "@/components/ui/badge";
+
+import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import {X} from "lucide-react";
-import {Item} from "@/types/types";
+import { Item } from "@/types/types";
 import SimpleCarousel from "@/components/ui/simple-carousel";
 import carouselone from "@/public/carouselone.jpg";
 
-
 interface ProductDetailDialogProps {
-    isOpen: boolean;
-    onClose: () => void;
-    product: Item;
+  isOpen: boolean;
+  onClose: () => void;
+  product: Item;
 }
 
 export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
-                                                                            isOpen,
-                                                                            onClose,
-                                                                            product,
-                                                                        }) => {
-    const statusLabel = product.status === "active" ? "Aktif" : "Tidak Aktif";
+  isOpen,
+  onClose,
+  product,
+}) => {
+  // Get image URLs from attachments
+  const imageAttachments = product.attachments.filter((att) =>
+    att.mime_type?.startsWith("image/")
+  );
+  const imageUrls = imageAttachments.map(
+    (att) =>
+      att.url ||
+      `/static/${att.file_path.replace(/\\/g, "/").replace("uploads/", "")}`
+  );
 
-    return (
-        <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-            <DialogContent className="max-w-4xl w-full">
-                <DialogHeader>
-                    <div className="flex justify-between items-center">
-                        <DialogTitle>Detail Item</DialogTitle>
-                    </div>
-                </DialogHeader>
+  const statusLabel = product.is_active ? "Aktif" : "Tidak Aktif";
 
-                <div className="flex flex-col md:flex-row gap-8 pt-4">
-                    {/* Left: Image */}
-                    <div className="flex-shrink-0">
-                        {product.gambar.length > 0 ? (
-                            <SimpleCarousel
-                                images={product.gambar}
-                                alt={product.name}
-                            />
-                        ) : (
-                            <div className="w-[300px] h-[300px] bg-gray-200 rounded"/>
-                        )}
-                    </div>
+  return (
+    <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex justify-between items-center">
+            <DialogTitle>Detail Item</DialogTitle>
+          </div>
+        </DialogHeader>
 
-                    {/* Right: Details */}
-                    <div className="grid grid-cols-2 gap-y-4 gap-x-8 flex-1">
-                        {/* Column 1 */}
-                        <div>
+        <div className="flex flex-col lg:flex-row gap-6 pt-4">
+          {/* Left: Image */}
+          <div className="flex-shrink-0 w-full lg:w-auto">
+            {imageUrls.length > 0 ? (
+              <SimpleCarousel images={imageUrls} alt={product.name} />
+            ) : (
+              <div className="w-full lg:w-[300px] h-[300px] bg-gray-200 rounded flex items-center justify-center">
+                <Image
+                  src={carouselone}
+                  alt="No image"
+                  width={300}
+                  height={300}
+                  className="object-cover rounded"
+                />
+              </div>
+            )}
+          </div>
 
-                            <p className="text-sm font-medium text-gray-500 mt-4">Item ID</p>
-                            <p className="mt-1">{product.id}</p>
+          {/* Right: Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 flex-1">
+            {/* Column 1 */}
+            <div>
+              <p className="text-sm font-medium text-gray-500">Item ID</p>
+              <p className="mt-1">{product.id}</p>
 
-                            <p className="text-sm font-medium text-gray-500 mt-4">Kategori 1</p>
-                            <p className="mt-1">{product.category_one_rel}</p>
+              <p className="text-sm font-medium text-gray-500 mt-4">
+                Kategori 1
+              </p>
+              <p className="mt-1">{product.category_one_rel?.name || "-"}</p>
 
+              <p className="text-sm font-medium text-gray-500 mt-4">SKU</p>
+              <p className="mt-1">{product.sku}</p>
 
-                            <p className="text-sm font-medium text-gray-500 mt-4">SKU</p>
-                            <p className="mt-1">{product.sku}</p>
+              <p className="text-sm font-medium text-gray-500 mt-4">
+                Harga Jual (Rp)
+              </p>
+              <p className="mt-1">
+                Rp {Number(product.price).toLocaleString("id-ID")}
+              </p>
 
-                            <p className="text-sm font-medium text-gray-500 mt-4">
-                                Harga Jual (Rp)
-                            </p>
-                            <p className="mt-1">{product.price.toLocaleString("id-ID")}</p>
+              <p className="text-sm font-medium text-gray-500 mt-4">Vendor</p>
+              <p className="mt-1">{product.vendor_rel?.name || "-"}</p>
+            </div>
 
-                            <p className="text-sm font-medium text-gray-500 mt-4">Vendor</p>
-                            <p className="mt-1">{product.vendor_rel}</p>
-                        </div>
+            {/* Column 2 */}
+            <div>
+              <p className="text-sm font-medium text-gray-500">Status</p>
+              <Badge
+                variant={product.is_active ? "default" : "secondary"}
+                className="mt-1"
+              >
+                {statusLabel}
+              </Badge>
 
-                        {/* Column 2 */}
-                        <div>
-                            <p className="text-sm font-medium text-gray-500">Status</p>
-                            <Badge
-                                className={`mt-1 inline-block px-2 py-1 text-xs font-semibold ${
-                                    product.status === "active"
-                                        ? "bg-green-500 text-white"
-                                        : "bg-gray-400 text-white"
-                                } rounded-full`}
-                            >
-                                {statusLabel}
-                            </Badge>
+              <p className="text-sm font-medium text-gray-500 mt-4">
+                Nama Item
+              </p>
+              <p className="mt-1">{product.name}</p>
 
-                            <p className="text-sm font-medium text-gray-500 mt-4">
-                                Nama Item
-                            </p>
-                            <p className="mt-1">{product.name}</p>
-                            <p className="text-sm font-medium text-gray-500 mt-4">Kategori 2</p>
-                            <p className="mt-1">{product.category_two_rel}</p>
+              <p className="text-sm font-medium text-gray-500 mt-4">
+                Kategori 2
+              </p>
+              <p className="mt-1">{product.category_two_rel?.name || "-"}</p>
 
-                            <p className="text-sm font-medium text-gray-500 mt-4">
-                                Jumlah Item
-                            </p>
-                            <p className="mt-1">
-                                {product.total_item.toLocaleString()} {product.satuan_rel}
-                            </p>
+              <p className="text-sm font-medium text-gray-500 mt-4">
+                Jumlah Item
+              </p>
+              <p className="mt-1">
+                {product.total_item.toLocaleString()}{" "}
+                {product.satuan_rel?.symbol || "unit"}
+              </p>
 
-                            <p className="text-sm font-medium text-gray-500 mt-4">Satuan</p>
-                            <p className="mt-1">{product.satuan_rel}</p>
-                        </div>
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
+              <p className="text-sm font-medium text-gray-500 mt-4">Satuan</p>
+              <p className="mt-1">
+                {product.satuan_rel?.name || "-"} (
+                {product.satuan_rel?.symbol || "-"})
+              </p>
+
+              <p className="text-sm font-medium text-gray-500 mt-4">
+                Tipe Item
+              </p>
+              <p className="mt-1">{product.type.replace("_", " ")}</p>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 };
