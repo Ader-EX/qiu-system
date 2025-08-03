@@ -1,388 +1,564 @@
 "use client";
 
-import React, {useState, useEffect} from "react";
+import React, { useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
-import {Button} from "@/components/ui/button";
-import {Badge} from "@/components/ui/badge";
-import {X, Upload} from "lucide-react";
-import {Item} from "@/types/types";
-import {StaticImageData} from "next/image";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { X, Upload } from "lucide-react";
+import { Item, TOPUnit } from "@/types/types";
+import { ItemTypeEnum } from "@/services/itemService";
+import SearchableSelect from "../SearchableSelect";
+
+// Updated Zod schema - making images mandatory with exactly 1-3 files
+const itemSchema = z.object({
+  is_active: z.boolean().default(true),
+  type: z.nativeEnum(ItemTypeEnum, {
+    required_error: "Type is required",
+  }),
+  name: z.string().min(1, "Name is required"),
+  sku: z.string().min(1, "SKU is required"),
+  total_item: z.coerce.number().min(1, "Total item must be at least 1"), // Changed from 0 to 1
+  price: z.coerce.number().min(0, "Price must be 0 or greater"),
+  satuan_id: z.number({
+    required_error: "Satuan is required",
+  }),
+  vendor_id: z.string().min(1, "Vendor is required"),
+  category_one: z.number({
+    required_error: "Category 1 is required", // Made mandatory
+  }),
+  category_two: z.number({
+    required_error: "Category 2 is required", // Made mandatory
+  }),
+  images: z
+    .array(z.instanceof(File))
+    .min(1, "At least 1 image is required") // Made mandatory
+    .max(3, "Maximum 3 images allowed"),
+});
+
+type ItemFormData = z.infer<typeof itemSchema>;
 
 interface AddEditItemDialogProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSave: (item: Item) => void;
-    item?: Partial<Item> | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (itemData: FormData) => void;
+  item?: Partial<Item> | null;
+  satuanService: any;
+  vendorService: any;
+  kategoriService: any;
 }
 
 const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
-                                                                 isOpen,
-                                                                 onClose,
-                                                                 onSave,
-                                                                 item = null,
-                                                             }) => {
-    const [formData, setFormData] = useState({
+  isOpen,
+  onClose,
+  onSave,
+  item = null,
+  satuanService,
+  vendorService,
+  kategoriService,
+}) => {
+  const typeOptions = Object.values(ItemTypeEnum);
 
+  const form = useForm<ItemFormData>({
+    resolver: zodResolver(itemSchema),
+    defaultValues: {
+      is_active: true,
+      type: "" as ItemTypeEnum,
+      name: "",
+      sku: "",
+      total_item: 1, // Changed default from 0 to 1
+      price: 0,
+      satuan_id: undefined,
+      vendor_id: "",
+      category_one: undefined, // Changed from null to undefined for required field
+      category_two: undefined, // Changed from null to undefined for required field
+      images: [],
+    },
+  });
+
+  // Reset form when dialog opens/closes or item changes
+  useEffect(() => {
+    if (!isOpen) {
+      form.reset();
+      return;
+    }
+
+    if (item) {
+      form.reset({
+        is_active: item.is_active === true,
+        type: item.type || ("" as ItemTypeEnum),
+        name: item.name || "",
+        sku: item.sku || "",
+        total_item: item.total_item || 1,
+        price: item.price || 0,
+        satuan_id:
+          typeof item.satuan_rel === "object"
+            ? item.satuan_rel?.id || undefined
+            : undefined,
+        vendor_id:
+          typeof item.vendor_rel === "object"
+            ? item.vendor_rel?.id?.toString() || ""
+            : item.vendor_rel || "",
+        category_one:
+          typeof item.category_one_rel === "object"
+            ? item.category_one_rel?.id || undefined
+            : undefined,
+        category_two:
+          typeof item.category_two_rel === "object"
+            ? item.category_two_rel?.id || undefined
+            : undefined,
+        images: [], // Always start with empty images for editing
+      });
+    } else {
+      form.reset({
         is_active: true,
-        id: "",
-        nama: "",
-        SKU: "",
-        jumlah: "",
-        harga: "",
-        satuan: "",
-        vendor: "",
-        kategori1: "",
-        kategori2: "",
+        type: "" as ItemTypeEnum,
+        name: "",
+        sku: "",
+        total_item: 1,
+        price: 0,
+        satuan_id: undefined,
+        vendor_id: "",
+        category_one: undefined,
+        category_two: undefined,
+        images: [],
+      });
+    }
+  }, [isOpen, item, form]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+
+    // Clear the input value to allow re-selecting the same files
+    e.target.value = "";
+
+    if (files.length === 0) return;
+
+    const currentImages = form.getValues("images") || [];
+    const totalImages = currentImages.length + files.length;
+
+    if (totalImages > 3) {
+      alert("Maximum 3 images allowed. Please select fewer images.");
+      return;
+    }
+
+    // Validate file types
+    const validTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
+    const invalidFiles = files.filter(
+      (file) => !validTypes.includes(file.type)
+    );
+
+    if (invalidFiles.length > 0) {
+      alert("Please select only image files (JPG, PNG, GIF, WebP).");
+      return;
+    }
+
+    // Validate file sizes (2MB limit)
+    const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+    const oversizedFiles = files.filter((file) => file.size > maxSize);
+
+    if (oversizedFiles.length > 0) {
+      alert("Some files are larger than 2MB. Please choose smaller files.");
+      return;
+    }
+
+    // Add new files to existing ones
+    const newImages = [...currentImages, ...files];
+    form.setValue("images", newImages, { shouldValidate: true });
+  };
+
+  const removeImage = (idx: number) => {
+    const currentImages = form.getValues("images") || [];
+    const newImages = currentImages.filter((_, i) => i !== idx);
+    form.setValue("images", newImages, { shouldValidate: true });
+  };
+
+  const onSubmit = (data: ItemFormData) => {
+    console.log("Form submitted with data:", data); // Debug log
+
+    // Create FormData for multipart/form-data submission
+    const submitFormData = new FormData();
+
+    // Add form fields - match backend field names exactly
+    submitFormData.append("type", data.type);
+    submitFormData.append("name", data.name);
+    submitFormData.append("sku", data.sku);
+    submitFormData.append("total_item", data.total_item.toString());
+    submitFormData.append("price", data.price.toString());
+    submitFormData.append("is_active", data.is_active.toString());
+    submitFormData.append("satuan_id", data.satuan_id.toString());
+    submitFormData.append("vendor_id", data.vendor_id);
+    submitFormData.append("category_one", data.category_one.toString());
+    submitFormData.append("category_two", data.category_two.toString());
+
+    // Add images - backend expects 'images' field name
+    data.images.forEach((file) => {
+      submitFormData.append("images", file);
     });
 
-    const vendorOptions = ["Vendor A", "Vendor B", "Vendor C"];
-    const typeOptions = ["Elektronik", "Aksesoris", "Storage", "Hardware"];
-    const kategori1Options = [
-        "Komputer",
-        "Input Device",
-        "Display",
-        "Audio",
-        "Storage Device",
-        "Memory",
-        "Camera",
-    ];
-    const kategori2Options = ["Premium", "Budget", "Gaming", "Professional"];
+    console.log("FormData created, calling onSave"); // Debug log
+    onSave(submitFormData);
+    onClose();
+  };
 
-    const [uploadedImages, setUploadedImages] = useState<
-        (StaticImageData | string)[]
-    >([]);
+  const watchedImages = form.watch("images") || [];
 
-    useEffect(() => {
-        if (!isOpen) return;
-        if (item) {
-            setFormData({
-                is_active: item.is_active === true,
-                id: item.id || "",
-                nama: item.nama || "",
-                SKU: item.SKU || "",
-                jumlah: item.jumlah?.toString() || "",
-                harga: item.harga?.toString() || "",
-                satuan: item.satuan || "", // Changed from "pcs" default
-                vendor: item.vendor || "",
-                kategori1: item.kategori1 || "",
-                kategori2: item.kategori2 || "",
-            });
-            setUploadedImages(
-                Array.isArray(item.gambar)
-                    ? item.gambar.map((img: any) =>
-                        typeof img === "string" ? img : img.src
-                    )
-                    : []
-            );
-        } else {
-            setFormData({
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{item ? "Edit Item" : "Tambah Item Baru"}</DialogTitle>
+        </DialogHeader>
 
-                is_active: true,
-                id: "",
-                nama: "",
-                SKU: "",
-                jumlah: "",
-                harga: "",
-                satuan: "", // Changed from "pcs" to empty string
-                vendor: "",
-                kategori1: "",
-                kategori2: "",
-            });
-            setUploadedImages([]);
-        }
-    }, [isOpen, item]);
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Row 1: name, status */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nama *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Masukkan nama item" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-    const handleInputChange = (field: keyof typeof formData, value: string | boolean) => {
-        setFormData((prev) => ({...prev, [field]: value}));
-    };
+              <FormField
+                control={form.control}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select
+                      onValueChange={(value) =>
+                        field.onChange(value === "true")
+                      }
+                      value={field.value.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="true">Aktif</SelectItem>
+                        <SelectItem value="false">Tidak Aktif</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files ? Array.from(e.target.files) : [];
-        const names = files.map((f) => f.name);
-        setUploadedImages((prev) => [...prev, ...names]);
-    };
+            {/* Row 2: type, sku */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih Type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {typeOptions.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-    const removeImage = (idx: number) => {
-        setUploadedImages((prev) => prev.filter((_, i) => i !== idx));
-    };
+              <FormField
+                control={form.control}
+                name="sku"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>SKU *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="SKU" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-    const handleSave = () => {
-        const newItem: Item = {
+            {/* Row 3: total_item, price */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="total_item"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Jumlah Unit *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        min="1"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            is_active: formData.is_active,
-            id: formData.id,
-            name: formData.nama,
-            sku: formData.SKU,
-            total_item: parseInt(formData.jumlah, 10),
-            price: parseInt(formData.harga, 10),
-            gambar: uploadedImages,
-            satuan_rel: formData.satuan || "",
-            vendor_rel: formData.vendor || "",
-            category_one_rel: formData.kategori1 || "",
-            category_two_rel: formData.kategori2 || "",
-        };
-        onSave(newItem);
-        onClose();
-    };
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Harga Jual (Rp) *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        min="0"
+                        step="0.01"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-    // Updated validation to only check mandatory fields
-    const isFormValid =
-        formData.nama &&
+            {/* Row 4: satuan, vendor */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="satuan_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <SearchableSelect<TOPUnit>
+                      label="Satuan *"
+                      placeholder="Pilih satuan"
+                      value={field.value?.toString()}
+                      onChange={(value) => field.onChange(parseInt(value))}
+                      fetchData={(search: string) =>
+                        satuanService.getAllMataUang({
+                          skip: 0,
+                          limit: 5,
+                          search,
+                        })
+                      }
+                      renderLabel={(item: any) =>
+                        `${item.symbol} - ${item.name}`
+                      }
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        formData.id &&
-        formData.SKU &&
-        formData.jumlah &&
-        formData.harga;
+              <FormField
+                control={form.control}
+                name="vendor_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <SearchableSelect<TOPUnit>
+                      label="Vendor *"
+                      placeholder="Pilih vendor"
+                      value={field.value}
+                      onChange={(value) => field.onChange(value)}
+                      fetchData={(search: string) =>
+                        vendorService.getAllVendors({
+                          skip: 0,
+                          limit: 5,
+                          is_active: true,
+                          search_key: search,
+                        })
+                      }
+                      renderLabel={(item: any) => `${item.name}`}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-    return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>{item ? "Edit Item" : "Tambah Item Baru"}</DialogTitle>
-                </DialogHeader>
+            {/* Row 5: categories - NOW MANDATORY */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="category_one"
+                render={({ field }) => (
+                  <FormItem>
+                    <SearchableSelect<TOPUnit>
+                      label="Kategori 1 *"
+                      placeholder="Pilih kategori 1"
+                      value={field.value?.toString()}
+                      onChange={(value) => field.onChange(parseInt(value))}
+                      fetchData={(search: string) =>
+                        kategoriService.getAllCategories({
+                          skip: 0,
+                          limit: 5,
+                          type: 1,
+                          search,
+                        })
+                      }
+                      renderLabel={(item: any) => `${item.name}`}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <div className="space-y-6">
-                    {/* Row 1: nama, status */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="nama">Nama</Label>
-                            <Input
-                                id="nama"
-                                value={formData.nama}
-                                onChange={(e) => handleInputChange("nama", e.target.value)}
-                                placeholder="Masukkan nama item"
-                            />
-                        </div>
+              <FormField
+                control={form.control}
+                name="category_two"
+                render={({ field }) => (
+                  <FormItem>
+                    <SearchableSelect<TOPUnit>
+                      label="Kategori 2 *"
+                      placeholder="Pilih kategori 2"
+                      value={field.value?.toString()}
+                      onChange={(value) => field.onChange(parseInt(value))}
+                      fetchData={(search: string) =>
+                        kategoriService.getAllCategories({
+                          skip: 0,
+                          limit: 5,
+                          type: 2,
+                          search,
+                        })
+                      }
+                      renderLabel={(item: any) => `${item.name}`}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-                        <Select
-                            value={String(formData.is_active)}
-                            onValueChange={(v) =>
-                                handleInputChange("is_active", v === "true")
-                            }
+            {/* Gambar upload - NOW MANDATORY */}
+            <FormField
+              control={form.control}
+              name="images"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Gambar * (Wajib 1-3 gambar)</FormLabel>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="relative"
+                      type="button"
+                      disabled={watchedImages.length >= 3}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {watchedImages.length >= 3
+                        ? "Maksimal 3 gambar"
+                        : "Pilih File"}
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        disabled={watchedImages.length >= 3}
+                      />
+                    </Button>
+
+                    {watchedImages.length > 0 && (
+                      <span className="text-sm text-gray-500">
+                        {watchedImages.length} file dipilih
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Wajib upload 1-3 gambar. Maks ukuran file 2 MB. Format JPG,
+                    PNG, GIF, WebP.
+                  </p>
+                  {watchedImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {watchedImages.map((file, i) => (
+                        <Badge
+                          key={i}
+                          variant="secondary"
+                          className="flex items-center px-3 py-1"
                         >
-                            <SelectTrigger>
-                                <SelectValue/>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="true">Aktif</SelectItem>
-                                <SelectItem value="false">Tidak Aktif</SelectItem>
-                            </SelectContent>
-                        </Select>
-
+                          <span className="max-w-32 truncate">{file.name}</span>
+                          <button
+                            onClick={() => removeImage(i)}
+                            className="ml-2 hover:text-red-500"
+                            type="button"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
                     </div>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                    {/* Row 2: type, id */}
-                    <div className="grid grid-cols-2 gap-4">
-
-                        <div className="space-y-2">
-                            <Label htmlFor="id">Item ID</Label>
-                            <Input
-                                id="id"
-                                value={formData.id}
-                                onChange={(e) => handleInputChange("id", e.target.value)}
-                                placeholder="JSD0001"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Row 3: SKU, jumlah, harga */}
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="SKU">SKU *</Label>
-                            <Input
-                                id="SKU"
-                                value={formData.SKU}
-                                onChange={(e) => handleInputChange("SKU", e.target.value)}
-                                placeholder="SKU"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="jumlah">Jumlah Unit</Label>
-                            <Input
-                                id="jumlah"
-                                type="number"
-                                value={formData.jumlah}
-                                onChange={(e) => handleInputChange("jumlah", e.target.value)}
-                                placeholder="0"
-                                min="0"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="harga">Harga Jual (Rp)</Label>
-                            <Input
-                                id="harga"
-                                type="number"
-                                value={formData.harga}
-                                onChange={(e) => handleInputChange("harga", e.target.value)}
-                                placeholder="0"
-                                min="0"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Row 4: satuan, vendor (now optional) */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="satuan">Satuan</Label>
-                            <Select
-                                value={formData.satuan}
-                                onValueChange={(v) => handleInputChange("satuan", v)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih Satuan "/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="pcs">pcs</SelectItem>
-                                    <SelectItem value="kg">kg</SelectItem>
-                                    <SelectItem value="lbs">lbs</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-
-                        <div className="space-y-2">
-                            <Label htmlFor="vendor">Vendor</Label>
-                            <Select
-                                value={formData.vendor}
-                                onValueChange={(v) => handleInputChange("vendor", v)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih Vendor "/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {vendorOptions.map((vendor) => (
-                                        <SelectItem key={vendor} value={vendor}>
-                                            {vendor}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    {/* Row 5: categories (now optional) */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="kategori1">Kategori 1</Label>
-                            <Select
-                                value={formData.kategori1}
-                                onValueChange={(v) => handleInputChange("kategori1", v)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih Kategori 1 "/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {kategori1Options.map((kategori) => (
-                                        <SelectItem key={kategori} value={kategori}>
-                                            {kategori}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="kategori2">Kategori 2</Label>
-                            <Select
-                                value={formData.kategori2}
-                                onValueChange={(v) => handleInputChange("kategori2", v)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih Kategori 2 "/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {kategori2Options.map((kategori) => (
-                                        <SelectItem key={kategori} value={kategori}>
-                                            {kategori}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    {/* Gambar upload */}
-                    <div className="space-y-2">
-                        <Label>Gambar</Label>
-                        <div className="flex items-center space-x-2">
-                            <Button variant="outline" size="sm" className="relative">
-                                <Upload className="w-4 h-4 mr-2"/>
-                                Pilih File
-                                <input
-                                    type="file"
-                                    multiple
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                />
-                            </Button>
-
-                            {uploadedImages.length > 0 && (
-                                <span className="text-sm text-gray-500">
-                  {uploadedImages.length} file dipilih
-                </span>
-                            )}
-                        </div>
-                        <span className="opacity-60 text-sm mt-2">
-              Maks ukuran file 2 MB. Format JPG
-            </span>
-                        {uploadedImages.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {uploadedImages.map((img, i) => (
-                                    <Badge
-                                        key={i}
-                                        variant="secondary"
-                                        className="flex items-center px-3 py-1"
-                                    >
-                    <span className="max-w-32 truncate">
-                      {typeof img === "string" ? img : img.src}
-                    </span>
-                                        <button
-                                            onClick={() => removeImage(i)}
-                                            className="ml-2 hover:text-red-500"
-                                            type="button"
-                                        >
-                                            <X className="w-3 h-3"/>
-                                        </button>
-                                    </Badge>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex justify-end pt-4 space-x-2 ">
-                        <Button variant="outline" onClick={onClose}>
-                            Batal
-                        </Button>
-                        <Button
-                            onClick={handleSave}
-                            className="bg-orange-500 hover:bg-orange-600 text-white"
-                            disabled={!isFormValid}
-                        >
-                            {item ? "Update" : "Tambah"}
-                        </Button>
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
+            {/* Actions */}
+            <div className="flex justify-end pt-4 space-x-2">
+              <Button variant="outline" onClick={onClose} type="button">
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {item ? "Update" : "Tambah"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default AddEditItemDialog;

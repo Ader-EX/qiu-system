@@ -82,6 +82,23 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
           />
 
           <FormField
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-right min-w-[80px]">
+                  Alamat
+                </FormLabel>
+                <div className={"flex-1"}>
+                  <FormControl>
+                    <Input placeholder="Masukkan alamat" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+            name={"address"}
+          />
+
+          <FormField
             control={form.control}
             render={({ field }) => (
               <FormItem className={""}>
@@ -108,23 +125,6 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
               </FormItem>
             )}
             name={"is_active"}
-          />
-
-          <FormField
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-right min-w-[80px]">
-                  Alamat
-                </FormLabel>
-                <div className={"flex-1"}>
-                  <FormControl>
-                    <Input placeholder="Masukkan alamat" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </div>
-              </FormItem>
-            )}
-            name={"address"}
           />
         </div>
       </div>
