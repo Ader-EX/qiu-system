@@ -152,11 +152,10 @@ export default function PembelianPage() {
         setCurrentPage(1);
     };
 
-    // Status badge components
     const getStatusBadge = (status: StatusPembelianEnum) => {
         const variants = {
-            [StatusPembelianEnum.DRAFT]: {variant: "secondary" as const, label: "Draft"},
-            [StatusPembelianEnum.ACTIVE]: {variant: "default" as const, label: "Aktif"},
+            [StatusPembelianEnum.DRAFT]: {variant: "default" as const, label: "Draft"},
+            [StatusPembelianEnum.ACTIVE]: {variant: "okay" as const, label: "Aktif"},
             [StatusPembelianEnum.COMPLETED]: {variant: "okay" as const, label: "Selesai"},
         };
 
@@ -263,120 +262,97 @@ export default function PembelianPage() {
                 </div>
             </div>
 
-            {loading ? (
-                <div className="space-y-4">
-                    {[...Array(5)].map((_, i) => (
-                        <div key={i} className="flex space-x-4">
-                            <Skeleton className="h-12 w-24"/>
-                            <Skeleton className="h-12 w-48"/>
-                            <Skeleton className="h-12 w-24"/>
-                            <Skeleton className="h-12 w-32"/>
-                            <Skeleton className="h-12 w-20"/>
-                            <Skeleton className="h-12 w-20"/>
-                            <Skeleton className="h-12 w-16"/>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <>
-                    <Table>
-                        <TableHeader>
+
+            <>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>ID Pembelian</TableHead>
+                            <TableHead>No. Pembelian</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Total Pembelian</TableHead>
+                            <TableHead>Total Dibayar</TableHead>
+
+                            <TableHead>Status Pembayaran</TableHead>
+                            <TableHead>Status Transaksi</TableHead>
+                            <TableHead className="text-right">Aksi</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredPembelians.length === 0 ? (
                             <TableRow>
-                                <TableHead>No. Pembelian</TableHead>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Warehouse</TableHead>
-                                <TableHead>Tanggal</TableHead>
-                                <TableHead>Qty</TableHead>
-                                <TableHead>Total</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Pembayaran</TableHead>
-                                <TableHead>Items</TableHead>
-                                <TableHead className="text-right">Aksi</TableHead>
+                                <TableCell colSpan={10} className="text-center py-8">
+                                    <p className="text-muted-foreground">
+                                        {searchTerm ? "Tidak ada pembelian yang cocok dengan pencarian" : "Belum ada data pembelian"}
+                                    </p>
+                                </TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredPembelians.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={10} className="text-center py-8">
-                                        <p className="text-muted-foreground">
-                                            {searchTerm ? "Tidak ada pembelian yang cocok dengan pencarian" : "Belum ada data pembelian"}
-                                        </p>
+                        ) : (
+                            filteredPembelians.map((pembelian) => (
+                                <TableRow key={pembelian.id}>
+                                    <TableCell className="font-medium">
+                                        <span className="font-mono">{pembelian.id}</span>
                                     </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredPembelians.map((pembelian) => (
-                                    <TableRow key={pembelian.id}>
-                                        <TableCell className="font-medium">
-                                            <span className="font-mono">{pembelian.no_pembelian}</span>
-                                        </TableCell>
-                                        <TableCell>
-                                            {pembelian.customer_name || '-'}
-                                        </TableCell>
-                                        <TableCell>
-                                            {pembelian.warehouse_name || '-'}
-                                        </TableCell>
-                                        <TableCell>{formatDate(pembelian.sales_date)}</TableCell>
-                                        <TableCell>{pembelian.total_qty || 0}</TableCell>
-                                        <TableCell>{pembelian.total_price || 0}</TableCell>
-                                        <TableCell>{getStatusBadge(pembelian.status_pembelian)}</TableCell>
-                                        <TableCell>{getPaymentStatusBadge(pembelian.status_pembayaran)}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline">
-                                                {pembelian.items_count} unit
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                                        <MoreHorizontal className="h-4 w-4"/>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
+                                    <TableCell className="font-medium">
+                                        <span className="font-mono">{pembelian.no_pembelian}</span>
+                                    </TableCell>
+                                    <TableCell>{formatDate(pembelian.sales_date)}</TableCell>
+                                    <TableCell>{pembelian.total_price || 0}</TableCell>
+                                    <TableCell>{pembelian.total_price || 0}</TableCell>
+
+                                    <TableCell>{getStatusBadge(pembelian.status_pembelian)}</TableCell>
+                                    <TableCell>{getPaymentStatusBadge(pembelian.status_pembayaran)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <MoreHorizontal className="h-4 w-4"/>
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={`/pembelian/${pembelian.id}`}>
+                                                        <Eye className="mr-2 h-4 w-4"/>
+                                                        Lihat Detail
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                {pembelian.status_pembelian === StatusPembelianEnum.DRAFT && (
                                                     <DropdownMenuItem asChild>
-                                                        <Link href={`/pembelian/${pembelian.id}`}>
-                                                            <Eye className="mr-2 h-4 w-4"/>
-                                                            Lihat Detail
+                                                        <Link href={`/pembelian/${pembelian.id}/edit`}>
+                                                            <Edit className="mr-2 h-4 w-4"/>
+                                                            Edit
                                                         </Link>
                                                     </DropdownMenuItem>
-                                                    {pembelian.status_pembelian === StatusPembelianEnum.DRAFT && (
-                                                        <DropdownMenuItem asChild>
-                                                            <Link href={`/pembelian/${pembelian.id}/edit`}>
-                                                                <Edit className="mr-2 h-4 w-4"/>
-                                                                Edit
-                                                            </Link>
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    {pembelian.status_pembelian === StatusPembelianEnum.DRAFT && (
-                                                        <DropdownMenuItem
-                                                            onClick={() => handleDeleteClick(pembelian.id)}
-                                                            className="text-red-600"
-                                                        >
-                                                            <Trash2 className="mr-2 h-4 w-4"/>
-                                                            Hapus
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                                )}
+                                                {pembelian.status_pembelian === StatusPembelianEnum.DRAFT && (
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleDeleteClick(pembelian.id)}
+                                                        className="text-red-600"
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4"/>
+                                                        Hapus
+                                                    </DropdownMenuItem>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
 
-                    <GlobalPaginationFunction
-                        page={currentPage}
-                        total={totalItems}
-                        totalPages={totalPages}
-                        rowsPerPage={rowsPerPage}
-                        handleRowsPerPageChange={handleRowsPerPageChange}
-                        handlePageChange={setCurrentPage}
-                    />
+                <GlobalPaginationFunction
+                    page={currentPage}
+                    total={totalItems}
+                    totalPages={totalPages}
+                    rowsPerPage={rowsPerPage}
+                    handleRowsPerPageChange={handleRowsPerPageChange}
+                    handlePageChange={setCurrentPage}
+                />
 
 
-                </>
-            )}
+            </>
 
 
         </div>
