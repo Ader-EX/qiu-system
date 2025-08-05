@@ -33,7 +33,6 @@ import {Item, TOPUnit} from "@/types/types";
 import {ItemTypeEnum} from "@/services/itemService";
 import SearchableSelect from "../SearchableSelect";
 
-// Updated Zod schema - making images mandatory with exactly 1-3 files
 const itemSchema = z.object({
     is_active: z.boolean().default(true),
     type: z.nativeEnum(ItemTypeEnum, {
@@ -48,10 +47,10 @@ const itemSchema = z.object({
     }),
     vendor_id: z.string().min(1, "Vendor is required"),
     category_one: z.number({
-        required_error: "Category 1 is required", // Made mandatory
+        required_error: "Category 1 is required",
     }),
     category_two: z.number({
-        required_error: "Category 2 is required", // Made mandatory
+        required_error: "Category 2 is required",
     }),
     images: z
         .array(z.instanceof(File))
@@ -97,7 +96,6 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         },
     });
 
-    // Reset form when dialog opens/closes or item changes
     useEffect(() => {
         if (!isOpen) {
             form.reset();
