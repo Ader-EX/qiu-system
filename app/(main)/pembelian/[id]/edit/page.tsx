@@ -1,269 +1,378 @@
-"use client"
+"use client";
 
-import type React from "react"
+import * as React from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { format } from "date-fns";
+import { CalendarIcon, Plus, Trash2, FileText, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-import { useState } from "react"
-import { ArrowLeft, Plus, Trash2 } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertSuccess } from "@/components/alert-success"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Calendar } from "@/components/ui/calendar";
+import { SidebarHeaderBar } from "@/components/ui/SidebarHeaderBar";
+import CustomBreadcrumb from "@/components/custom-breadcrumb";
+import SearchableSelect from "@/components/SearchableSelect";
+import ItemSelectorDialog from "@/components/ItemSelectorDialog";
 
-interface PurchaseItem {
-  id: string
-  productId: string
-  productName: string
-  quantity: number
-  price: number
-  total: number
-}
+import {
+  pembelianService,
+  PembelianUpdate,
+  Attachment,
+} from "@/services/pembelianService";
+import { Item } from "@/types/types";
+import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { warehouseService } from "@/services/warehouseService";
+import { jenisPembayaranService } from "@/services/mataUangService";
+import { customerService } from "@/services/customerService";
+import ImageUpload from "@/components/ImageUpload";
 
-export default function EditPembelianPage({ params }: { params: { id: string } }) {
-  const [formData, setFormData] = useState({
-    vendorId: "1",
-    purchaseDate: "2024-01-15",
-    paymentMethod: "transfer",
-    notes: "Pembelian rutin bulanan",
-  })
+// Section layout component
+const FormSection = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <div className="flex flex-col md:flex-row w-full justify-between pt-6 border-t first:pt-0 first:border-none">
+    <h4 className="text-lg font-semibold mb-4 md:mb-0 md:w-[30%]">{title}</h4>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:w-[70%]">
+      {children}
+    </div>
+  </div>
+);
 
-  const [items, setItems] = useState<PurchaseItem[]>([
-    {
-      id: "1",
-      productId: "1",
-      productName: "Laptop Dell",
-      quantity: 10,
-      price: 7500000,
-      total: 75000000,
-    },
-    {
-      id: "2",
-      productId: "2",
-      productName: "Mouse Wireless",
-      quantity: 50,
-      price: 120000,
-      total: 6000000,
-    },
-  ])
-
-  const [showAlert, setShowAlert] = useState(false)
-
-  const addItem = () => {
-    const newItem: PurchaseItem = {
-      id: Date.now().toString(),
-      productId: "",
-      productName: "",
-      quantity: 1,
-      price: 0,
-      total: 0,
-    }
-    setItems([...items, newItem])
-  }
-
-  const removeItem = (id: string) => {
-    setItems(items.filter((item) => item.id !== id))
-  }
-
-  const updateItem = (id: string, field: keyof PurchaseItem, value: any) => {
-    setItems(
-      items.map((item) => {
-        if (item.id === id) {
-          const updatedItem = { ...item, [field]: value }
-          if (field === "quantity" || field === "price") {
-            updatedItem.total = updatedItem.quantity * updatedItem.price
-          }
-          return updatedItem
-        }
-        return item
-      }),
+// Zod schema for form validation
+const pembelianUpdateSchema = z.object({
+  no_pembelian: z.string().min(1, "No. Pembelian harus diisi"),
+  warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
+  customer_id: z.string().min(1, "Customer harus dipilih"),
+  top_id: z.number().min(1, "Jenis Pembayaran harus dipilih"),
+  sales_date: z.date({ required_error: "Sales Date harus diisi" }),
+  sales_due_date: z.date({ required_error: "Sales Due Date harus diisi" }),
+  discount: z.number().min(0).default(0),
+  additional_discount: z.number().min(0).default(0),
+  expense: z.number().min(0).default(0),
+  items: z
+    .array(
+      z.object({
+        item_id: z.number().min(1),
+        qty: z.number().min(1, "Quantity harus lebih dari 0"),
+        unit_price: z.number().min(0),
+        tax_percentage: z.number().min(0).default(10),
+        price_before_tax: z.number().min(0),
+      })
     )
-  }
+    .min(1, "Minimal harus ada 1 item"),
+  newAttachments: z.array(z.instanceof(File)).optional(),
+});
 
-  const totalAmount = items.reduce((sum, item) => sum + item.total, 0)
+type PembelianUpdateFormData = z.infer<typeof pembelianUpdateSchema>;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setShowAlert(true)
+// Helper to convert File[] to FileList
+const toFileList = (files: File[]): FileList => {
+  const dataTransfer = new DataTransfer();
+  files.forEach((file) => dataTransfer.items.add(file));
+  return dataTransfer.files;
+};
+
+export default function PembelianUpdateForm({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: pembelianId } = React.use(params);
+  const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Item[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<Attachment[]>(
+    []
+  );
+
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+
+  const form = useForm<PembelianUpdateFormData>({
+    resolver: zodResolver(pembelianUpdateSchema),
+    defaultValues: {
+      no_pembelian: "",
+      discount: 0,
+      additional_discount: 0,
+      expense: 0,
+      items: [],
+      newAttachments: [],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "items",
+  });
+
+  // Load existing purchase data on component mount
+  useEffect(() => {
+    const loadPembelianData = async () => {
+      setIsLoading(true);
+      try {
+        const data = await pembelianService.getPembelianById(pembelianId);
+
+        form.reset({
+          no_pembelian: data.no_pembelian,
+          warehouse_id: data.warehouse_id,
+          customer_id: data.customer_id,
+          top_id: data.top_id,
+          sales_date: new Date(data.sales_date),
+          sales_due_date: new Date(data.sales_due_date),
+          discount: data.discount,
+          additional_discount: data.additional_discount,
+          expense: data.expense,
+          items: data.pembelian_items.map((item: any) => ({
+            item_id: parseInt(item.item_id),
+            qty: item.qty,
+            unit_price: item.unit_price,
+            tax_percentage: 10, // Assuming 10% tax, adjust if available from API
+            price_before_tax: item.unit_price / 1.1,
+          })),
+          newAttachments: [],
+        });
+
+        setSelectedItems(
+          data.pembelian_items.map(
+            (item: any) =>
+              ({
+                id: item.item_id,
+                name: item.item_name,
+                price: item.unit_price / 1.1,
+              } as Item)
+          )
+        );
+
+        setExistingAttachments(data.attachments || []);
+      } catch (error: any) {
+        toast.error(error.message || "Failed to load purchase data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadPembelianData();
+  }, [pembelianId, form]);
+
+  const handleRemoveExistingAttachment = async (attachmentId: number) => {
+    try {
+      await pembelianService.deleteAttachment(pembelianId, attachmentId);
+      setExistingAttachments((prev) =>
+        prev.filter((att) => att.id !== attachmentId)
+      );
+      toast.success("Attachment removed successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to remove attachment");
+    }
+  };
+
+  const handleSubmit = async (
+    data: PembelianUpdateFormData,
+    finalize: boolean = false
+  ) => {
+    setIsSubmitting(true);
+
+    try {
+      // Step 1: Update the main purchase record
+      const apiPayload: PembelianUpdate = {
+        no_pembelian: data.no_pembelian,
+        warehouse_id: data.warehouse_id,
+        customer_id: data.customer_id,
+        top_id: data.top_id,
+        sales_date: data.sales_date.toISOString(),
+        sales_due_date: data.sales_due_date.toISOString(),
+        discount: data.discount,
+        additional_discount: data.additional_discount,
+        expense: data.expense,
+        items: data.items.map((item) => ({
+          item_id: item.item_id,
+          qty: item.qty,
+          unit_price: item.unit_price,
+        })),
+      };
+      await pembelianService.updatePembelian(pembelianId, apiPayload);
+      toast.success(`Purchase successfully updated.`);
+
+      // Step 2: Upload any NEW files that have been added
+      const filesToUpload = data.newAttachments || [];
+      if (filesToUpload.length > 0) {
+        toast.loading(`Uploading ${filesToUpload.length} new attachments...`, {
+          id: "upload-toast",
+        });
+        const fileList = toFileList(filesToUpload);
+        await pembelianService.uploadAttachments(pembelianId, fileList);
+        toast.success("New attachments uploaded!", { id: "upload-toast" });
+      }
+
+      // Step 3: Finalize if requested
+      if (finalize) {
+        await pembelianService.finalizePembelian(parseInt(pembelianId, 10));
+        toast.success(`Purchase has been successfully finalized`);
+      }
+
+      router.back();
+    } catch (e: any) {
+      toast.error(e?.message || "An error occurred during the update.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Loading...
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      {showAlert && <AlertSuccess message="Pembelian berhasil diperbarui!" onClose={() => setShowAlert(false)} />}
+      <SidebarHeaderBar
+        leftContent={
+          <CustomBreadcrumb
+            listData={["Pembelian", "Edit Pembelian"]}
+            linkData={["/pembelian", `/pembelian/edit/${pembelianId}`]}
+          />
+        }
+      />
+      <Form {...form}>
+        <form className="space-y-8">
+          {/* --- Other form sections go here (Purchase Info, Customer, etc.) --- */}
 
-      <div className="flex items-center gap-4">
-        <Link href="/pembelian">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Kembali
-          </Button>
-        </Link>
-        <h1 className="text-3xl font-bold">Edit Pembelian #{params.id}</h1>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Informasi Pembelian</CardTitle>
-            <CardDescription>Perbarui informasi pembelian</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="vendorId">Vendor</Label>
-                <Select
-                  value={formData.vendorId}
-                  onValueChange={(value) => setFormData({ ...formData, vendorId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih vendor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">PT. Supplier Utama</SelectItem>
-                    <SelectItem value="2">CV. Distributor Jaya</SelectItem>
-                    <SelectItem value="3">UD. Grosir Murah</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="purchaseDate">Tanggal Pembelian</Label>
-                <Input
-                  id="purchaseDate"
-                  type="date"
-                  value={formData.purchaseDate}
-                  onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="paymentMethod">Metode Pembayaran</Label>
-                <Select
-                  value={formData.paymentMethod}
-                  onValueChange={(value) => setFormData({ ...formData, paymentMethod: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih metode pembayaran" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="transfer">Transfer Bank</SelectItem>
-                    <SelectItem value="credit">Kredit</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes">Catatan</Label>
-                <Input
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Catatan tambahan..."
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Item Pembelian</CardTitle>
-                <CardDescription>Edit produk yang dibeli</CardDescription>
-              </div>
-              <Button type="button" onClick={addItem}>
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Item
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Produk</TableHead>
-                  <TableHead>Jumlah</TableHead>
-                  <TableHead>Harga</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <Select
-                        value={item.productId}
-                        onValueChange={(value) => {
-                          updateItem(item.id, "productId", value)
-                          // In real app, fetch product details and update name/price
-                          updateItem(item.id, "productName", "Sample Product")
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih produk" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">Laptop Dell</SelectItem>
-                          <SelectItem value="2">Mouse Wireless</SelectItem>
-                          <SelectItem value="3">Keyboard Mechanical</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(item.id, "quantity", Number.parseInt(e.target.value) || 0)}
-                        min="1"
-                        className="w-20"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        value={item.price}
-                        onChange={(e) => updateItem(item.id, "price", Number.parseFloat(e.target.value) || 0)}
-                        min="0"
-                        className="w-32"
-                      />
-                    </TableCell>
-                    <TableCell>Rp {item.total.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">
+          {/* --- Attachments Section --- */}
+          <FormSection title={"Lampiran"}>
+            {/* Display existing attachments */}
+            <div className="md:col-span-2 space-y-3">
+              <Label>Existing Attachments</Label>
+              {existingAttachments.length > 0 ? (
+                <div className="space-y-2">
+                  {existingAttachments.map((att) => (
+                    <div
+                      key={att.id}
+                      className="flex items-center justify-between p-2 bg-muted rounded-lg"
+                    >
+                      <div className="flex items-center space-x-3 truncate">
+                        <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                        <a
+                          href={pembelianService.getDownloadUrl(
+                            pembelianId,
+                            att.id
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium hover:underline truncate"
+                        >
+                          {att.filename}
+                        </a>
+                      </div>
                       <Button
-                        type="button"
                         variant="ghost"
-                        size="sm"
-                        onClick={() => removeItem(item.id)}
-                        className="text-red-600 hover:text-red-800"
+                        size="icon"
+                        onClick={() => handleRemoveExistingAttachment(att.id)}
+                        className="text-red-500 hover:text-red-700"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <X className="h-4 w-4" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            <div className="mt-4 flex justify-end">
-              <div className="text-right">
-                <div className="text-lg font-semibold">Total: Rp {totalAmount.toLocaleString()}</div>
-              </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No existing attachments.
+                </p>
+              )}
             </div>
-          </CardContent>
-        </Card>
 
-        <div className="flex justify-end gap-4">
-          <Link href="/pembelian">
-            <Button variant="outline">Batal</Button>
-          </Link>
-          <Button type="submit">Perbarui Pembelian</Button>
-        </div>
-      </form>
+            {/* Upload new attachments */}
+            <div className="md:col-span-2">
+              <FormField
+                control={form.control}
+                name="newAttachments"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Add New Attachments</FormLabel>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        maxFiles={5}
+                        maxSizeMB={5}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </FormSection>
+
+          {/* --- Item Details and Totals --- */}
+          {/* ... your item table and totals section ... */}
+
+          {/* --- Form Actions --- */}
+          <div className="flex justify-end space-x-4 pt-6 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              disabled={isSubmitting}
+              onClick={form.handleSubmit((data) => handleSubmit(data, false))}
+            >
+              {isSubmitting ? "Updating..." : "Update Draft"}
+            </Button>
+            <Button
+              type="button"
+              variant={"blue"}
+              disabled={isSubmitting}
+              onClick={form.handleSubmit((data) => handleSubmit(data, true))}
+            >
+              {isSubmitting ? "Finalizing..." : "Update & Finalize"}
+            </Button>
+          </div>
+        </form>
+      </Form>
+
+      <ItemSelectorDialog
+        open={isItemDialogOpen}
+        onOpenChange={setIsItemDialogOpen}
+        onSelect={() => {}} // Replace with your handleAddItem logic
+      />
     </div>
-  )
+  );
 }
