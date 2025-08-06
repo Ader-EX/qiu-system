@@ -16,6 +16,7 @@ type GlobalPaginationInt = {
     rowsPerPage: number;
     handleRowsPerPageChange: (i: number) => void;
     handlePageChange: (i: number) => void;
+    isSmall?: boolean;
 };
 
 const GlobalPaginationFunction = ({
@@ -25,6 +26,7 @@ const GlobalPaginationFunction = ({
                                       rowsPerPage,
                                       handleRowsPerPageChange,
                                       handlePageChange,
+                                      isSmall = false
                                   }: GlobalPaginationInt) => {
     return (
         <div className="flex items-center justify-between mt-4">
@@ -46,28 +48,30 @@ const GlobalPaginationFunction = ({
                     </SelectContent>
                 </Select>
             </div>
-
-            <div className="flex items-center space-x-2">
+            {!isSmall &&
+                <div className="flex items-center space-x-2">
         <span className="text-sm text-muted-foreground">
           Halaman {page} dari {totalPages} ({total} total)
         </span>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(page - 1)}
-                    disabled={page === 1}
-                >
-                    <ChevronLeft className="h-4 w-4"/>
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(page + 1)}
-                    disabled={page === totalPages || totalPages === 0}
-                >
-                    <ChevronRight className="h-4 w-4"/>
-                </Button>
-            </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(page - 1)}
+                        disabled={page === 1}
+                    >
+                        <ChevronLeft className="h-4 w-4"/>
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(page + 1)}
+                        disabled={page === totalPages || totalPages === 0}
+                    >
+                        <ChevronRight className="h-4 w-4"/>
+                    </Button>
+                </div>
+            }
+
         </div>
     );
 };

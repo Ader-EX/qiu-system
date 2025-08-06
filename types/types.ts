@@ -9,6 +9,7 @@ export interface TOPUnit {
     is_active: boolean;
 }
 
+
 export interface CategoryOut extends TOPUnit {
     category_type: number; // 1 or 2
 }

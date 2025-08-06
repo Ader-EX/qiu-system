@@ -78,7 +78,6 @@ export default function CurrencyPage() {
 
     const loadUnits = async (page: number, searchTerm: string, limit: number) => {
         try {
-            console.log('Loading units with:', {page, searchTerm, limit}); // Debug log
             setLoading(true);
             const response = await mataUangService.getAllMataUang({
                 skip: (page - 1) * limit,
@@ -86,11 +85,9 @@ export default function CurrencyPage() {
                 search: searchTerm,
             });
 
-            console.log('API response:', response); // Debug log
             setUnits(response.data || []);
             setTotal(response.total || 0)
         } catch (error) {
-            console.error("Error loading units:", error);
             toast.error("Gagal memuat data mata uang");
         } finally {
             setLoading(false);

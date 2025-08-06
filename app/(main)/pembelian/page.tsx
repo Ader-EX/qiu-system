@@ -6,13 +6,6 @@ import Link from "next/link";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import {
     Table,
     TableBody,
     TableCell,
@@ -67,10 +60,6 @@ export default function PembelianPage() {
     const [totalItems, setTotalItems] = useState(0);
     const [pageSize] = useState(50);
 
-    // Delete confirmation
-    const [deleteDialog, setDeleteDialog] = useState(false);
-    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
-    const [deleting, setDeleting] = useState(false);
 
     // Fetch data
     const fetchPembelians = async (filters: PembelianFilters = {}) => {
@@ -113,16 +102,15 @@ export default function PembelianPage() {
 
 
     const handleDeleteClick = (id: string) => {
-        setItemToDelete(id);
-        confirmDelete().then(r => toast.success("Pembelian berhasil dihapus!"));
+
+        confirmDelete(id).then(r => toast.success("Pembelian berhasil dihapus!"));
     };
 
-    const confirmDelete = async () => {
-        if (!itemToDelete) return;
+    const confirmDelete = async (id: string) => {
+        if (!id) return;
 
         try {
-            setDeleting(true);
-            await pembelianService.deletePembelian(itemToDelete);
+            await pembelianService.deletePembelian(id);
 
             toast.success("Pembelian berhasil dihapus!");
 
@@ -132,10 +120,6 @@ export default function PembelianPage() {
             const errorMsg = err instanceof Error ? err.message : "Failed to delete pembelian";
             toast.error(errorMsg);
 
-        } finally {
-            setDeleting(false);
-            setDeleteDialog(false);
-            setItemToDelete(null);
         }
     };
 
@@ -180,10 +164,6 @@ export default function PembelianPage() {
 
     }
 
-    // Format currency
-
-
-    // Format date
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('id-ID', {
             year: 'numeric',
@@ -192,10 +172,7 @@ export default function PembelianPage() {
         });
     };
 
-    // Pagination calculations
     const totalPages = Math.ceil(totalItems / pageSize);
-    const startItem = (currentPage - 1) * pageSize + 1;
-    const endItem = Math.min(currentPage * pageSize, totalItems);
 
     return (
         <div className="space-y-6">
@@ -206,7 +183,7 @@ export default function PembelianPage() {
                     <HeaderActions.ActionGroup>
 
                         <Button size="sm" asChild>
-                            <Link href="/pembelian/create">
+                            <Link href="/pembelian/add">
                                 <Plus className="h-4 w-4 mr-2"/>
                                 Tambah Pembelian
                             </Link>

@@ -200,7 +200,18 @@ class PembelianService {
         return response.json();
     }
 
-    async createPembelian(pembelianData: PembelianCreate): Promise<{ detail: string }> {
+    async createPembelian(pembelianData: {
+        no_pembelian: string;
+        warehouse_id: number;
+        customer_id: string;
+        top_id: number;
+        sales_date: string;
+        sales_due_date: string;
+        discount: number;
+        additional_discount: number;
+        expense: number;
+        items: { item_id: number; qty: number; unit_price: number }[]
+    }): Promise<{ detail: string, id: number }> {
         const response = await fetch(this.baseUrl, {
             method: "POST",
             headers: this.getAuthHeaders(),
@@ -234,7 +245,7 @@ class PembelianService {
         return response.json();
     }
 
-    async finalizePembelian(id: string): Promise<Pembelian> {
+    async finalizePembelian(id: number): Promise<Pembelian> {
         const response = await fetch(`${this.baseUrl}/${id}/finalize`, {
             method: "POST",
             headers: this.getAuthHeaders(),

@@ -89,7 +89,6 @@ export default function Kategori2Page() {
                 type: 2
             });
 
-            console.log('API response:', response); // Debug log
             setCategories(response.data || []);
             setTotal(response.total || 0)
         } catch (error) {
@@ -118,16 +117,16 @@ export default function Kategori2Page() {
 
             if (editingCategory) {
                 if (editingCategory.id) {
-                    const updatedCategory = await kategoriService.updateCategory(
-                        editingCategory.id,
-                        {
-                            name: data.name,
-                            is_active: data.is_active,
-                            category_type: 2
-                        }
-                    );
-
-                    // Reload data to get fresh results from server
+                    if (typeof editingCategory.id === "number") {
+                        const updatedCategory = await kategoriService.updateCategory(
+                            editingCategory.id,
+                            {
+                                name: data.name,
+                                is_active: data.is_active,
+                                category_type: 2
+                            }
+                        );
+                    }
                     await loadCategories(page, searchTerm, rowsPerPage);
                 }
                 toast.success("Kategori berhasil diperbarui!");
@@ -311,8 +310,10 @@ export default function Kategori2Page() {
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     onClick={() => {
-                                                        if (category.id) {
-                                                            handleDelete(category.id)
+                                                        if (category?.id) {
+                                                            if (typeof category?.id === "number") {
+                                                                handleDelete(category?.id)
+                                                            }
                                                         }
                                                     }
                                                     }

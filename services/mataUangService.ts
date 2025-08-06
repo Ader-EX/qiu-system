@@ -22,6 +22,12 @@ export type MataUangListResponse = {
     total: number;
 };
 
+
+export type ItemListResponse = {
+    data: TOPUnit[];
+    total: number;
+};
+
 class MataUangService {
     private baseUrl: string;
 
@@ -65,6 +71,47 @@ class MataUangService {
             return result;
         } catch (error) {
             console.error("Error fetching currencies.h:", error);
+            throw error;
+        }
+    }
+
+
+    async getAllItem({
+                         skip = 0,
+                         limit = 10,
+                         search = "",
+
+                     }: {
+        skip: number;
+        limit: number;
+        search: string;
+
+    }): Promise<MataUangListResponse> {
+        const params = new URLSearchParams();
+        params.append("page", String(skip));
+        params.append("rowsPerPage", String(limit));
+
+
+        if (search) {
+            params.append("search_key", search);
+        }
+
+        const url = `${this.baseUrl}?${params.toString()}`;
+
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                headers: this.getAuthHeaders(),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch item: ${response.statusText}`);
+            }
+
+            const result = (await response.json()) as MataUangListResponse;
+            return result;
+        } catch (error) {
+            console.error("Error fetching item:", error);
             throw error;
         }
     }
@@ -160,3 +207,4 @@ class MataUangService {
 export const mataUangService = new MataUangService("currency");
 export const jenisPembayaranService = new MataUangService("top")
 export const satuanService = new MataUangService("satuan")
+export const itemService = new MataUangService("item")

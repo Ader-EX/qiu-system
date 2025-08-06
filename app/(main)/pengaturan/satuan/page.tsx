@@ -73,7 +73,6 @@ export default function SatuanPage() {
 
     const loadUnits = async (page: number, searchTerm: string, limit: number) => {
         try {
-            console.log('Loading units with:', {page, searchTerm, limit}); // Debug log
             setLoading(true);
             const response = await satuanService.getAllMataUang({
                 skip: (page - 1) * limit,
@@ -81,11 +80,9 @@ export default function SatuanPage() {
                 search: searchTerm,
             });
 
-            console.log('API response:', response); // Debug log
             setUnits(response.data || []);
             setTotal(response.total || 0)
         } catch (error) {
-            console.error("Error loading units:", error);
             toast.error("Gagal memuat data satuan");
         } finally {
             setLoading(false);
@@ -151,12 +148,15 @@ export default function SatuanPage() {
 
     const handleEdit = (unit: TOPUnit) => {
         setEditingsatuan(unit);
-        setFormData({
-            name: unit.name,
-            symbol: unit.symbol,
-            is_active: unit.is_active
-        });
-        setIsDialogOpen(true);
+
+        if (unit.symbol) {
+            setFormData({
+                name: unit.name,
+                symbol: unit.symbol,
+                is_active: unit.is_active
+            });
+            setIsDialogOpen(true);
+        }
     };
 
     const handleDelete = async (id: number) => {
