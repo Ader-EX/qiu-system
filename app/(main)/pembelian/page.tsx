@@ -27,12 +27,10 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {Badge} from "@/components/ui/badge";
-import {AlertSuccess} from "@/components/alert-success";
 import {
     HeaderActions,
     SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
-import {Skeleton} from "@/components/ui/skeleton";
 
 import {
     pembelianService,
@@ -47,7 +45,6 @@ import toast from "react-hot-toast";
 export default function PembelianPage() {
     // State management
     const [pembelians, setPembelians] = useState<PembelianListResponse[]>([]);
-    const [loading, setLoading] = useState(true);
 
     const [searchTerm, setSearchTerm] = useState("");
     const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -64,7 +61,6 @@ export default function PembelianPage() {
     // Fetch data
     const fetchPembelians = async (filters: PembelianFilters = {}) => {
         try {
-            setLoading(true);
 
 
             const response = await pembelianService.getAllPembelian({
@@ -78,8 +74,6 @@ export default function PembelianPage() {
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : "Failed to fetch pembelians";
             toast.error(errorMsg);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -138,7 +132,7 @@ export default function PembelianPage() {
 
     const getStatusBadge = (status: StatusPembelianEnum) => {
         const variants = {
-            [StatusPembelianEnum.DRAFT]: {variant: "default" as const, label: "Draft"},
+            [StatusPembelianEnum.DRAFT]: {variant: "secondary" as const, label: "Draft"},
             [StatusPembelianEnum.ACTIVE]: {variant: "okay" as const, label: "Aktif"},
             [StatusPembelianEnum.COMPLETED]: {variant: "okay" as const, label: "Selesai"},
         };
@@ -149,9 +143,9 @@ export default function PembelianPage() {
 
     const getPaymentStatusBadge = (status: StatusPembayaranEnum) => {
         const variants = {
-            [StatusPembayaranEnum.UNPAID]: {variant: "destructive" as const, label: "Belum Bayar"},
-            [StatusPembayaranEnum.HALF_PAID]: {variant: "secondary" as const, label: "Sebagian"},
-            [StatusPembayaranEnum.PAID]: {variant: "default" as const, label: "Lunas"},
+            [StatusPembayaranEnum.UNPAID]: {variant: "destructive" as const, label: "Unpaid"},
+            [StatusPembayaranEnum.HALF_PAID]: {variant: "secondary" as const, label: "Half Paid"},
+            [StatusPembayaranEnum.PAID]: {variant: "default" as const, label: "Completed"},
         };
 
         const config = variants[status];

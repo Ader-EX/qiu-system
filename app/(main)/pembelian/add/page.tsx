@@ -763,7 +763,7 @@ export default function PembelianForm() {
                                     </div>
                                     <div className="flex justify-between border-t pt-2 font-semibold">
                                         <span>Grand Total</span>
-                                        <span>Rp {grandTotal.toFixed(2)}</span>
+                                        <span>{grandTotal.toFixed(4)}</span>
                                     </div>
                                 </div>
                             </div>
