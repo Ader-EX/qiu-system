@@ -72,7 +72,7 @@ class ImageService {
 
   async getAttachmentsByParent(
     parentType: ParentType,
-    parentId: number
+    parentId: string
   ): Promise<AttachmentInfo[]> {
     const params = new URLSearchParams();
     params.append("parent_type", parentType);
