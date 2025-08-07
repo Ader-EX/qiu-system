@@ -99,10 +99,9 @@ export default function VendorPage() {
     const handleSearch = async () => {
         console.log("Search clicked, searchTerm:", searchTerm); // Debug log
         setCurrentPage(1);
-        await loadVendors(); // Direct API call
+        await loadVendors();
     };
 
-    // Handle Enter key in search input
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
             handleSearch();
