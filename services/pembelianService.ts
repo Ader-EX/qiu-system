@@ -26,6 +26,7 @@ export interface PembelianItem {
     qty: number;
     unit_price: number;
     total_price: number;
+    tax_percentage?: number;
 }
 
 export interface Attachment {

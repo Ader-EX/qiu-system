@@ -189,12 +189,13 @@ export default function PembelianForm({
                     expense: Number(data.expense),
                     items: data.pembelian_items.map(item => {
                         const up = Number(item.unit_price);
+                        // @ts-ignore
                         return {
                             item_id: Number(item.item_id),
                             qty: Number(item.qty),
                             unit_price: up,
-                            tax_percentage: 10,
-                            price_before_tax: up / 1.1,
+                            tax_percentage: item?.tax_percentage || 0,
+                            price_before_tax: up / (1 + (item?.tax_percentage || 0)),
                         };
                     }),
                     attachments: [],
@@ -213,7 +214,7 @@ export default function PembelianForm({
                         (item: any) => ({
                             id: item.item_id,
                             name: item.item_name,
-                            price: item.unit_price / 1.1,
+                            price: item.unit_price * (1 + (item?.tax_percentage || 0)),
                         } as Item)
                     )
                 );
@@ -233,6 +234,7 @@ export default function PembelianForm({
     const watchedDiscount = form.watch("discount");
     const watchedAdditionalDiscount = form.watch("additional_discount");
     const watchedExpense = form.watch("expense");
+
 
     // Calculate totals
     const subTotal = watchedItems.reduce(
@@ -362,10 +364,11 @@ export default function PembelianForm({
                 discount: Number(data.discount || 0),
                 additional_discount: Number(data.additional_discount || 0),
                 expense: Number(data.expense || 0),
-                items: data.items.map((item) => ({
+                items: data.items.map(item => ({
                     item_id: Number(item.item_id),
                     qty: Number(item.qty),
                     unit_price: Number(item.unit_price),
+                    tax_percentage: Number(item.tax_percentage),
                 })),
             };
 
