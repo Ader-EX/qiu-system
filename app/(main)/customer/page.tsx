@@ -266,7 +266,6 @@ export default function CustomerPage() {
     };
 
     // @ts-ignore
-    // @ts-ignore
     return (
         <div className="space-y-6">
             <SidebarHeaderBar
