@@ -38,7 +38,7 @@ export interface Attachment {
 }
 
 export interface Pembelian {
-  id: string;
+  id: number;
   no_pembelian: string;
   status_pembayaran: StatusPembayaranEnum;
   status_pembelian: StatusPembelianEnum;
@@ -62,7 +62,7 @@ export interface Pembelian {
 }
 
 export interface PembelianListResponse {
-  id: string;
+  id: number;
   no_pembelian: string;
   status_pembayaran: StatusPembayaranEnum;
   status_pembelian: StatusPembelianEnum;
@@ -87,8 +87,10 @@ export interface PembelianCreate {
   additional_discount?: number;
   expense?: number;
   items: Array<{
-    item_id: string;
+    item_id: number;
     qty: number;
+    unit_price: number; // after tax (ground truth)
+    tax_percentage: number; // ✨ add this
   }>;
 }
 
@@ -106,6 +108,7 @@ export interface PembelianUpdate {
     item_id?: number;
     qty?: number;
     unit_price?: number;
+    tax_percentage?: number;
   }>;
 }
 
@@ -195,7 +198,7 @@ class PembelianService {
     return response.json();
   }
 
-  async getPembelianById(id: string): Promise<Pembelian> {
+  async getPembelianById(id: number): Promise<Pembelian> {
     const response = await fetch(`${this.baseUrl}/${id}`, {
       headers: this.getAuthHeaders(),
     });
@@ -210,18 +213,9 @@ class PembelianService {
     return response.json();
   }
 
-  async createPembelian(pembelianData: {
-    no_pembelian: string;
-    warehouse_id: number;
-    customer_id: string;
-    top_id: number;
-    sales_date: string;
-    sales_due_date: string;
-    discount: number;
-    additional_discount: number;
-    expense: number;
-    items: { item_id: number; qty: number; unit_price: number }[];
-  }): Promise<{ detail: string; id: number }> {
+  async createPembelian(
+    pembelianData: PembelianCreate
+  ): Promise<{ detail: string; id: number }> {
     const response = await fetch(this.baseUrl, {
       method: "POST",
       headers: this.getAuthHeaders(),

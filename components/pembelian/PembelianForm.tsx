@@ -176,7 +176,9 @@ export default function PembelianForm({
           pembelianId
         );
 
-        const data = await pembelianService.getPembelianById(pembelianId);
+        const data = await pembelianService.getPembelianById(
+          Number(pembelianId)
+        );
         console.log("[PembelianForm] Loaded pembelian data:", data);
 
         const formData = {
@@ -186,8 +188,8 @@ export default function PembelianForm({
           top_id: Number(data.top_id),
           sales_date: new Date(data.sales_date),
           sales_due_date: new Date(data.sales_due_date),
-          discount: data.discount % 100,
-          additional_discount: data.additional_discount % 10000,
+          discount: Number(data.discount ?? 0),
+          additional_discount: Number(data.additional_discount ?? 0),
           expense: Number(data.expense),
           items: data.pembelian_items.map((item) => {
             const up = Number(item.unit_price);
@@ -222,8 +224,10 @@ export default function PembelianForm({
               ({
                 id: item.item_id,
                 name: item.item_name,
+                // keep this as BEFORE TAX so handleAddItem logic stays consistent
                 price:
-                  item.unit_price * (1 + (item.tax_percentage ?? 10) / 100),
+                  Number(item.unit_price) /
+                  (1 + (item.tax_percentage ?? 10) / 100),
               } as Item)
           )
         );
@@ -544,8 +548,7 @@ export default function PembelianForm({
       handleSubmit(data, false);
     },
     (errors) => {
-      console.error("🚨 onError, validation errors:", errors);
-      toast.error("Please fix validation errors (see console)");
+      toast.error("Silahkan penuhi data Anda terlebih dahulu");
     }
   );
 
