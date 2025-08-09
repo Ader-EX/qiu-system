@@ -170,7 +170,7 @@ export default function WarehousePage() {
                   onClick={() => setIsDialogOpen(true)}
                   disabled={submitting}
                 >
-                  <Plus className="mr-2 h-4 w-4" /> Tambah
+                  <Plus className="mr-2 h-4 w-4" /> Tambah Warehouse
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -201,7 +201,7 @@ export default function WarehousePage() {
         <div className="relative max-w-sm">
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Cari vendor..."
+            placeholder="Cari warehouse..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
