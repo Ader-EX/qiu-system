@@ -55,7 +55,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
     defaultValues: {
       name: initialData?.name || "",
       address: initialData?.address || "",
-      is_active: initialData?.is_active || false,
+      is_active: initialData?.is_active || true,
     },
   });
 
