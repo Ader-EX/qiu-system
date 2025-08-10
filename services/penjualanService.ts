@@ -1,4 +1,4 @@
-// services/PembelianService.ts
+// services/PenjualanService.ts
 
 import Cookies from "js-cookie";
 
@@ -9,20 +9,20 @@ export enum StatusPembayaranEnum {
   PAID = "PAID",
 }
 
-export enum StatusPembelianEnum {
+export enum StatusPenjualanEnum {
   DRAFT = "DRAFT",
   ACTIVE = "ACTIVE",
   COMPLETED = "COMPLETED",
 }
 
-export interface PembelianItem {
+export interface PenjualanItem {
   id?: number;
   item_id: string;
   item_name?: string;
   item_sku?: string;
   item_type?: string;
   satuan_name?: string;
-  vendor_name?: string;
+  customer_name?: string;
   qty: number;
   unit_price: number;
   total_price: number;
@@ -37,11 +37,11 @@ export interface Attachment {
   mime_type: string;
 }
 
-export interface Pembelian {
+export interface Penjualan {
   id: number;
-  no_pembelian: string;
+  no_penjualan: string;
   status_pembayaran: StatusPembayaranEnum;
-  status_pembelian: StatusPembelianEnum;
+  status_penjualan: StatusPenjualanEnum;
   discount: number;
   additional_discount: number;
   expense: number;
@@ -50,36 +50,36 @@ export interface Pembelian {
   total_qty: number;
   total_price: number;
   warehouse_id?: number;
-  vendor_id?: string;
+  customer_id?: string;
   top_id?: number;
   warehouse_name?: string;
-  vendor_name?: string;
+  customer_name?: string;
   top_name?: string;
   currency_name?: string;
   created_at: string;
-  pembelian_items: PembelianItem[];
+  penjualan_items: PenjualanItem[];
   attachments: Attachment[];
 }
 
-export interface PembelianListResponse {
+export interface PenjualanListResponse {
   id: number;
-  no_pembelian: string;
+  no_penjualan: string;
   status_pembayaran: StatusPembayaranEnum;
-  status_pembelian: StatusPembelianEnum;
+  status_penjualan: StatusPenjualanEnum;
   sales_date: string;
   total_paid: number;
   total_qty: number;
   total_price: number;
-  vendor_name?: string;
+  customer_name?: string;
   warehouse_name?: string;
   items_count: number;
   attachments_count: number;
 }
 
-export interface PembelianCreate {
-  no_pembelian: string;
+export interface PenjualanCreate {
+  no_penjualan: string;
   warehouse_id?: number;
-  vendor_id?: string;
+  customer_id?: string;
   top_id?: number;
   sales_date: string;
   sales_due_date?: string;
@@ -94,10 +94,10 @@ export interface PembelianCreate {
   }>;
 }
 
-export interface PembelianUpdate {
-  no_pembelian?: string;
+export interface PenjualanUpdate {
+  no_penjualan?: string;
   warehouse_id?: number;
-  vendor_id?: string;
+  customer_id?: string;
   top_id?: number;
   sales_date?: string;
   sales_due_date?: string;
@@ -112,8 +112,8 @@ export interface PembelianUpdate {
   }>;
 }
 
-export interface PembelianStatusUpdate {
-  status_pembelian?: StatusPembelianEnum;
+export interface PenjualanStatusUpdate {
+  status_penjualan?: StatusPenjualanEnum;
   status_pembayaran?: StatusPembayaranEnum;
 }
 
@@ -144,8 +144,8 @@ export interface SuccessResponse {
   message: string;
 }
 
-export interface PembelianSummary {
-  total_pembelian: number;
+export interface PenjualanSummary {
+  total_penjualan: number;
   draft_count: number;
   active_count: number;
   completed_count: number;
@@ -153,11 +153,11 @@ export interface PembelianSummary {
   unpaid_value: number;
 }
 
-export interface PembelianFilters {
-  status_pembelian?: StatusPembelianEnum;
+export interface PenjualanFilters {
+  status_penjualan?: StatusPenjualanEnum;
   status_pembayaran?: StatusPembayaranEnum;
   search_key?: string;
-  vendor_id?: string;
+  customer_id?: string;
   warehouse_id?: number;
   page?: number;
   size?: number;
@@ -165,23 +165,23 @@ export interface PembelianFilters {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-class PembelianService {
+class PenjualanService {
   private baseUrl: string;
 
-  constructor(destination: string = "pembelian") {
+  constructor(destination: string = "penjualan") {
     this.baseUrl = `${API_BASE_URL}/${destination}`;
   }
 
-  async getAllPembelian(
-    filters: PembelianFilters = {}
-  ): Promise<PaginatedResponse<PembelianListResponse>> {
+  async getAllPenjualan(
+    filters: PenjualanFilters = {}
+  ): Promise<PaginatedResponse<PenjualanListResponse>> {
     const params = new URLSearchParams();
 
-    if (filters.status_pembelian)
-      params.append("status_pembelian", filters.status_pembelian);
+    if (filters.status_penjualan)
+      params.append("status_penjualan", filters.status_penjualan);
     if (filters.status_pembayaran)
       params.append("status_pembayaran", filters.status_pembayaran);
-    if (filters.vendor_id) params.append("vendor_id", filters.vendor_id);
+    if (filters.customer_id) params.append("customer_id", filters.customer_id);
     if (filters.warehouse_id)
       params.append("warehouse_id", filters.warehouse_id.toString());
     if (filters.page) params.append("page", filters.page.toString());
@@ -198,14 +198,14 @@ class PembelianService {
     return response.json();
   }
 
-  async getPembelianById(id: number): Promise<Pembelian> {
+  async getPenjualanById(id: number): Promise<Penjualan> {
     const response = await fetch(`${this.baseUrl}/${id}`, {
       headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
       if (response.status === 404) {
-        throw new Error("Pembelian not found");
+        throw new Error("Penjualan not found");
       }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -213,13 +213,13 @@ class PembelianService {
     return response.json();
   }
 
-  async createPembelian(
-    pembelianData: PembelianCreate
+  async createPenjualan(
+    penjualanData: PenjualanCreate
   ): Promise<{ detail: string; id: number }> {
     const response = await fetch(this.baseUrl, {
       method: "POST",
       headers: this.getAuthHeaders(),
-      body: JSON.stringify(pembelianData),
+      body: JSON.stringify(penjualanData),
     });
 
     if (!response.ok) {
@@ -232,14 +232,14 @@ class PembelianService {
     return response.json();
   }
 
-  async updatePembelian(
+  async updatePenjualan(
     id: string,
-    pembelianData: PembelianUpdate
-  ): Promise<Pembelian> {
+    penjualanData: PenjualanUpdate
+  ): Promise<Penjualan> {
     const response = await fetch(`${this.baseUrl}/${id}`, {
       method: "PUT",
       headers: this.getAuthHeaders(),
-      body: JSON.stringify(pembelianData),
+      body: JSON.stringify(penjualanData),
     });
 
     if (!response.ok) {
@@ -252,7 +252,7 @@ class PembelianService {
     return response.json();
   }
 
-  async finalizePembelian(id: number): Promise<Pembelian> {
+  async finalizePenjualan(id: number): Promise<Penjualan> {
     const response = await fetch(`${this.baseUrl}/${id}/finalize`, {
       method: "POST",
       headers: this.getAuthHeaders(),
@@ -271,8 +271,8 @@ class PembelianService {
 
   async updateStatus(
     id: string,
-    statusData: PembelianStatusUpdate
-  ): Promise<Pembelian> {
+    statusData: PenjualanStatusUpdate
+  ): Promise<Penjualan> {
     const response = await fetch(`${this.baseUrl}/${id}/status`, {
       method: "PUT",
       headers: this.getAuthHeaders(),
@@ -316,11 +316,11 @@ class PembelianService {
   }
 
   async deleteAttachment(
-    pembelianId: string,
+    penjualanId: string,
     attachmentId: number
   ): Promise<SuccessResponse> {
     const response = await fetch(
-      `${this.baseUrl}/${pembelianId}/attachments/${attachmentId}`,
+      `${this.baseUrl}/${penjualanId}/attachments/${attachmentId}`,
       {
         method: "DELETE",
         headers: this.getAuthHeaders(),
@@ -337,9 +337,9 @@ class PembelianService {
     return response.json();
   }
 
-  getDownloadUrl(pembelianId: string, attachmentId: number): string {
+  getDownloadUrl(penjualanId: string, attachmentId: number): string {
     const token = Cookies.get("access_token");
-    return `${this.baseUrl}/${pembelianId}/download/${attachmentId}?token=${token}`;
+    return `${this.baseUrl}/${penjualanId}/download/${attachmentId}?token=${token}`;
   }
 
   async getTotals(id: string): Promise<TotalsResponse> {
@@ -373,7 +373,7 @@ class PembelianService {
     return response.json();
   }
 
-  async deletePembelian(id: string): Promise<SuccessResponse> {
+  async deletePenjualan(id: string): Promise<SuccessResponse> {
     const response = await fetch(`${this.baseUrl}/${id}`, {
       method: "DELETE",
       headers: this.getAuthHeaders(),
@@ -381,7 +381,7 @@ class PembelianService {
 
     if (!response.ok) {
       if (response.status === 404) {
-        throw new Error("Pembelian not found");
+        throw new Error("Penjualan not found");
       }
       const errorData = await response.json();
       throw new Error(
@@ -392,7 +392,7 @@ class PembelianService {
     return response.json();
   }
 
-  async getSummary(): Promise<PembelianSummary> {
+  async getSummary(): Promise<PenjualanSummary> {
     const response = await fetch(`${this.baseUrl}/stats/summary`, {
       headers: this.getAuthHeaders(),
     });
@@ -426,4 +426,4 @@ class PembelianService {
   }
 }
 
-export const pembelianService = new PembelianService("pembelian");
+export const penjualanService = new PenjualanService("penjualan");

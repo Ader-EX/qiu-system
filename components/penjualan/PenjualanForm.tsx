@@ -40,21 +40,20 @@ import SearchableSelect from "@/components/SearchableSelect";
 import ItemSelectorDialog from "@/components/ItemSelectorDialog";
 import { FileUploadButton } from "@/components/ImageUpload";
 
-import {
-  pembelianService,
-  PembelianUpdate,
-  Attachment,
-} from "@/services/pembelianService";
 import { warehouseService } from "@/services/warehouseService";
 import { jenisPembayaranService } from "@/services/mataUangService";
+import { customerService } from "@/services/customerService";
 import { imageService, ParentType } from "@/services/imageService";
 import { Item } from "@/types/types";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { vendorService } from "@/services/vendorService";
+import {
+  Attachment,
+  penjualanService,
+  PenjualanUpdate,
+} from "@/services/penjualanService";
 
-// Form Section Component
 const FormSection = ({
   title,
   children,
@@ -70,11 +69,10 @@ const FormSection = ({
   </div>
 );
 
-// Unified Zod schema for both ADD and EDIT
-const pembelianSchema = z.object({
-  no_pembelian: z.string().min(1, "No. Pembelian harus diisi"),
+const penjualanSchema = z.object({
+  no_penjualan: z.string().min(1, "No. Pembelian harus diisi"),
   warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
-  vendor_id: z.string().min(1, "Vendor harus dipilih"),
+  customer_id: z.string().min(1, "Customer harus dipilih"),
   top_id: z.number().min(1, "Jenis Pembayaran harus dipilih"),
   sales_date: z.date({ required_error: "Sales Date harus diisi" }),
   sales_due_date: z.date({ required_error: "Sales Due Date harus diisi" }),
@@ -104,24 +102,17 @@ const pembelianSchema = z.object({
   attachments: z.array(z.instanceof(File)).optional(),
 });
 
-type PembelianFormData = z.infer<typeof pembelianSchema>;
+type PembelianFormData = z.infer<typeof penjualanSchema>;
 
-// Helper to convert File[] to FileList
-const toFileList = (files: File[]): FileList => {
-  const dataTransfer = new DataTransfer();
-  files.forEach((file) => dataTransfer.items.add(file));
-  return dataTransfer.files;
-};
-
-interface PembelianFormProps {
+interface PenjualanFormProps {
   mode: "add" | "edit";
-  pembelianId?: string;
+  penjualanId?: string;
 }
 
 export default function PembelianForm({
   mode,
-  pembelianId,
-}: PembelianFormProps) {
+  penjualanId: penjualanId,
+}: PenjualanFormProps) {
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Item[]>([]);
@@ -134,13 +125,13 @@ export default function PembelianForm({
   const isEditMode = mode === "edit";
 
   const form = useForm<PembelianFormData>({
-    resolver: zodResolver(pembelianSchema),
+    resolver: zodResolver(penjualanSchema),
     defaultValues: {
-      no_pembelian: isEditMode
+      no_penjualan: isEditMode
         ? ""
-        : `KP-${Math.floor(Math.random() * 100000)}`,
+        : `PJ-${Math.floor(Math.random() * 100000)}`,
       warehouse_id: undefined,
-      vendor_id: "",
+      customer_id: "",
       top_id: undefined,
       discount: 0,
       additional_discount: 0,
@@ -167,31 +158,31 @@ export default function PembelianForm({
 
   // Load existing data for edit mode
   useEffect(() => {
-    if (!isEditMode || !pembelianId) return;
+    if (!isEditMode || !penjualanId) return;
 
     const loadPembelianData = async () => {
       try {
         console.log(
           "[PembelianForm] Loading data for edit mode, ID:",
-          pembelianId
+          penjualanId
         );
 
-        const data = await pembelianService.getPembelianById(
-          Number(pembelianId)
+        const data = await penjualanService.getPenjualanById(
+          Number(penjualanId)
         );
         console.log("[PembelianForm] Loaded pembelian data:", data);
 
         const formData = {
-          no_pembelian: data.no_pembelian,
+          no_penjualan: data.no_penjualan,
           warehouse_id: Number(data.warehouse_id),
-          vendor_id: String(data.vendor_id),
+          customer_id: String(data.customer_id),
           top_id: Number(data.top_id),
           sales_date: new Date(data.sales_date),
           sales_due_date: new Date(data.sales_due_date),
           discount: Number(data.discount ?? 0),
           additional_discount: Number(data.additional_discount ?? 0),
           expense: Number(data.expense),
-          items: data.pembelian_items.map((item) => {
+          items: data.penjualan_items.map((item) => {
             const up = Number(item.unit_price);
 
             const taxPercentage = item.tax_percentage ?? 10;
@@ -219,7 +210,7 @@ export default function PembelianForm({
         form.reset(formData);
 
         setSelectedItems(
-          data.pembelian_items.map(
+          data.penjualan_items.map(
             (item: any) =>
               ({
                 id: item.item_id,
@@ -240,7 +231,7 @@ export default function PembelianForm({
     };
 
     loadPembelianData();
-  }, [isEditMode, pembelianId, form]);
+  }, [isEditMode, penjualanId, form]);
   const watchedItems = form.watch("items");
   const watchedDiscount = Number(form.watch("discount") || 0);
   const watchedAdditionalDiscount = Number(
@@ -324,10 +315,10 @@ export default function PembelianForm({
   };
 
   const handleRemoveExistingAttachment = async (attachmentId: number) => {
-    if (!isEditMode || !pembelianId) return;
+    if (!isEditMode || !penjualanId) return;
 
     try {
-      await pembelianService.deleteAttachment(pembelianId, attachmentId);
+      await penjualanService.deleteAttachment(penjualanId, attachmentId);
       setExistingAttachments((prev) =>
         prev.filter((att) => att.id !== attachmentId)
       );
@@ -356,9 +347,9 @@ export default function PembelianForm({
       }
 
       const apiPayload = {
-        no_pembelian: data.no_pembelian,
+        no_penjualan: data.no_penjualan,
         warehouse_id: Number(data.warehouse_id),
-        vendor_id: data.vendor_id,
+        customer_id: data.customer_id,
         top_id: Number(data.top_id),
         sales_date: data.sales_date.toISOString(),
         sales_due_date: data.sales_due_date.toISOString(),
@@ -380,29 +371,29 @@ export default function PembelianForm({
       // DEBUG: Add explicit condition logging
       console.log("Checking edit condition...");
       console.log("isEditMode:", isEditMode);
-      console.log("pembelianId:", pembelianId);
-      console.log("Combined condition:", isEditMode && pembelianId);
+      console.log("pembelianId:", penjualanId);
+      console.log("Combined condition:", isEditMode && penjualanId);
 
-      if (isEditMode && pembelianId) {
+      if (isEditMode && penjualanId) {
         console.log("✅ ENTERING EDIT MODE");
-        console.log("Updating pembelian with ID:", pembelianId);
+        console.log("Updating pembelian with ID:", penjualanId);
         console.log("Update payload:", apiPayload);
 
         // Update existing purchase
-        const updateResult = await pembelianService.updatePembelian(
-          pembelianId,
-          apiPayload as PembelianUpdate
+        const updateResult = await penjualanService.updatePenjualan(
+          penjualanId,
+          apiPayload as PenjualanUpdate
         );
         console.log("Update result:", updateResult);
 
-        resultId = pembelianId;
+        resultId = penjualanId;
 
         // Handle attachment upload for EDIT mode
         await handleAttachmentUpload(data.attachments, resultId);
 
         toast.success("Purchase successfully updated.");
         if (finalize) {
-          await pembelianService.finalizePembelian(resultId);
+          await penjualanService.finalizePenjualan(resultId);
         }
         router.back();
       } else {
@@ -411,11 +402,11 @@ export default function PembelianForm({
           "Reason - isEditMode:",
           isEditMode,
           "pembelianId:",
-          pembelianId
+          penjualanId
         );
 
         // Create new purchase
-        const result = await pembelianService.createPembelian(apiPayload);
+        const result = await penjualanService.createPenjualan(apiPayload);
 
         console.log("Create result:", result);
         resultId = result.id;
@@ -425,7 +416,7 @@ export default function PembelianForm({
         await handleAttachmentUpload(data.attachments, resultId);
 
         if (finalize) {
-          await pembelianService.finalizePembelian(resultId);
+          await penjualanService.finalizePenjualan(resultId);
         }
 
         toast.success("Pembelian Berhasil dibuat");
@@ -526,6 +517,22 @@ export default function PembelianForm({
     }
   };
 
+  // Function to delete an attachment (useful for edit mode)
+  const handleDeleteAttachment = async (attachmentId: number) => {
+    try {
+      console.log("Deleting attachment:", attachmentId);
+      await imageService.deleteAttachment(attachmentId);
+      toast.success("Attachment deleted successfully");
+
+      if (isEditMode && penjualanId) {
+        await handleExistingAttachments(penjualanId);
+      }
+    } catch (error) {
+      console.error("Error deleting attachment:", error);
+      toast.error("Failed to delete attachment");
+    }
+  };
+
   const onDraftClick = form.handleSubmit(
     (data) => {
       console.log("✅ onValid, data:", data);
@@ -547,7 +554,7 @@ export default function PembelianForm({
             ]}
             linkData={[
               "pembelian",
-              isEditMode ? `pembelian/edit/${pembelianId}` : "/pembelian/add",
+              isEditMode ? `pembelian/edit/${penjualanId}` : "/pembelian/add",
             ]}
           />
         }
@@ -558,7 +565,7 @@ export default function PembelianForm({
           <FormSection title="Informasi Pembelian">
             <FormField
               control={form.control}
-              name="no_pembelian"
+              name="no_penjualan"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>No. Pembelian</FormLabel>
@@ -664,29 +671,33 @@ export default function PembelianForm({
             />
           </FormSection>
 
-          {/* Warehouse & Vendor */}
-          <FormSection title="Gudang & Vendor">
+          {/* Warehouse & Customer */}
+          <FormSection title="Gudang & Customer">
             <FormField
               control={form.control}
-              name="vendor_id"
+              name="customer_id"
               render={({ field }) => (
                 <FormItem>
                   <SearchableSelect
-                    label="Vendor"
-                    placeholder="Pilih Vendor"
-                    value={field.value || ""}
+                    label="Customer"
+                    placeholder="Pilih Customer"
+                    value={field.value || ""} // Provide fallback
                     onChange={(value) => {
+                      console.log("[Customer] Selected value:", value);
                       field.onChange(value);
                     }}
                     fetchData={async (search) => {
                       try {
-                        const response = await vendorService.getAllVendors({
+                        console.log("[Customer] Fetching with search:", search);
+                        const response = await customerService.getAllCustomers({
                           page: 0,
-                          rowsPerPage: 10,
+                          rowsPerPage: 10, // Increase limit
                           search_key: search,
                         });
+                        console.log("[Customer] Fetch response:", response);
                         return response;
                       } catch (error) {
+                        console.error("[Customer] Fetch error:", error);
                         throw error;
                       }
                     }}
@@ -719,14 +730,20 @@ export default function PembelianForm({
                     }}
                     fetchData={async (search) => {
                       try {
+                        console.log(
+                          "[Warehouse] Fetching with search:",
+                          search
+                        );
                         const response =
                           await warehouseService.getAllWarehouses({
                             skip: 0,
                             limit: 10, // Increase limit
                             search: search,
                           });
+                        console.log("[Warehouse] Fetch response:", response);
                         return response;
                       } catch (error) {
+                        console.error("[Warehouse] Fetch error:", error);
                         throw error;
                       }
                     }}
@@ -816,8 +833,8 @@ export default function PembelianForm({
                         <div className="flex items-center space-x-3 truncate">
                           <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
                           <a
-                            href={pembelianService.getDownloadUrl(
-                              pembelianId!,
+                            href={penjualanService.getDownloadUrl(
+                              penjualanId!,
                               att.id
                             )}
                             target="_blank"
