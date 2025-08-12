@@ -267,11 +267,6 @@ export default function PembelianPage() {
                         </SelectContent>
                     </Select>
 
-                    {(statusPembelian || statusPembayaran || searchTerm) && (
-                        <Button variant="outline" size="sm" onClick={clearFilters}>
-                            Clear
-                        </Button>
-                    )}
                 </div>
             </div>
 

@@ -41,40 +41,49 @@ export default function SearchableSelect<T extends { id: number | string }>({
         try {
             setIsLoading(true);
             const res = await fetchData(search);
-            setOptions(prevOptions => {
-                // Merge with existing options to avoid losing preloaded items
-                const newOptions = res.data || [];
-                const existingIds = prevOptions.map(opt => opt.id.toString());
-                const uniqueNewOptions = newOptions.filter(
-                    opt => !existingIds.includes(opt.id.toString())
-                );
-                return [...prevOptions, ...uniqueNewOptions];
-            });
+
+            setOptions(res.data || []);
         } catch (err) {
             console.error("Failed to fetch options", err);
+            setOptions([]);
         } finally {
             setIsLoading(false);
         }
     }, [fetchData]);
 
-    // Preload specific item if needed
     const preloadSpecificItem = useCallback(async (itemId: string | number) => {
         try {
-            // You might need a specific endpoint to fetch by ID
-            // For now, we'll search for all items and hope it's included
             const res = await fetchData("");
             const foundItem = res.data?.find(item => item.id.toString() === itemId.toString());
 
             if (foundItem) {
                 setOptions(prevOptions => {
                     const exists = prevOptions.some(opt => opt.id.toString() === itemId.toString());
-                    return exists ? prevOptions : [foundItem, ...prevOptions];
+                    if (exists) {
+                        return prevOptions;
+                    }
+                    // Add the preloaded item to the beginning
+                    return [foundItem, ...prevOptions];
                 });
             }
         } catch (err) {
             console.error("Failed to preload specific item", err);
         }
     }, [fetchData]);
+
+    // Debounced search function
+    const debouncedSearch = useCallback(
+        (() => {
+            let timeoutId: NodeJS.Timeout;
+            return (searchValue: string) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                    loadOptions(searchValue);
+                }, 300); // 300ms delay
+            };
+        })(),
+        [loadOptions]
+    );
 
     // Initial load and preload
     useEffect(() => {
@@ -92,14 +101,17 @@ export default function SearchableSelect<T extends { id: number | string }>({
         initialize();
     }, [loadOptions, preloadSpecificItem, preloadValue]);
 
-    const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const input = e.target.value;
         setSearchTerm(input);
 
-        if (input.length > 3) {
-            await loadOptions(input);
-        } else if (input.length === 0) {
-            await loadOptions();
+        // Trigger search immediately for any input change
+        if (input.length === 0) {
+            // Reset to initial options when search is cleared
+            loadOptions();
+        } else {
+            // Use debounced search for any non-empty input
+            debouncedSearch(input);
         }
     };
 
@@ -112,10 +124,23 @@ export default function SearchableSelect<T extends { id: number | string }>({
         onChange(val === INTERNAL_ALL_VALUE ? "all" : val);
     };
 
+    // Clear search when dropdown closes
+    const handleOpenChange = (open: boolean) => {
+        if (!open && searchTerm) {
+            setSearchTerm("");
+            loadOptions(); // Reload initial options
+        }
+    };
+
     return (
         <div className="space-y-2">
             <Label>{label}</Label>
-            <Select value={internalValue} onValueChange={handleInternalChange} disabled={disabled || false}>
+            <Select
+                value={internalValue}
+                onValueChange={handleInternalChange}
+                disabled={disabled || false}
+                onOpenChange={handleOpenChange}
+            >
                 <SelectTrigger>
                     <SelectValue placeholder={placeholder}/>
                 </SelectTrigger>
@@ -126,6 +151,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
                             value={searchTerm}
                             onChange={handleSearchChange}
                             className="w-full"
+                            onClick={(e) => e.stopPropagation()} // Prevent dropdown from closing
                         />
                     </div>
 
@@ -141,6 +167,10 @@ export default function SearchableSelect<T extends { id: number | string }>({
                                 {renderLabel(item)}
                             </SelectItem>
                         ))
+                    ) : searchTerm && !isLoading ? (
+                        <div className="px-4 py-2 text-sm text-muted-foreground">
+                            Tidak ditemukan hasil untuk "{searchTerm}"
+                        </div>
                     ) : (
                         <div className="px-4 py-2 text-sm text-muted-foreground">
                             Tidak ada data
@@ -151,31 +181,3 @@ export default function SearchableSelect<T extends { id: number | string }>({
         </div>
     );
 }
-
-// Usage in your FormField:
-/*
-<SearchableSelect
-    label="Jenis Pembayaran"
-    placeholder="Pilih Jenis Pembayaran"
-    value={field.value ?? undefined}
-    preloadValue={field.value} // Add this line
-    onChange={(value) => {
-        console.log("[Payment] Selected value:", value);
-        const numValue = Number(value);
-        field.onChange(numValue);
-    }}
-    fetchData={async (search) => {
-        try {
-            const response = await jenisPembayaranService.getAllMataUang({
-                skip: 0,
-                limit: 10,
-                search: search,
-            });
-            return response;
-        } catch (error) {
-            throw error;
-        }
-    }}
-    renderLabel={(item: any) => `${item.symbol} - ${item.name}`}
-/>
-*/

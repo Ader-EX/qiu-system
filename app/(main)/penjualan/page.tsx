@@ -268,11 +268,7 @@ export default function PenjualanPage() {
                         </SelectContent>
                     </Select>
 
-                    {(statusPenjualan || statusPembayaran || searchTerm) && (
-                        <Button variant="outline" size="sm" onClick={clearFilters}>
-                            Hapus Filter
-                        </Button>
-                    )}
+
                 </div>
             </div>
 
