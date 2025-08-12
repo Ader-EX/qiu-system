@@ -63,12 +63,10 @@ export default function PenjualanPage() {
     const [statusPenjualan, setStatusPenjualan] = useState("");
     const [statusPembayaran, setStatusPembayaran] = useState("");
 
-    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [pageSize] = useState(50);
 
-    // Fetch data
     const fetchPenjualans = async (filters: PenjualanFilters = {}) => {
         try {
             const response = await penjualanService.getAllPenjualan({
@@ -333,7 +331,7 @@ export default function PenjualanPage() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuItem asChild>
-                                                    <Link href={`/penjualan/${penjualan.id}`}>
+                                                    <Link href={`/penjualan/${penjualan.id}/view`}>
                                                         <Eye className="mr-2 h-4 w-4"/>
                                                         Lihat Detail
                                                     </Link>

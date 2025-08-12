@@ -69,6 +69,7 @@ const FormSection = ({
     </div>
 );
 
+// Unified Zod schema for ADD, EDIT, and VIEW
 const penjualanSchema = z.object({
     no_penjualan: z.string().min(1, "No. Penjualan harus diisi"),
     warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
@@ -100,12 +101,14 @@ const penjualanSchema = z.object({
         )
         .min(1, "Minimal harus ada 1 item"),
     attachments: z.array(z.instanceof(File)).optional(),
+    status_pembayaran: z.string().optional(),
+    status_penjualan: z.string().optional(),
 });
 
 type PenjualanFormData = z.infer<typeof penjualanSchema>;
 
 interface PenjualanFormProps {
-    mode: "add" | "edit";
+    mode: "add" | "edit" | "view";
     penjualanId?: string;
 }
 
@@ -123,6 +126,7 @@ export default function PenjualanForm({
     const router = useRouter();
 
     const isEditMode = mode === "edit";
+    const isViewMode = mode === "view";
 
     const form = useForm<PenjualanFormData>({
         resolver: zodResolver(penjualanSchema),
@@ -136,7 +140,7 @@ export default function PenjualanForm({
             discount: 0,
             additional_discount: 0,
             expense: 0,
-            items: [], // This will be populated in edit mode
+            items: [],
             attachments: [],
         },
         mode: "onChange",
@@ -157,7 +161,7 @@ export default function PenjualanForm({
     });
 
     useEffect(() => {
-        if (!isEditMode || !penjualanId) return;
+        if ((mode !== "edit" && mode !== "view") || !penjualanId) return;
 
         const loadPenjualanData = async () => {
             try {
@@ -175,9 +179,10 @@ export default function PenjualanForm({
                     discount: Number(data.discount ?? 0),
                     additional_discount: Number(data.additional_discount ?? 0),
                     expense: Number(data.expense),
+                    status_pembayaran: data.status_pembayaran || "UNPAID",
+                    status_penjualan: data.status_penjualan || "DRAFT/ACTIVE",
                     items: data.penjualan_items.map((item) => {
                         const up = Number(item.unit_price);
-
                         const taxPercentage = item.tax_percentage ?? 10;
 
                         return {
@@ -191,7 +196,9 @@ export default function PenjualanForm({
                     attachments: [],
                 };
 
-                form.reset(formData);
+                setTimeout(() => {
+                    form.reset(formData);
+                }, 100);
 
                 setSelectedItems(
                     data.penjualan_items.map(
@@ -208,13 +215,12 @@ export default function PenjualanForm({
 
                 setExistingAttachments(data.attachments || []);
             } catch (error: any) {
-                console.error("[PembelianForm] Error loading pembelian data:", error);
-                toast.error(error.message || "Failed to load purchase data");
+                toast.error(error.message || "Failed to load penjualan data");
             }
         };
 
         loadPenjualanData();
-    }, [isEditMode, penjualanId, form]);
+    }, [isEditMode, isViewMode, penjualanId]);
 
     const watchedItems = form.watch("items");
     const watchedDiscount = Number(form.watch("discount") || 0);
@@ -318,11 +324,7 @@ export default function PenjualanForm({
     ) => {
         setIsSubmitting(true);
 
-        // in your onClick, before calling handleSubmit:
-        console.log("Current errors:", form.formState.errors);
-
         try {
-            // Add form validation
             const isValid = await form.trigger();
 
             if (!isValid) {
@@ -348,11 +350,8 @@ export default function PenjualanForm({
                 })),
             };
 
-            console.log("API Payload:", apiPayload);
-
             let resultId: any;
             if (isEditMode && penjualanId) {
-
                 const updateResult = await penjualanService.updatePenjualan(
                     penjualanId,
                     apiPayload as PenjualanUpdate
@@ -368,7 +367,6 @@ export default function PenjualanForm({
                 }
                 router.back();
             } else {
-
                 const result = await penjualanService.createPenjualan(apiPayload);
                 resultId = result.id;
                 if (!resultId) throw new Error("Failed to get ID from response.");
@@ -390,9 +388,7 @@ export default function PenjualanForm({
     };
 
     const handleAttachmentUpload = async (attachments: any, parentId: number) => {
-
         if (!attachments) {
-            console.log("No attachments to upload");
             return;
         }
 
@@ -402,56 +398,45 @@ export default function PenjualanForm({
             if (attachments instanceof File) {
                 filesToUpload = [attachments];
             } else if (attachments instanceof FileList) {
-
                 filesToUpload = Array.from(attachments);
             } else if (Array.isArray(attachments)) {
                 filesToUpload = attachments.filter((file) => file instanceof File);
             } else {
-                console.warn("Unsupported attachment format:", attachments);
                 return;
             }
 
-
-            const uploadPromises = filesToUpload.map(async (file, index) => {
+            const uploadPromises = filesToUpload.map(async (file) => {
                 try {
                     const validationError = imageService.validateFile(file);
                     if (validationError) {
                         throw new Error(`File "${file.name}": ${validationError}`);
                     }
-
-                    const uploadResult = await imageService.uploadImage({
+                    return await imageService.uploadImage({
                         file: file,
                         parent_type: ParentType.PENJUALANS,
                         parent_id: parentId,
                     });
-
-                    return uploadResult;
                 } catch (error: any) {
                     return {error: error.detail, fileName: file.name};
                 }
             });
 
-            const uploadResults = await Promise.allSettled(uploadPromises);
+            await Promise.allSettled(uploadPromises);
         } catch (error: any) {
-            console.error("Attachment upload error:", error);
             toast.error(`Attachment upload failed: ${error.message}`);
-
         }
     };
 
-    const handleExistingAttachments = async (pembelianId: string) => {
+    const handleExistingAttachments = async (penjualanId: string) => {
         try {
-            const existingAttachments = await imageService.getAttachmentsByParent(
+            return await imageService.getAttachmentsByParent(
                 ParentType.PENJUALANS,
-                pembelianId
+                penjualanId
             );
-
-            return existingAttachments;
         } catch (error) {
             return [];
         }
     };
-
 
     const onDraftClick = form.handleSubmit(
         (data) => {
@@ -480,16 +465,16 @@ export default function PenjualanForm({
             />
             <Form {...form}>
                 <form className="space-y-6">
-                    {/* Purchase Information */}
+                    {/* Sales Information */}
                     <FormSection title="Informasi Penjualan">
                         <FormField
                             control={form.control}
                             name="no_penjualan"
                             render={({field}) => (
                                 <FormItem>
-                                    <FormLabel>No. Pembelian</FormLabel>
+                                    <FormLabel>No. Penjualan</FormLabel>
                                     <FormControl>
-                                        <Input {...field} />
+                                        <Input {...field} disabled={isEditMode || isViewMode}/>
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>
@@ -506,6 +491,7 @@ export default function PenjualanForm({
                                         <PopoverTrigger asChild>
                                             <FormControl>
                                                 <Button
+                                                    disabled={isViewMode}
                                                     variant="outline"
                                                     className={cn(
                                                         "w-full pl-3 text-left font-normal",
@@ -538,14 +524,20 @@ export default function PenjualanForm({
                             )}
                         />
 
-                        <div>
-                            <Label>Status</Label>
-                            <div className="mt-2 p-2 bg-muted rounded">
-                <span className="text-sm text-muted-foreground">
-                  DRAFT / ACTIVE
-                </span>
-                            </div>
-                        </div>
+                        <FormField
+                            control={form.control}
+                            name="status_penjualan"
+                            render={({field}) => (
+                                <div><Label>Status</Label>
+                                    <div className="mt-2 p-2 bg-muted rounded">
+                                        <span className="text-sm text-muted-foreground">
+                                          {field.value || "DRAFT / ACTIVE"}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        />
+
 
                         <FormField
                             control={form.control}
@@ -557,6 +549,7 @@ export default function PenjualanForm({
                                         <PopoverTrigger asChild>
                                             <FormControl>
                                                 <Button
+                                                    disabled={isViewMode}
                                                     variant="outline"
                                                     className={cn(
                                                         "w-full pl-3 text-left font-normal",
@@ -600,10 +593,12 @@ export default function PenjualanForm({
                                     <SearchableSelect
                                         label="Customer"
                                         placeholder="Pilih Customer"
-                                        value={field.value ?? undefined} // Provide fallback
+                                        value={field.value ?? undefined}
+                                        preloadValue={field.value}
                                         onChange={(value) => {
                                             field.onChange(value);
                                         }}
+                                        disabled={isViewMode}
                                         fetchData={async (search) => {
                                             try {
                                                 const response = await customerService.getAllCustomers({
@@ -637,28 +632,23 @@ export default function PenjualanForm({
                                     <SearchableSelect
                                         label="Warehouse"
                                         placeholder="Pilih Warehouse"
-                                        value={field.value ?? undefined} // Provide fallback
+                                        value={field.value ?? undefined}
+                                        preloadValue={field.value}
                                         onChange={(value) => {
-                                            console.log("[Warehouse] Selected value:", value);
                                             const numValue = Number(value);
                                             field.onChange(numValue);
                                         }}
+                                        disabled={isViewMode}
                                         fetchData={async (search) => {
                                             try {
-                                                console.log(
-                                                    "[Warehouse] Fetching with search:",
-                                                    search
-                                                );
                                                 const response =
                                                     await warehouseService.getAllWarehouses({
                                                         skip: 0,
-                                                        limit: 10, // Increase limit
+                                                        limit: 10,
                                                         search: search,
                                                     });
-                                                console.log("[Warehouse] Fetch response:", response);
                                                 return response;
                                             } catch (error) {
-                                                console.error("[Warehouse] Fetch error:", error);
                                                 throw error;
                                             }
                                         }}
@@ -680,9 +670,10 @@ export default function PenjualanForm({
                                     <SearchableSelect
                                         label="Jenis Pembayaran"
                                         placeholder="Pilih Jenis Pembayaran"
-                                        value={field.value ?? undefined} // Provide fallback
+                                        value={field.value ?? undefined}
+                                        preloadValue={field.value}
+                                        disabled={isViewMode}
                                         onChange={(value) => {
-                                            console.log("[Payment] Selected value:", value);
                                             const numValue = Number(value);
                                             field.onChange(numValue);
                                         }}
@@ -691,7 +682,7 @@ export default function PenjualanForm({
                                                 const response =
                                                     await jenisPembayaranService.getAllMataUang({
                                                         skip: 0,
-                                                        limit: 10, // Increase limit
+                                                        limit: 10,
                                                         search: search,
                                                     });
                                                 return response;
@@ -716,6 +707,7 @@ export default function PenjualanForm({
                                         <Input
                                             type="number"
                                             {...field}
+                                            disabled={isViewMode}
                                             onChange={(e) => field.onChange(Number(e.target.value))}
                                         />
                                     </FormControl>
@@ -724,18 +716,24 @@ export default function PenjualanForm({
                             )}
                         />
 
-                        <div>
-                            <Label>Status Pembayaran</Label>
-                            <div className="mt-2 p-2 bg-muted rounded">
-                                <span className="text-sm text-muted-foreground">UNPAID</span>
-                            </div>
-                        </div>
+                        <FormField
+                            control={form.control}
+                            name="status_pembayaran"
+                            render={({field}) => (
+                                <div><Label>Status Pembayaran</Label>
+                                    <div className="mt-2 p-2 bg-muted rounded">
+                                        <span className="text-sm text-muted-foreground">
+                                          {field.value || "UNPAID"}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        />
                     </FormSection>
 
                     {/* Attachments Section */}
                     <FormSection title="Lampiran">
-                        {/* Show existing attachments only in edit mode */}
-                        {isEditMode && (
+                        {(isEditMode || isViewMode) && (
                             <div className="md:col-span-2 space-y-3">
                                 <Label>Existing Attachments</Label>
                                 {existingAttachments.length > 0 ? (
@@ -759,14 +757,16 @@ export default function PenjualanForm({
                                                         {att.filename}
                                                     </a>
                                                 </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleRemoveExistingAttachment(att.id)}
-                                                    className="text-red-500 hover:text-red-700"
-                                                >
-                                                    <X className="h-4 w-4"/>
-                                                </Button>
+                                                {isEditMode && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleRemoveExistingAttachment(att.id)}
+                                                        className="text-red-500 hover:text-red-700"
+                                                    >
+                                                        <X className="h-4 w-4"/>
+                                                    </Button>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -778,7 +778,6 @@ export default function PenjualanForm({
                             </div>
                         )}
 
-                        {/* Upload new attachments */}
                         <div className="md:col-span-2">
                             <FormField
                                 control={form.control}
@@ -794,6 +793,7 @@ export default function PenjualanForm({
                                                 onChange={field.onChange}
                                                 maxFiles={3}
                                                 maxSizeMB={4}
+                                                disabled={isViewMode}
                                                 accept={{"application/pdf": [".pdf"]}}
                                             />
                                         </FormControl>
@@ -807,14 +807,15 @@ export default function PenjualanForm({
                     {/* Item Details */}
                     <div className="flex w-full justify-between items-center">
                         <CardTitle className="text-lg">Detail Item</CardTitle>
-                        <Button
-                            type="button"
-                            onClick={() => setIsItemDialogOpen(true)}
-                            className=""
-                        >
-                            <Plus className="h-4 w-4 mr-2"/>
-                            Tambah Item
-                        </Button>
+                        {!isViewMode && (
+                            <Button
+                                type="button"
+                                onClick={() => setIsItemDialogOpen(true)}
+                            >
+                                <Plus className="h-4 w-4 mr-2"/>
+                                Tambah Item
+                            </Button>
+                        )}
                     </div>
 
                     {fields.length === 0 ? (
@@ -853,6 +854,7 @@ export default function PenjualanForm({
                                                         name={`items.${index}.qty`}
                                                         render={({field}) => (
                                                             <Input
+                                                                disabled={isViewMode}
                                                                 type="number"
                                                                 className="w-20"
                                                                 {...field}
@@ -869,6 +871,7 @@ export default function PenjualanForm({
                                                         name={`items.${index}.price_before_tax`}
                                                         render={({field}) => (
                                                             <Input
+                                                                disabled={isViewMode}
                                                                 type="number"
                                                                 className="w-32"
                                                                 {...field}
@@ -888,6 +891,7 @@ export default function PenjualanForm({
                                                         name={`items.${index}.tax_percentage`}
                                                         render={({field}) => (
                                                             <Input
+                                                                disabled={isViewMode}
                                                                 type="number"
                                                                 className="w-20"
                                                                 {...field}
@@ -913,17 +917,18 @@ export default function PenjualanForm({
                                                     />
                                                 </TableCell>
                                                 <TableCell>
-                          <span className="text-sm">
-                            {item?.unit_price || "0.00"}
-                          </span>
+                                                    <span className="text-sm">
+                                                        {formatMoney(item?.unit_price || 0)}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell>
-                          <span className="text-sm font-medium">
-                            {subTotal.toFixed(2)}
-                          </span>
+                                                    <span className="text-sm font-medium">
+                                                        {formatMoney(subTotal)}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Button
+                                                        disabled={isViewMode}
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => handleRemoveItem(index)}
@@ -960,6 +965,7 @@ export default function PenjualanForm({
                                             render={({field}) => (
                                                 <Input
                                                     type="number"
+                                                    disabled={isViewMode}
                                                     className="w-32 text-right"
                                                     {...field}
                                                     onChange={(e) =>
@@ -976,6 +982,7 @@ export default function PenjualanForm({
                                             name="expense"
                                             render={({field}) => (
                                                 <Input
+                                                    disabled={isViewMode}
                                                     type="number"
                                                     className="w-32 text-right"
                                                     {...field}
@@ -995,43 +1002,44 @@ export default function PenjualanForm({
                         </div>
                     )}
 
-                    {/* Form Actions */}
-                    <div className="flex justify-end space-x-4 pt-6 border-t">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                                router.back();
-                            }}
-                        >
-                            Batal
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={onDraftClick}
-                            disabled={isSubmitting}
-                        >
-                            Simpan Sebagai Draft
-                        </Button>
-                        <Button
-                            type="button"
-                            className="bg-orange-500 hover:bg-orange-600"
-                            disabled={isSubmitting}
-                            onClick={() => {
-                                form.handleSubmit((data) => {
-                                    handleSubmit(data, true);
-                                })();
-                            }}
-                        >
-                            {isSubmitting
-                                ? isEditMode
-                                    ? "Finalizing..."
-                                    : "Memfinalisasi..."
-                                : isEditMode
-                                    ? "Update & Finalize"
-                                    : "Buat Invoice"}
-                        </Button>
-                    </div>
+                    {!isViewMode && (
+                        <div className="flex justify-end space-x-4 pt-6 border-t">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    router.back();
+                                }}
+                            >
+                                Batal
+                            </Button>
+                            <Button
+                                type="button"
+                                onClick={onDraftClick}
+                                disabled={isSubmitting}
+                            >
+                                Simpan Sebagai Draft
+                            </Button>
+                            <Button
+                                type="button"
+                                className="bg-orange-500 hover:bg-orange-600"
+                                disabled={isSubmitting}
+                                onClick={() => {
+                                    form.handleSubmit((data) => {
+                                        handleSubmit(data, true);
+                                    })();
+                                }}
+                            >
+                                {isSubmitting
+                                    ? isEditMode
+                                        ? "Finalizing..."
+                                        : "Memfinalisasi..."
+                                    : isEditMode
+                                        ? "Update & Finalize"
+                                        : "Buat Invoice"}
+                            </Button>
+                        </div>
+                    )}
                 </form>
             </Form>
 

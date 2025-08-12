@@ -55,16 +55,13 @@ import {formatMoney} from "@/lib/utils";
 import {imageService} from "@/services/imageService";
 
 export default function PembelianPage() {
-    // State management
+
     const [pembelians, setPembelians] = useState<PembelianListResponse[]>([]);
 
     const [searchTerm, setSearchTerm] = useState("");
     const [rowsPerPage, setRowsPerPage] = useState(5);
-
     const [statusPembelian, setStatusPembelian] = useState("");
     const [statusPembayaran, setStatusPembayaran] = useState("");
-
-    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [pageSize] = useState(50);
@@ -103,17 +100,17 @@ export default function PembelianPage() {
     const filteredPembelians = pembelians.filter(
         (pembelian) =>
             pembelian.no_pembelian.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (pembelian.customer_name
+            (pembelian.vendor_name
                     ?.toLowerCase()
                     .includes(searchTerm.toLowerCase()) ??
                 false)
     );
 
-    const handleDeleteClick = (id: string) => {
+    const handleDeleteClick = (id: number) => {
         confirmDelete(id).then((r) => toast.success("Pembelian berhasil dihapus!"));
     };
 
-    const confirmDelete = async (id: string) => {
+    const confirmDelete = async (id: number) => {
         if (!id) return;
 
         try {
@@ -334,7 +331,7 @@ export default function PembelianPage() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuItem asChild>
-                                                    <Link href={`/pembelian/${pembelian.id}`}>
+                                                    <Link href={`/pembelian/${pembelian.id}/view`}>
                                                         <Eye className="mr-2 h-4 w-4"/>
                                                         Lihat Detail
                                                     </Link>
@@ -378,7 +375,7 @@ export default function PembelianPage() {
                                                 {pembelian.status_pembelian ===
                                                     StatusPembelianEnum.DRAFT && (
                                                         <DropdownMenuItem
-                                                            onClick={() => handleDeleteClick(pembelian.id)}
+                                                            onClick={() => handleDeleteClick(Number(pembelian.id))}
                                                             className="text-red-600"
                                                         >
                                                             <Trash2 className="mr-2 h-4 w-4"/>
