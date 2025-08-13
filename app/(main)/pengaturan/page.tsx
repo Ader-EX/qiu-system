@@ -21,6 +21,7 @@ import {
     SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import UsersPage from "@/components/user/UsersPage";
 
 const settingsItems = [
     {
@@ -72,84 +73,30 @@ const settingsItems = [
         bgColor: "bg-indigo-50",
     },
 ];
-
 export default function PengaturanPage() {
     return (
-        <div className="space-y-6">
+        <div className="flex w-full flex-1 flex-col space-y-6">
             <SidebarHeaderBar
                 title="Pengaturan"
                 rightContent={<HeaderActions.ActionGroup></HeaderActions.ActionGroup>}
             />
-            <div className="flex items-center gap-4">
-                <Tabs defaultValue={"master"}>
+
+            <div className="flex w-full items-center gap-4"> {/* add w-full */}
+                <Tabs defaultValue="master" className="w-full"> {/* add className */}
                     <TabsList>
-                        <TabsTrigger value={"master"}>Master Data</TabsTrigger>
-                        <TabsTrigger value={"akses"}>Akses Pengguna</TabsTrigger>
+                        <TabsTrigger value="master">Master Data</TabsTrigger>
+                        <TabsTrigger value="akses">Akses Pengguna</TabsTrigger>
                     </TabsList>
-                    <TabsContent value={"master"}><MasterDataPengaturanTabs/></TabsContent>
-                    <TabsContent value={"akses"}>
-                        <div>Under Maintenance '-'</div>
-                        
+
+                    <TabsContent value="master">
+                        <MasterDataPengaturanTabs/>
                     </TabsContent>
 
+                    <TabsContent value="akses" className="flex w-full flex-1"> {/* add flex-1 */}
+                        <UsersPage/>
+                    </TabsContent>
                 </Tabs>
             </div>
-
-
-            {/* <Card>
-        <CardHeader>
-          <CardTitle>Master Data Overview</CardTitle>
-          <CardDescription>
-            Ringkasan data master yang telah dikonfigurasi
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium">Total Kategori 1</p>
-                <p className="text-2xl font-bold">12</p>
-              </div>
-              <Package className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium">Total Kategori 2</p>
-                <p className="text-2xl font-bold">8</p>
-              </div>
-              <Package className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium">Total Satuan</p>
-                <p className="text-2xl font-bold">15</p>
-              </div>
-              <Ruler className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium">Mata Uang Aktif</p>
-                <p className="text-2xl font-bold">3</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium">Metode Pembayaran</p>
-                <p className="text-2xl font-bold">6</p>
-              </div>
-              <CreditCard className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium">Warehouse Aktif</p>
-                <p className="text-2xl font-bold">4</p>
-              </div>
-              <Warehouse className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </div>
-        </CardContent>
-      </Card> */}
         </div>
     );
 }
