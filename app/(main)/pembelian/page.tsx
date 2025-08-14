@@ -274,7 +274,6 @@ export default function PembelianPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>ID Pembelian</TableHead>
                             <TableHead>No. Pembelian</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Total Pembelian</TableHead>
@@ -299,9 +298,7 @@ export default function PembelianPage() {
                         ) : (
                             filteredPembelians.map((pembelian) => (
                                 <TableRow key={pembelian.id}>
-                                    <TableCell className="font-medium">
-                                        <span className="font-mono">{pembelian.id}</span>
-                                    </TableCell>
+
                                     <TableCell className="font-medium">
                                         <span className="font-mono">{pembelian.no_pembelian}</span>
                                     </TableCell>

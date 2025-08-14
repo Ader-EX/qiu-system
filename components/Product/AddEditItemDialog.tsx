@@ -46,12 +46,8 @@ const itemSchema = z.object({
         required_error: "Satuan is required",
     }),
     vendor_id: z.string().min(1, "Vendor is required"),
-    category_one: z.number({
-        required_error: "Category 1 is required",
-    }),
-    category_two: z.number({
-        required_error: "Category 2 is required",
-    }),
+    category_one: z.number().optional(),
+    category_two: z.number().optional(),
     images: z
         .array(z.instanceof(File))
 });
@@ -213,8 +209,11 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         submitFormData.append("is_active", data.is_active.toString());
         submitFormData.append("satuan_id", data.satuan_id.toString());
         submitFormData.append("vendor_id", data.vendor_id);
-        submitFormData.append("category_one", data.category_one.toString());
-        submitFormData.append("category_two", data.category_two.toString());
+        if (data.category_one !== undefined)
+            submitFormData.append("category_one", data.category_one.toString());
+        if (data.category_two !== undefined)
+            submitFormData.append("category_two", data.category_two.toString());
+
 
         // Add images - backend expects 'images' field name
         data.images.forEach((file) => {

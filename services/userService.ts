@@ -29,8 +29,7 @@ export type UserListResponse = {
 class UserService {
 
     private baseUrl = `${API_BASE_URL}/auth`;
-
-
+    
     async getAllUsers({
                           skip = 0,
                           limit = 10,
@@ -87,6 +86,7 @@ class UserService {
     async updateUser(userId: number, userData: {
         username?: string,
         password?: string,
+        is_active?: boolean,
         role?: number
     }): Promise<UserIn> {
         const response = await fetch(`${this.baseUrl}/users/${userId}`, {
@@ -110,7 +110,6 @@ class UserService {
             Authorization: `Bearer ${token}`,
         };
     }
-
 
 }
 

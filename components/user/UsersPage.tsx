@@ -8,8 +8,6 @@ import {
     Edit,
     Trash2,
     Loader2,
-    ChevronRight,
-    ChevronLeft,
     Search,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
@@ -37,7 +35,6 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import {Badge} from "@/components/ui/badge";
-import CustomBreadcrumb from "@/components/custom-breadcrumb";
 import {
     HeaderActions,
     SidebarHeaderBar,
@@ -51,7 +48,6 @@ import {UserIn, UserOut, userService} from "@/services/userService";
 import UserMgmtForm from "@/components/user/UserMgmtForm";
 
 export default function UsersPage() {
-    // State
     const [users, setUsers] = useState<UserIn[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -119,7 +115,6 @@ export default function UsersPage() {
     const handleDelete = async (id: number) => {
         try {
             await userService.deleteUser(id);
-
             await fetchUsers(page, searchTerm, rowsPerPage);
             toast.success("User berhasil dihapus!");
         } catch (error) {
