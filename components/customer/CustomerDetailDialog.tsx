@@ -12,19 +12,19 @@ import {Customer} from "@/types/types";
 
 interface CustomerDetailDialogProps {
     isOpen: boolean;
-    onClose: () => void;
+    onCloseAction: () => void;
     customer: Customer;
 }
 
 export const CustomerDetailDialog: React.FC<CustomerDetailDialogProps> = ({
                                                                               isOpen,
-                                                                              onClose,
+                                                                              onCloseAction,
                                                                               customer,
                                                                           }) => {
     const statusLabel = customer.is_active ? "Aktif" : "Tidak Aktif";
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onCloseAction()}>
             <DialogContent className="max-w-4xl w-full">
                 <DialogHeader>
                     <DialogTitle>Detail Customer</DialogTitle>

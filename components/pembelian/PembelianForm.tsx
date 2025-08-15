@@ -841,7 +841,7 @@ export default function PembelianForm({
                                         <FormControl>
                                             <FileUploadButton
                                                 value={field.value || []}
-                                                onChange={field.onChange}
+                                                onChangeAction={field.onChange}
                                                 maxFiles={3}
                                                 maxSizeMB={4}
                                                 disabled={isViewMode}

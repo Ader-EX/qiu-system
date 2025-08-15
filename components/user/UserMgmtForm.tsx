@@ -29,7 +29,7 @@ const formSchema = z.object({
     username: z.string().min(5, {
         message: "username harus minimal 5 karakter.",
     }),
-    role: z.number().min(0).max(2),
+    role: z.number().min(0).max(1),
     password: z.string().min(6, {
         message: "Password harus minimal 6 karakter.",
     }),
@@ -55,10 +55,10 @@ const UserMgmtForm: React.FC<UserFormProps> = ({
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            username: initialData?.username || "",
-            role: initialData?.role || 0,
-            password: initialData?.password || "",
-            is_active: initialData?.is_active || true,
+            username: initialData?.username ?? "",
+            role: initialData?.role ?? 0,
+            password: initialData?.password ?? "",
+            is_active: initialData?.is_active ?? true,
         },
     });
 
@@ -108,8 +108,8 @@ const UserMgmtForm: React.FC<UserFormProps> = ({
                                 </FormLabel>
                                 <div className="flex-1">
                                     <Select
-                                        value={field?.value?.toString()}
-                                        onValueChange={(value) => field.onChange(value ? parseInt(value) : 0)}
+                                        value={field.value?.toString()}
+                                        onValueChange={(value) => field.onChange(parseInt(value))}
                                     >
                                         <FormControl>
                                             <SelectTrigger>
@@ -118,8 +118,7 @@ const UserMgmtForm: React.FC<UserFormProps> = ({
                                         </FormControl>
                                         <SelectContent>
                                             <SelectItem value="0">Owner</SelectItem>
-                                            <SelectItem value="1">Manager</SelectItem>
-                                            <SelectItem value="2">Staff</SelectItem>
+                                            <SelectItem value="1">Staff</SelectItem>
 
                                         </SelectContent>
                                     </Select>

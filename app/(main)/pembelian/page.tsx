@@ -52,12 +52,12 @@ import {
 import GlobalPaginationFunction from "@/components/pagination-global";
 import toast from "react-hot-toast";
 import {formatMoney} from "@/lib/utils";
-import {imageService} from "@/services/imageService";
+import {usePrintInvoice} from "@/hooks/usePrintInvoice";
+
 
 export default function PembelianPage() {
 
     const [pembelians, setPembelians] = useState<PembelianListResponse[]>([]);
-
     const [searchTerm, setSearchTerm] = useState("");
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [statusPembelian, setStatusPembelian] = useState("");
@@ -65,6 +65,7 @@ export default function PembelianPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [pageSize] = useState(50);
+    const {simplePrint, previewInvoice, advancedPrint, isPrinting} = usePrintInvoice();
 
     // Fetch data
     const fetchPembelians = async (filters: PembelianFilters = {}) => {
@@ -343,20 +344,11 @@ export default function PembelianPage() {
                                                     StatusPembelianEnum.ACTIVE && (
                                                         <DropdownMenuItem asChild>
                                                             <div
-                                                                onClick={async () => {
-                                                                    try {
-                                                                        const html = await pembelianService.getInvoice(Number(pembelian.id));
-
-                                                                        const newWindow = window.open();
-                                                                        if (newWindow) {
-                                                                            newWindow.document.write(html);
-                                                                            newWindow.document.close();
-                                                                        }
-
-                                                                    } catch (error) {
-                                                                        console.error("Failed to load invoice", error);
-                                                                    }
-                                                                }}
+                                                                onClick={() => simplePrint(
+                                                                    pembelianService,
+                                                                    Number(pembelian.id),
+                                                                    pembelian.no_pembelian
+                                                                )}
                                                             >
                                                                 <File className="mr-2 h-4 w-4"/>
                                                                 Lihat Invoice

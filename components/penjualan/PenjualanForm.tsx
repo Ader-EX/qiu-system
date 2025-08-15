@@ -71,7 +71,7 @@ const FormSection = ({
 
 // Unified Zod schema for ADD, EDIT, and VIEW
 const penjualanSchema = z.object({
-    no_penjualan: z.string().min(1, "No. Penjualan harus diisi"),
+    no_penjualan: z.string().optional(),
     warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
     customer_id: z.string().min(1, "Customer harus dipilih"),
     top_id: z.number().min(1, "Jenis Pembayaran harus dipilih"),
@@ -131,9 +131,7 @@ export default function PenjualanForm({
     const form = useForm<PenjualanFormData>({
         resolver: zodResolver(penjualanSchema),
         defaultValues: {
-            no_penjualan: isEditMode
-                ? ""
-                : `PJ-${Math.floor(Math.random() * 100000)}`,
+            no_penjualan: "-",
             warehouse_id: undefined,
             customer_id: "",
             top_id: undefined,
@@ -170,7 +168,7 @@ export default function PenjualanForm({
                 );
 
                 const formData = {
-                    no_penjualan: data.no_penjualan,
+                    no_penjualan: data.no_penjualan || "-",
                     warehouse_id: Number(data.warehouse_id),
                     customer_id: String(data.customer_id),
                     top_id: Number(data.top_id),
@@ -339,7 +337,7 @@ export default function PenjualanForm({
             }
 
             const apiPayload = {
-                no_penjualan: data.no_penjualan,
+                no_penjualan: "",
                 warehouse_id: Number(data.warehouse_id),
                 customer_id: data.customer_id,
                 top_id: Number(data.top_id),
@@ -480,7 +478,7 @@ export default function PenjualanForm({
                                 <FormItem>
                                     <FormLabel>No. Penjualan</FormLabel>
                                     <FormControl>
-                                        <Input {...field} disabled={isEditMode || isViewMode}/>
+                                        <Input {...field} disabled={true}/>
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>
@@ -796,7 +794,7 @@ export default function PenjualanForm({
                                         <FormControl>
                                             <FileUploadButton
                                                 value={field.value || []}
-                                                onChange={field.onChange}
+                                                onChangeAction={field.onChange}
                                                 maxFiles={3}
                                                 maxSizeMB={4}
                                                 disabled={isViewMode}

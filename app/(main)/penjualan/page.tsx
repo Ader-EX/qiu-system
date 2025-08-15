@@ -1,6 +1,7 @@
 "use client";
 
 import React, {useState, useEffect} from "react";
+
 import {
     Plus,
     Search,
@@ -51,6 +52,8 @@ import {
     penjualanService,
     StatusPembayaranEnum, StatusPenjualanEnum
 } from "@/services/penjualanService";
+import {pembelianService} from "@/services/pembelianService";
+import {usePrintInvoice} from "@/hooks/usePrintInvoice";
 
 
 export default function PenjualanPage() {
@@ -66,6 +69,8 @@ export default function PenjualanPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [pageSize] = useState(50);
+    const {simplePrint, previewInvoice, advancedPrint, isPrinting} = usePrintInvoice();
+
 
     const fetchPenjualans = async (filters: PenjualanFilters = {}) => {
         try {
@@ -347,20 +352,11 @@ export default function PenjualanPage() {
                                                     StatusPenjualanEnum.ACTIVE && (
                                                         <DropdownMenuItem asChild>
                                                             <div
-                                                                onClick={async () => {
-                                                                    try {
-                                                                        const html = await penjualanService.getInvoice(Number(penjualan.id));
-
-                                                                        const newWindow = window.open();
-                                                                        if (newWindow) {
-                                                                            newWindow.document.write(html);
-                                                                            newWindow.document.close();
-                                                                        }
-
-                                                                    } catch (error) {
-                                                                        console.error("Failed to load invoice", error);
-                                                                    }
-                                                                }}
+                                                                onClick={() => simplePrint(
+                                                                    penjualanService,
+                                                                    Number(penjualan.id),
+                                                                    penjualan.no_penjualan
+                                                                )}
                                                             >
                                                                 <File className="mr-2 h-4 w-4"/>
                                                                 Lihat Invoice

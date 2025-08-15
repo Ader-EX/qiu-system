@@ -113,14 +113,16 @@ export default function Kategori1Page() {
 
             if (editingCategory) {
                 if (editingCategory.id) {
-                    const updatedCategory = await kategoriService.updateCategory(
-                        editingCategory.id,
-                        {
-                            name: data.name,
-                            is_active: data.is_active,
-                            category_type: 1
-                        }
-                    );
+                    if (typeof editingCategory?.id === "number") {
+                        const updatedCategory = await kategoriService.updateCategory(
+                            editingCategory?.id,
+                            {
+                                name: data.name,
+                                is_active: data.is_active,
+                                category_type: 1
+                            }
+                        );
+                    }
 
                     // Reload data to get fresh results from server
                     await loadCategories(page, searchTerm, rowsPerPage);
@@ -307,7 +309,9 @@ export default function Kategori1Page() {
                                                 <DropdownMenuItem
                                                     onClick={() => {
                                                         if (category.id) {
-                                                            handleDelete(category.id)
+                                                            if (typeof category.id === "number") {
+                                                                handleDelete(category.id)
+                                                            }
                                                         }
                                                     }
                                                     }

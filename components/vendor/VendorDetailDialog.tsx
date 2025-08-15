@@ -13,19 +13,19 @@ import {Vendor} from "@/types/types";
 
 interface VendorDetailDialogProps {
     isOpen: boolean;
-    onClose: () => void;
+    onCloseAction: () => void;
     vendor: Vendor;
 }
 
 export const VendorDetailDialog: React.FC<VendorDetailDialogProps> = ({
                                                                           isOpen,
-                                                                          onClose,
+                                                                          onCloseAction,
                                                                           vendor,
                                                                       }) => {
     const statusLabel = vendor.is_active ? "Aktif" : "Tidak Aktif";
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onCloseAction()}>
             <DialogContent className="max-w-4xl w-full">
                 <DialogHeader>
                     <div className="flex justify-between items-center">

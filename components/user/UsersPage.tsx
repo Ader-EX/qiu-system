@@ -101,7 +101,6 @@ export default function UsersPage() {
         setPage(1);
     };
 
-    // Handle page change
     const handlePageChange = (newPage: number) => {
         if (newPage >= 1 && newPage <= totalPages) {
             setPage(newPage);
@@ -127,11 +126,19 @@ export default function UsersPage() {
         setSubmitting(true);
         try {
             if (editing) {
-                await userService.updateUser(editing.id, data);
-                toast.success("User berhasil diperbarui!");
+                try {
+                    await userService.updateUser(editing.id, data);
+                    toast.success("User berhasil diperbarui!");
+                } catch (e: any) {
+                    toast.error(e?.detail || "Gagal menambahkan user");
+                }
             } else {
-                await userService.createUser(data);
-                toast.success("User berhasil ditambahkan!");
+                try {
+                    await userService.createUser(data);
+                    toast.success("User berhasil ditambahkan!");
+                } catch (e: any) {
+                    toast.error(e?.detail || "Gagal menambahkan user");
+                }
             }
             setIsDialogOpen(false);
             setEditing(null);
@@ -150,8 +157,6 @@ export default function UsersPage() {
             case 0:
                 return "Owner";
             case 1:
-                return "Manager";
-            case 2:
                 return "Staff";
             default:
                 return "Unknown";
@@ -260,8 +265,15 @@ export default function UsersPage() {
                                     </TableCell>
                                     <TableCell className="">
                                         {w.last_login
-                                            ? new Date(w.last_login).toLocaleString()
+                                            ? new Date(w.last_login).toLocaleString("id-ID", {
+                                                day: "2-digit",
+                                                month: "long",
+                                                year: "numeric",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            })
                                             : "Belum pernah login"}
+
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <Badge variant={w.is_active ? "okay" : "secondary"}>

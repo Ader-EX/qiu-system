@@ -16,13 +16,13 @@ import carouselone from "@/public/carouselone.jpg";
 
 interface ProductDetailDialogProps {
     isOpen: boolean;
-    onClose: () => void;
+    onCloseAction: () => void;
     product: Item;
 }
 
 export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
                                                                             isOpen,
-                                                                            onClose,
+                                                                            onCloseAction,
                                                                             product,
                                                                         }) => {
     // Get image URLs from attachments
@@ -40,7 +40,7 @@ export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
     const statusLabel = product.is_active ? "Aktif" : "Tidak Aktif";
 
     return (
-        <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
+        <Dialog open={isOpen} onOpenChange={(o) => !o && onCloseAction()}>
             <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <div className="flex justify-between items-center">

@@ -517,7 +517,7 @@ export default function VendorPage() {
             {selectedVendor && (
                 <VendorDetailDialog
                     isOpen={detailDialogOpen}
-                    onClose={closeDetailDialog}
+                    onCloseAction={closeDetailDialog}
                     vendor={selectedVendor}
                 />
             )}

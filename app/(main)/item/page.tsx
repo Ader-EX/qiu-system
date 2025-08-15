@@ -549,7 +549,7 @@ const ProdukPage = () => {
             {state.selectedProduct && (
                 <ProductDetailDialog
                     isOpen={state.isDetailDialogOpen}
-                    onClose={closeDetailDialog}
+                    onCloseAction={closeDetailDialog}
                     product={state.selectedProduct}
                 />
             )}

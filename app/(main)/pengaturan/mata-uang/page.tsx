@@ -155,7 +155,7 @@ export default function CurrencyPage() {
         setEditingCurrency(unit);
         setFormData({
             name: unit.name,
-            symbol: unit.symbol,
+            symbol: unit.symbol ? unit.symbol : "",
             is_active: unit.is_active
         });
         setIsDialogOpen(true);
