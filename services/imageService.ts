@@ -70,17 +70,6 @@ class ImageService {
         return response.json();
     }
 
-    async getInvoice(parentId: number) {
-        const response = await fetch(`${this.baseUrl}/upload/${parentId}/invoice/html`, {
-            headers: this.getAuthHeaders(),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        return await response.text();
-    }
 
     async getAttachmentsByParent(
         parentType: ParentType,

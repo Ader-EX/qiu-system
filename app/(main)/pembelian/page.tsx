@@ -345,7 +345,7 @@ export default function PembelianPage() {
                                                             <div
                                                                 onClick={async () => {
                                                                     try {
-                                                                        const html = await imageService.getInvoice(Number(pembelian.id));
+                                                                        const html = await pembelianService.getInvoice(Number(pembelian.id));
 
                                                                         const newWindow = window.open();
                                                                         if (newWindow) {

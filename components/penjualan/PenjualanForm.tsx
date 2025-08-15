@@ -242,11 +242,17 @@ export default function PenjualanForm({
 
     const totalTax = subTotalAfterTax - subTotalBeforeTax;
 
+    const additionalDiscountPercentage = subTotalBeforeTax > 0
+        ? (watchedAdditionalDiscount / subTotalBeforeTax) * 100
+        : 0;
+
+    const additionalDiscountAmount = watchedAdditionalDiscount;
+
     const discountAmount = (subTotalBeforeTax * watchedDiscount) / 100;
     const grandTotal =
         subTotalBeforeTax -
         discountAmount -
-        watchedAdditionalDiscount +
+        additionalDiscountAmount +
         totalTax +
         watchedExpense;
 
@@ -513,7 +519,7 @@ export default function PenjualanForm({
                                                 selected={field.value}
                                                 onSelect={field.onChange}
                                                 disabled={(date: Date) =>
-                                                    date < new Date() || date < new Date("1900-01-01")
+                                                    date < new Date("1900-01-01")
                                                 }
                                                 initialFocus
                                             />
@@ -571,7 +577,7 @@ export default function PenjualanForm({
                                                 selected={field.value}
                                                 onSelect={field.onChange}
                                                 disabled={(date: Date) =>
-                                                    date < new Date() || date < new Date("1900-01-01")
+                                                    date < new Date("1900-01-01")
                                                 }
                                                 initialFocus
                                             />
@@ -946,35 +952,92 @@ export default function PenjualanForm({
                             <div className="flex w-full justify-end mt-4">
                                 <div className="flex flex-col space-y-2 gap-2 w-full max-w-sm">
                                     <div className="flex justify-between">
-                                        <span>Sub Total (Before Tax)</span>
-                                        <span> {formatMoney(subTotalBeforeTax)}</span>
+                                        <span className={"mr-4"}>Sub Total</span>
+                                        <Input
+                                            type="text" disabled={true} className="w-[40%] text-right"
+                                            value={formatMoney(subTotalBeforeTax) || 0}
+                                        />
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Sub Total (After Tax)</span>
-                                        <span> {formatMoney(subTotalAfterTax)}</span>
+                                        <span className={"mr-4"}>Discount ({watchedDiscount}%)</span>
+                                        <Input
+                                            type="text" disabled={true} className="w-[40%] text-right"
+                                            value={formatMoney(discountAmount) || 0}
+                                        />
+
+
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span>Discount ({watchedDiscount}%)</span>
-                                        <span> {formatMoney(discountAmount)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span>Additional Discount</span>
-                                        <FormField
-                                            control={form.control}
-                                            name="additional_discount"
-                                            render={({field}) => (
+                                    <div className="flex justify-between items-start">
+                                        <span className="mt-2">Additional Discount</span>
+                                        <div className="flex flex-col space-y-2">
+                                            {/* Percentage Input */}
+                                            <div className="flex items-center justify-end ">
+                                                <span className="text-sm text-muted-foreground w-4">%</span>
                                                 <Input
                                                     type="number"
                                                     disabled={isViewMode}
-                                                    className="w-32 text-right"
-                                                    {...field}
-                                                    onChange={(e) =>
-                                                        field.onChange(Number(e.target.value))
-                                                    }
+                                                    className="w-[70%] text-right"
+                                                    placeholder="0.00"
+                                                    min="0"
+                                                    max="100"
+                                                    step="0.01"
+                                                    value={additionalDiscountPercentage.toFixed(2)}
+                                                    onChange={(e) => {
+                                                        const percentage = Number(e.target.value) || 0;
+                                                        const amount = (subTotalBeforeTax * percentage) / 100;
+                                                        form.setValue('additional_discount', Math.round(amount * 100) / 100, {
+                                                            shouldDirty: true,
+                                                            shouldValidate: true,
+                                                        });
+                                                    }}
                                                 />
-                                            )}
-                                        />
+
+                                            </div>
+
+
+                                            <div className="flex items-center justify-end space-x-1">
+                                                <FormField
+                                                    control={form.control}
+                                                    name="additional_discount"
+                                                    render={({field}) => (
+                                                        <Input
+                                                            type="number"
+                                                            disabled={isViewMode}
+                                                            className="w-[70%] text-right"
+                                                            placeholder="0"
+                                                            min="0"
+                                                            step="0.01"
+                                                            {...field}
+                                                            onChange={(e) => field.onChange(Number(e.target.value))}
+                                                        />
+                                                    )}
+                                                />
+
+                                            </div>
+                                        </div>
                                     </div>
+
+
+                                    <div className="flex justify-between ">
+                                        <span className={"mr-4"}>Total</span>
+                                        <Input
+                                            type="text" disabled={true} className="w-[40%] text-right"
+                                            value={formatMoney(subTotalBeforeTax + discountAmount + watchedAdditionalDiscount) || 0}
+                                        />
+
+
+                                    </div>
+
+
+                                    <div className="flex justify-between">
+                                        <span className={"mr-4"}>Tax</span>
+                                        <Input
+                                            type="text" disabled={true} className="w-[40%] text-right"
+                                            value={formatMoney(subTotalAfterTax - subTotalBeforeTax) || 0}
+                                        />
+
+                                    </div>
+
                                     <div className="flex justify-between items-center">
                                         <span>Expense</span>
                                         <FormField
@@ -984,7 +1047,7 @@ export default function PenjualanForm({
                                                 <Input
                                                     disabled={isViewMode}
                                                     type="number"
-                                                    className="w-32 text-right"
+                                                    className="w-[70%] text-right"
                                                     {...field}
                                                     onChange={(e) =>
                                                         field.onChange(Number(e.target.value))
@@ -993,6 +1056,7 @@ export default function PenjualanForm({
                                             )}
                                         />
                                     </div>
+
                                     <div className="flex justify-between border-t pt-2 font-semibold">
                                         <span>Grand Total</span>
                                         <span>{formatMoney(grandTotal)}</span>

@@ -349,7 +349,7 @@ export default function PenjualanPage() {
                                                             <div
                                                                 onClick={async () => {
                                                                     try {
-                                                                        const html = await imageService.getInvoice(Number(penjualan.id));
+                                                                        const html = await penjualanService.getInvoice(Number(penjualan.id));
 
                                                                         const newWindow = window.open();
                                                                         if (newWindow) {
