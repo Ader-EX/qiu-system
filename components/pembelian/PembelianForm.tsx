@@ -71,7 +71,7 @@ const FormSection = ({
 
 // Unified Zod schema for both ADD and EDIT
 const pembelianSchema = z.object({
-    no_pembelian: z.string().min(1, "No. Pembelian harus diisi"),
+    no_pembelian: z.string().optional(),
     warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
     vendor_id: z.string().min(1, "Vendor harus dipilih"),
     top_id: z.number().min(1, "Jenis Pembayaran harus dipilih"),
@@ -134,7 +134,7 @@ export default function PembelianForm({
         defaultValues: {
             no_pembelian: isEditMode
                 ? ""
-                : `KP-${Math.floor(Math.random() * 100000)}`,
+                : `-`,
             warehouse_id: undefined,
             vendor_id: "",
             top_id: undefined,
@@ -333,7 +333,7 @@ export default function PembelianForm({
             }
 
             const apiPayload = {
-                no_pembelian: data.no_pembelian,
+                no_pembelian: data.no_pembelian || `-`,
                 warehouse_id: Number(data.warehouse_id),
                 vendor_id: data.vendor_id,
                 top_id: Number(data.top_id),
@@ -434,7 +434,6 @@ export default function PembelianForm({
                 try {
                     console.log(`Uploading file ${index + 1}:`, file.name);
 
-                    // Validate file before upload
                     const validationError = imageService.validateFile(file);
                     if (validationError) {
                         throw new Error(`File "${file.name}": ${validationError}`);
@@ -512,14 +511,13 @@ export default function PembelianForm({
                     {/* Purchase Information */}
                     <FormSection title="Informasi Pembelian">
                         <FormField
-
                             control={form.control}
                             name="no_pembelian"
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>No. Pembelian</FormLabel>
                                     <FormControl>
-                                        <Input {...field} disabled={isViewMode || false}/>
+                                        <Input {...field} disabled={true}/>
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>
