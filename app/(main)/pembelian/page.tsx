@@ -339,20 +339,22 @@ export default function PembelianPage() {
 
                         {pembelian.status_pembelian ===
                           StatusPembelianEnum.ACTIVE && (
-                          <DropdownMenuItem asChild>
-                            <div
-                              onClick={() =>
-                                previewInvoice(
-                                  pembelianService,
-                                  Number(pembelian.id),
-                                  pembelian.no_pembelian
-                                )
-                              }
-                            >
-                              <File className="mr-2 h-4 w-4" />
-                              Lihat Invoice
-                            </div>
-                          </DropdownMenuItem>
+                          <>
+                            <DropdownMenuItem asChild>
+                              <div
+                                onClick={() =>
+                                  previewInvoice(
+                                    pembelianService,
+                                    Number(pembelian.id),
+                                    pembelian.no_pembelian
+                                  )
+                                }
+                              >
+                                <File className="mr-2 h-4 w-4" />
+                                Lihat Invoice
+                              </div>
+                            </DropdownMenuItem>
+                          </>
                         )}
 
                         {pembelian.status_pembelian ===

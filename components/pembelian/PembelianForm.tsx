@@ -5,7 +5,14 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2, FileText, X } from "lucide-react";
+import {
+  CalendarIcon,
+  Plus,
+  Trash2,
+  FileText,
+  X,
+  RefreshCw,
+} from "lucide-react";
 import { cn, formatMoney } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -53,6 +60,7 @@ import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { vendorService } from "@/services/vendorService";
+import { usePrintInvoice } from "@/hooks/usePrintInvoice";
 
 const FormSection = ({
   title,
@@ -157,6 +165,8 @@ export default function PembelianForm({
     control: form.control,
     name: "items",
   });
+  const { simplePrint, previewInvoice, advancedPrint, isPrinting } =
+    usePrintInvoice();
 
   useEffect(() => {
     if ((mode !== "edit" && mode !== "view") || !pembelianId) return;
@@ -285,15 +295,6 @@ export default function PembelianForm({
     setSelectedItems(newSelectedItems);
   };
 
-  const handleTaxChange = (index: number, newTaxPercentage: number) => {
-    const priceBeforeTax = form.getValues(`items.${index}.price_before_tax`);
-    const taxAmount = (priceBeforeTax * newTaxPercentage) / 100;
-    const newUnitPrice = priceBeforeTax + taxAmount;
-
-    form.setValue(`items.${index}.tax_percentage`, newTaxPercentage);
-    form.setValue(`items.${index}.unit_price`, newUnitPrice);
-  };
-
   const handlePriceBeforeTaxChange = (
     index: number,
     newPriceBeforeTax: number
@@ -397,15 +398,6 @@ export default function PembelianForm({
 
   // Helper function to handle attachment uploads
   const handleAttachmentUpload = async (attachments: any, parentId: number) => {
-    console.log("=== ATTACHMENT UPLOAD DEBUG ===");
-    console.log("Attachments received:", attachments);
-    console.log("Parent ID:", parentId);
-    console.log("Attachments type:", typeof attachments);
-    console.log("Is File?", attachments instanceof File);
-    console.log("Is FileList?", attachments instanceof FileList);
-    console.log("Is Array?", Array.isArray(attachments));
-    console.log("================================");
-
     if (!attachments) {
       console.log("No attachments to upload");
       return;
@@ -459,12 +451,10 @@ export default function PembelianForm({
       const uploadResults = await Promise.allSettled(uploadPromises);
     } catch (error: any) {
       console.error("Attachment upload error:", error);
-      toast.error(`Attachment upload failed: ${error.message}`);
-      // Don't throw here to avoid breaking the main flow
+      toast.error(`Attachment upload failed: ${error.detail}`);
     }
   };
 
-  // Additional helper function for handling existing attachments in EDIT mode
   const handleExistingAttachments = async (pembelianId: string) => {
     try {
       console.log("Fetching existing attachments for pembelian:", pembelianId);
@@ -1124,7 +1114,7 @@ export default function PembelianForm({
             </div>
           )}
 
-          {!isViewMode && (
+          {!isViewMode ? (
             <div className="flex justify-end space-x-4 pt-6 border-t">
               <Button
                 type="button"
@@ -1159,6 +1149,24 @@ export default function PembelianForm({
                   : isEditMode
                   ? "Update & Finalize"
                   : "Buat Invoice"}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end space-x-4 pt-6 border-t">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  pembelianService
+                    .rollbackPembelian(Number(pembelianId))
+                    .then(() => {
+                      toast.success("Status pembelian berhasil terupdate");
+                      router.back();
+                    });
+                }}
+              >
+                <RefreshCw />
+                Rollback Pembelian
               </Button>
             </div>
           )}
