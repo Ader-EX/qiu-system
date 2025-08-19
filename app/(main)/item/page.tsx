@@ -403,8 +403,8 @@ const ProdukPage = () => {
                         onChange={handleVendorChange}
                         fetchData={(search: string) =>
                             vendorService.getAllVendors({
-                                page: 0,
-                                rowsPerPage: 5,
+                                skip: 0,
+                                limit: 5,
                                 is_active: true,
                                 search_key: search,
                             })
