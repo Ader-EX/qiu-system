@@ -55,10 +55,6 @@ export const CustomerDetailDialog: React.FC<CustomerDetailDialogProps> = ({
                         <p className="text-sm font-medium text-gray-500">Mata Uang</p>
                         <p className="mt-1">{customer?.curr_rel?.name}</p>
 
-                        <p className="text-sm font-medium text-gray-500 mt-4">
-                            Jenis Pembayaran
-                        </p>
-                        <p className="mt-1">{customer.top_rel?.name}</p>
 
                         <p className="text-sm font-medium text-gray-500 mt-4">Alamat</p>
                         <p className="mt-1">{customer.address}</p>

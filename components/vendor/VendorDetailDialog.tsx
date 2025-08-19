@@ -39,7 +39,7 @@ export const VendorDetailDialog: React.FC<VendorDetailDialogProps> = ({
                         <p className="text-sm font-medium text-gray-500">Status</p>
                         <Badge
                             className="mt-1 inline-block px-2 py-1 text-xs font-semibold rounded-full"
-                            variant={vendor.is_active ? "okay" : "destructive"}
+                            variant={vendor.is_active ? "okay" : "secondary"}
                         >
                             {statusLabel}
                         </Badge>

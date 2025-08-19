@@ -8,7 +8,7 @@ export interface CustomerCreate {
     name: string;
     address: string;
     currency_id: number;
-    top_id: number;
+    kode_lambung?: string;
     is_active: boolean;
 }
 
@@ -16,8 +16,8 @@ export interface CustomerUpdate {
     id?: string;
     name?: string;
     address?: string;
+    kode_lambung?: string;
     currency_id?: number;
-    top_id?: number;
     is_active?: boolean;
 }
 

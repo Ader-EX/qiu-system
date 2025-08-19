@@ -116,7 +116,7 @@ class MataUangService {
         }
     }
 
-    async getMataUang(id: string): Promise<TOPUnit> {
+    async getMataUang(id: number): Promise<TOPUnit> {
         try {
             const response = await fetch(`${this.baseUrl}/${id}`, {
                 method: "GET",

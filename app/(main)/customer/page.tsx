@@ -65,6 +65,7 @@ import {
     CustomerUpdate,
 } from "@/services/customerService";
 import {CustomerDetailDialog} from "@/components/customer/CustomerDetailDialog";
+import Link from "next/link";
 
 export default function CustomerPage() {
     const [Customers, setCustomers] = useState<Customer[]>([]);
@@ -90,7 +91,7 @@ export default function CustomerPage() {
         name: "",
         address: "",
         currency_id: "",
-        top_id: "",
+
         is_active: true,
     });
 
@@ -143,7 +144,7 @@ export default function CustomerPage() {
             name: "",
             address: "",
             currency_id: "",
-            top_id: "",
+
             is_active: true,
         });
     };
@@ -167,7 +168,7 @@ export default function CustomerPage() {
             name: Customer.name,
             address: Customer.address,
             currency_id: Customer?.curr_rel?.id?.toString() || "",
-            top_id: Customer?.top_rel?.id?.toString() || "",
+
             is_active: Customer.is_active,
         });
         setIsDialogOpen(true);
@@ -195,8 +196,8 @@ export default function CustomerPage() {
         if (
             !formData.name.trim() ||
             !formData.address.trim() ||
-            !formData.currency_id ||
-            !formData.top_id
+            !formData.currency_id
+
         ) {
             toast.error("Semua field wajib diisi");
             return;
@@ -211,7 +212,7 @@ export default function CustomerPage() {
                     name: formData.name,
                     address: formData.address,
                     currency_id: parseInt(formData.currency_id),
-                    top_id: parseInt(formData.top_id),
+
                     is_active: formData.is_active,
                 };
 
@@ -223,7 +224,7 @@ export default function CustomerPage() {
                     name: formData.name,
                     address: formData.address,
                     currency_id: parseInt(formData.currency_id),
-                    top_id: parseInt(formData.top_id),
+
                     is_active: formData.is_active,
                 };
 
@@ -272,10 +273,12 @@ export default function CustomerPage() {
                 title="Customer"
                 rightContent={
                     <HeaderActions.ActionGroup>
-                        <Button size="sm" onClick={openAddDialog} disabled={loading}>
-                            <Plus className="h-4 w-4 mr-2"/>
-                            Tambah Customer
-                        </Button>
+                        <Link href={`/customer/add`} className={"flex gap-x-2"}>
+                            <Button size="sm" disabled={loading}>
+                                <Plus className="h-4 w-4 mr-2"/>
+                                Tambah Customer
+                            </Button>
+                        </Link>
                     </HeaderActions.ActionGroup>
                 }
             />
@@ -323,7 +326,7 @@ export default function CustomerPage() {
                         <TableHead>Nama Customer</TableHead>
                         <TableHead>Alamat</TableHead>
                         <TableHead>Mata Uang</TableHead>
-                        <TableHead>Jenis Pembayaran</TableHead>
+
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
@@ -336,20 +339,20 @@ export default function CustomerPage() {
                             </TableCell>
                         </TableRow>
                     ) : Customers.length > 0 ? (
-                        Customers.map((Customer) => (
-                            <TableRow key={Customer.id}>
+                        Customers.map((cust) => (
+                            <TableRow key={cust.id}>
                                 <TableCell>
-                                    <span className="font-mono text-sm">{Customer.id}</span>
+                                    <span className="font-mono text-sm">{cust.id}</span>
                                 </TableCell>
-                                <TableCell className="font-medium">{Customer.name}</TableCell>
+                                <TableCell className="font-medium">{cust.name}</TableCell>
                                 <TableCell className="max-w-xs truncate">
-                                    {Customer.address}
+                                    {cust.address}
                                 </TableCell>
-                                <TableCell>{Customer.curr_rel?.symbol || "-"}</TableCell>
-                                <TableCell>{Customer.top_rel?.symbol || "-"}</TableCell>
+                                <TableCell>{cust.curr_rel?.symbol || "-"}</TableCell>
+
                                 <TableCell>
-                                    <Badge variant={Customer.is_active ? "okay" : "secondary"}>
-                                        {Customer.is_active ? "Aktif" : "Tidak Aktif"}
+                                    <Badge variant={cust.is_active ? "okay" : "secondary"}>
+                                        {cust.is_active ? "Aktif" : "Tidak Aktif"}
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -361,19 +364,23 @@ export default function CustomerPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem
-                                                onClick={() => openDetailDialog(Customer)}
+
                                             >
-                                                <Eye className="mr-2 h-4 w-4"/>
-                                                Lihat Detail
+                                                <Link href={`/customer/${cust.id}/view`} className={"flex gap-x-2"}>
+                                                    <Eye className="mr-2 h-4 w-4"/>
+                                                    Lihat Detail
+                                                </Link>
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
-                                                onClick={() => openEditDialog(Customer)}
+
                                             >
-                                                <Edit className="mr-2 h-4 w-4"/>
-                                                Edit
+                                                <Link href={`/customer/${cust.id}/edit`} className={"flex gap-x-2"}>
+                                                    <Edit className="mr-2 h-4 w-4"/>
+                                                    Edit
+                                                </Link>
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
-                                                onClick={() => handleDelete(Customer.id)}
+                                                onClick={() => handleDelete(cust.id)}
                                                 className="text-red-600"
                                             >
                                                 <Trash2 className="mr-2 h-4 w-4"/>
@@ -406,125 +413,7 @@ export default function CustomerPage() {
                 handlePageChange={setCurrentPage}
             />
 
-            <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>
-                            {dialogMode === "add" ? "Tambah Customer Baru" : "Edit Customer"}
-                        </DialogTitle>
-                        <DialogDescription>
-                            {dialogMode === "add"
-                                ? "Masukkan informasi Customer baru di bawah ini."
-                                : "Perbarui informasi Customer di bawah ini."}
-                        </DialogDescription>
-                    </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="id">ID Customer</Label>
-                                <Input
-                                    id="id"
-                                    value={formData.id}
-                                    onChange={(e) => handleInputChange("id", e.target.value)}
-                                    placeholder="VEN-001"
-                                    disabled={dialogMode === "edit"}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="status">Status</Label>
-                                <Select
-                                    value={formData.is_active ? "active" : "inactive"}
-                                    onValueChange={(value) =>
-                                        handleInputChange("is_active", value === "active")
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="active">Aktif</SelectItem>
-                                        <SelectItem value="inactive">Tidak Aktif</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Nama Customer</Label>
-                            <Input
-                                id="name"
-                                value={formData.name}
-                                onChange={(e) => handleInputChange("name", e.target.value)}
-                                placeholder="Nama Customer"
-                                required
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <SearchableSelect<TOPUnit>
-                                label="Mata Uang"
-                                placeholder="Pilih mata uang"
-                                value={formData.currency_id}
-                                onChange={(val) => handleInputChange("currency_id", val)}
-                                fetchData={(search) =>
-                                    mataUangService.getAllMataUang({skip: 0, limit: 5, search})
-                                }
-                                renderLabel={(item) => `${item.symbol} - ${item.name}`}
-                            />
-
-                            <SearchableSelect<TOPUnit>
-                                label="Jenis Pembayaran"
-                                placeholder="Pilih jenis pembayaran"
-                                value={formData.top_id}
-                                onChange={(val) => handleInputChange("top_id", val)}
-                                fetchData={(search) =>
-                                    jenisPembayaranService.getAllMataUang({
-                                        skip: 0,
-                                        limit: 5,
-                                        search,
-                                    })
-                                }
-                                renderLabel={(item) => `${item.symbol} - ${item.name}`}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="address">Alamat</Label>
-                            <Textarea
-                                id="address"
-                                value={formData.address}
-                                onChange={(e) => handleInputChange("address", e.target.value)}
-                                placeholder="Masukkan alamat lengkap Customer"
-                                rows={3}
-                                required
-                            />
-                        </div>
-
-                        <DialogFooter className="gap-2">
-                            <Button type="button" variant="outline" onClick={closeDialog}>
-                                Batal
-                            </Button>
-                            <Button type="submit" disabled={loading}>
-                                {loading
-                                    ? "Loading..."
-                                    : dialogMode === "add"
-                                        ? "Tambah Customer"
-                                        : "Simpan Perubahan"}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            {selectedCustomer && (
-                <CustomerDetailDialog
-                    isOpen={detailDialogOpen}
-                    onCloseAction={closeDetailDialog}
-                    customer={selectedCustomer}
-                />
-            )}
         </div>
     );
 }

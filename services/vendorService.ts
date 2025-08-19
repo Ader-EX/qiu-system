@@ -28,8 +28,8 @@ export interface PaginatedResponse<T> {
 }
 
 export interface VendorFilters {
-    page?: number;
-    rowsPerPage?: number;
+    skip?: number;
+    limit?: number;
     is_active?: boolean;
     search_key?: string;
 }
@@ -44,9 +44,9 @@ class VendorService {
     ): Promise<PaginatedResponse<Vendor>> {
         const params = new URLSearchParams();
 
-        if (filters.page) params.append("page", filters.page.toString());
-        if (filters.rowsPerPage)
-            params.append("rowsPerPage", filters.rowsPerPage.toString());
+        if (filters.skip) params.append("page", filters.skip.toString());
+        if (filters.limit)
+            params.append("rowsPerPage", filters.limit.toString());
         if (filters.is_active !== undefined)
             params.append("is_active", filters.is_active.toString());
         if (filters.search_key) params.append("search_key", filters.search_key);
