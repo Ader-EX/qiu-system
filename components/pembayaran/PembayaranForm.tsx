@@ -115,6 +115,9 @@ export default function PembayaranForm({
     });
 
     const watchedReferenceType = form.watch("reference_type");
+    const watchedReferenceId = watchedReferenceType === "PEMBELIAN"
+        ? form.watch("vendor_id")
+        : form.watch("customer_id");
 
     useEffect(() => {
         if ((mode !== "edit" && mode !== "view") || !pembayaranId) return;
@@ -195,7 +198,6 @@ export default function PembayaranForm({
 
     const handleSubmit = async (data: PembayaranFormData, finalize: boolean = false) => {
         setIsSubmitting(true);
-
         try {
             const isValid = await form.trigger();
 
@@ -225,10 +227,6 @@ export default function PembayaranForm({
                 currency_id: Number(data.currency_id),
                 warehouse_id: Number(data.warehouse_id),
                 customer_id: data.customer_id,
-                warehouse_name: "",
-                customer_name: "",
-                currency_name: "",
-
                 vendor_id: data.vendor_id,
                 pembayaran_details
             };
@@ -644,6 +642,7 @@ export default function PembayaranForm({
                                 )}
                             />
                         </div>
+
                     </FormSection>
 
                     {/* Reference Details */}
@@ -663,11 +662,14 @@ export default function PembayaranForm({
                         )}
                     </div>
 
+
                     <SelectedReferencesTable
+
                         selectedReferences={selectedReferences}
                         onRemove={handleRemoveReference}
                         onAmountChange={handlePaymentAmountChange}
                         referenceType={watchedReferenceType}
+
                     />
 
 
@@ -720,6 +722,7 @@ export default function PembayaranForm({
                 onOpenChange={setIsReferenceDialogOpen}
                 referenceType={watchedReferenceType}
                 onSelect={handleReferenceSelect}
+                referenceId={watchedReferenceId}
             />
         </div>
     );

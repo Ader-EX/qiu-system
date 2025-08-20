@@ -22,11 +22,13 @@ const ReferenceSelectionDialog = ({
                                       onOpenChange,
                                       referenceType,
                                       onSelect,
+                                      referenceId
                                   }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     referenceType: "PEMBELIAN" | "PENJUALAN";
     onSelect: (reference: any) => void;
+    referenceId: string
 }) => {
     const [references, setReferences] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -51,7 +53,7 @@ const ReferenceSelectionDialog = ({
                     size: rowsPerPage,
                     search_key: search,
                     status_pembelian: StatusPembelianEnum.ACTIVE,
-                    vendor_id: undefined, // Adjust as needed
+                    vendor_id: referenceId,
 
                 });
                 setReferences(response.data || []);
@@ -63,7 +65,7 @@ const ReferenceSelectionDialog = ({
                     size: rowsPerPage,
                     search_key: search,
                     status_penjualan: StatusPenjualanEnum.ACTIVE,
-                    customer_id: undefined, // Adjust as needed
+                    customer_id: referenceId,
                 });
                 setReferences(response.data || []);
                 setTotal(response.total || 0);
@@ -177,12 +179,14 @@ const SelectedReferencesTable = ({
                                      selectedReferences,
                                      onRemove,
                                      onAmountChange,
-                                     referenceType
+                                     referenceType,
+
                                  }: {
     selectedReferences: SelectedReference[];
     onRemove: (id: number) => void;
     onAmountChange: (id: number, amount: number) => void;
     referenceType: "PEMBELIAN" | "PENJUALAN";
+
 }) => {
     if (selectedReferences.length === 0) {
         return (
