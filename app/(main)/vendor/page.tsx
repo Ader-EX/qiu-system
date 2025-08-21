@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
   Search,
@@ -91,13 +91,32 @@ export default function VendorPage() {
     is_active: true,
   });
 
+  // Memoize fetch functions to prevent recreating them on every render
+  const fetchCurrencyData = useMemo(
+    () => (search: string) => {
+      return mataUangService.getAllMataUang({ skip: 0, limit: 50, search });
+    },
+    []
+  );
+
+  const fetchPaymentTypeData = useMemo(
+    () => (search: string) => {
+      return jenisPembayaranService.getAllMataUang({
+        skip: 0,
+        limit: 50,
+        search,
+      });
+    },
+    []
+  );
+
   // Load initial data
   useEffect(() => {
     loadVendors();
   }, [currentPage, rowsPerPage, filterStatus]);
 
   const handleSearch = async () => {
-    console.log("Search clicked, searchTerm:", searchTerm); // Debug log
+    console.log("Search clicked, searchTerm:", searchTerm);
     setCurrentPage(1);
     await loadVendors();
   };
@@ -147,7 +166,6 @@ export default function VendorPage() {
   };
 
   const generateVendorId = () => {
-    // Generate a simple ID based on timestamp and random number
     return `VEN-${Date.now()}-${Math.floor(Math.random() * 10)}`;
   };
 
@@ -157,18 +175,6 @@ export default function VendorPage() {
     setFormData((prev) => ({ ...prev, id: generateVendorId() }));
     setIsDialogOpen(true);
   };
-
-  const fetchCurrencyData = useCallback((search: string) => {
-    return mataUangService.getAllMataUang({ skip: 0, limit: 5, search });
-  }, []);
-
-  const fetchPaymentTypeData = useCallback((search: string) => {
-    return jenisPembayaranService.getAllMataUang({
-      skip: 0,
-      limit: 5,
-      search,
-    });
-  }, []);
 
   const openEditDialog = (vendor: Vendor) => {
     setDialogMode("edit");
@@ -266,15 +272,27 @@ export default function VendorPage() {
     }
   };
 
-  const handleInputChange = (
-    field: keyof typeof formData,
-    value: string | boolean
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
+  // Stable callback for form input changes
+  const handleInputChange = useCallback(
+    (field: keyof typeof formData, value: string | boolean) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    },
+    []
+  );
+
+  // Stable callbacks for SearchableSelect onChange handlers
+  const handleCurrencyChange = useCallback(
+    (val: string) => handleInputChange("currency_id", val),
+    [handleInputChange]
+  );
+
+  const handleTopChange = useCallback(
+    (val: string) => handleInputChange("top_id", val),
+    [handleInputChange]
+  );
 
   return (
     <div className="space-y-6">
@@ -291,7 +309,7 @@ export default function VendorPage() {
       />
 
       <div className="flex space-x-2">
-        <div className="flex w-full  space-x-2">
+        <div className="flex w-full space-x-2">
           <div className="relative max-w-sm">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -474,18 +492,20 @@ export default function VendorPage() {
                 label="Mata Uang"
                 placeholder="Pilih mata uang"
                 value={formData.currency_id}
-                onChange={(val) => handleInputChange("currency_id", val)}
-                fetchData={(search) => fetchCurrencyData(search)}
+                onChange={handleCurrencyChange}
+                fetchData={fetchCurrencyData}
                 renderLabel={(item) => `${item.symbol} - ${item.name}`}
+                preloadValue={formData.currency_id}
               />
 
               <SearchableSelect<TOPUnit>
                 label="Jenis Pembayaran"
                 placeholder="Pilih jenis pembayaran"
                 value={formData.top_id}
-                onChange={(val) => handleInputChange("top_id", val)}
-                fetchData={(search) => fetchPaymentTypeData(search)}
+                onChange={handleTopChange}
+                fetchData={fetchPaymentTypeData}
                 renderLabel={(item) => `${item.symbol} - ${item.name}`}
+                preloadValue={formData.top_id}
               />
             </div>
 

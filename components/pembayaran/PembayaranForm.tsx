@@ -591,7 +591,7 @@ export default function PembayaranForm({
                 <FormItem>
                   <FormLabel>Reference Type *</FormLabel>
                   <Select
-                    disabled={isViewMode || isEditMode}
+                    disabled={isViewMode}
                     onValueChange={field.onChange}
                     value={field.value}
                   >

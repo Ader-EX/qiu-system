@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Select,
   SelectTrigger,
@@ -35,96 +35,84 @@ export default function SearchableSelect<T extends { id: number | string }>({
   const [options, setOptions] = useState<T[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [preloadComplete, setPreloadComplete] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  const loadOptions = useCallback(
-    async (search = "") => {
-      try {
-        setIsLoading(true);
-        const res = await fetchData(search);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentSearchRef = useRef("");
 
-        setOptions(res.data || []);
-      } catch (err) {
-        console.error("Failed to fetch options", err);
-        setOptions([]);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [fetchData]
-  );
-
-  const preloadSpecificItem = useCallback(
-    async (itemId: string | number) => {
-      try {
-        const res = await fetchData("");
-        const foundItem = res.data?.find(
-          (item) => item.id.toString() === itemId.toString()
-        );
-
-        if (foundItem) {
-          setOptions((prevOptions) => {
-            const exists = prevOptions.some(
-              (opt) => opt.id.toString() === itemId.toString()
-            );
-            if (exists) {
-              return prevOptions;
-            }
-            // Add the preloaded item to the beginning
-            return [foundItem, ...prevOptions];
-          });
-        }
-      } catch (err) {
-        console.error("Failed to preload specific item", err);
-      }
-    },
-    [fetchData]
-  );
-
-  // Debounced search function
-  const debouncedSearch = useCallback(
-    (() => {
-      let timeoutId: NodeJS.Timeout;
-      return (searchValue: string) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          loadOptions(searchValue);
-        }, 300);
-      };
-    })(),
-    [fetchData]
-  );
-
-  // Initial load and preload
-  useEffect(() => {
-    const initialize = async () => {
-      // If we have a preload value, load it first
-      if (preloadValue && preloadValue !== "all") {
-        await preloadSpecificItem(preloadValue);
-      }
-
-      // Then load the general options
-      await loadOptions();
-      setPreloadComplete(true);
-    };
-
-    initialize();
-  }, [loadOptions, preloadSpecificItem, preloadValue]);
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.target.value;
-    setSearchTerm(input);
-
-    // Trigger search immediately for any input change
-    if (input.length === 0) {
-      // Reset to initial options when search is cleared
-      loadOptions();
-    } else {
-      // Use debounced search for any non-empty input
-      debouncedSearch(input);
+  // Simple data fetching function
+  const fetchOptions = async (search: string) => {
+    try {
+      setIsLoading(true);
+      const response = await fetchData(search);
+      setOptions(response.data || []);
+      currentSearchRef.current = search;
+    } catch (error) {
+      console.error("Failed to fetch options:", error);
+      setOptions([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Initialize component
+  useEffect(() => {
+    let isMounted = true;
+
+    const initialize = async () => {
+      // First load with empty search to get initial data
+      await fetchOptions("");
+
+      // If we have a preload value and it's not in the current options, try to load it
+      if (preloadValue && preloadValue !== "all") {
+        try {
+          const response = await fetchData("");
+          const foundItem = response.data?.find(
+            (item) => item.id.toString() === preloadValue.toString()
+          );
+
+          if (foundItem && isMounted) {
+            setOptions((prev) => {
+              const exists = prev.some(
+                (opt) => opt.id.toString() === preloadValue.toString()
+              );
+              return exists ? prev : [foundItem, ...prev];
+            });
+          }
+        } catch (error) {
+          console.error("Failed to preload item:", error);
+        }
+      }
+
+      if (isMounted) {
+        setInitialized(true);
+      }
+    };
+
+    initialize();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Only run once on mount
+
+  // Handle search input changes
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSearchTerm = e.target.value;
+    setSearchTerm(newSearchTerm);
+
+    // Clear existing timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Debounce the search
+    debounceTimeoutRef.current = setTimeout(() => {
+      fetchOptions(newSearchTerm);
+    }, 300);
+  };
+
+  // Handle value changes
   const internalValue =
     value === "all" || value === undefined
       ? INTERNAL_ALL_VALUE
@@ -134,13 +122,25 @@ export default function SearchableSelect<T extends { id: number | string }>({
     onChange(val === INTERNAL_ALL_VALUE ? "all" : val);
   };
 
-  // Clear search when dropdown closes
+  // Handle dropdown open/close
   const handleOpenChange = (open: boolean) => {
     if (!open && searchTerm) {
       setSearchTerm("");
-      loadOptions(); // Reload initial options
+      // Reset to initial options if we were searching
+      if (currentSearchRef.current !== "") {
+        fetchOptions("");
+      }
     }
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="space-y-2">
@@ -148,7 +148,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
       <Select
         value={internalValue}
         onValueChange={handleInternalChange}
-        disabled={disabled || false}
+        disabled={disabled}
         onOpenChange={handleOpenChange}
       >
         <SelectTrigger>
@@ -161,13 +161,13 @@ export default function SearchableSelect<T extends { id: number | string }>({
               value={searchTerm}
               onChange={handleSearchChange}
               className="w-full"
-              onClick={(e) => e.stopPropagation()} // Prevent dropdown from closing
+              onClick={(e) => e.stopPropagation()}
             />
           </div>
 
           <SelectItem value={INTERNAL_ALL_VALUE}>{placeholder}</SelectItem>
 
-          {isLoading && !preloadComplete ? (
+          {!initialized || isLoading ? (
             <div className="px-4 py-2 text-sm text-muted-foreground">
               Loading...
             </div>
@@ -177,7 +177,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
                 {renderLabel(item)}
               </SelectItem>
             ))
-          ) : searchTerm && !isLoading ? (
+          ) : searchTerm ? (
             <div className="px-4 py-2 text-sm text-muted-foreground">
               Tidak ditemukan hasil untuk "{searchTerm}"
             </div>
