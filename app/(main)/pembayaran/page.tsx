@@ -10,7 +10,7 @@ import {
     Trash2,
     Eye,
     Search as SearchIcon,
-    File,
+    File, RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
@@ -341,6 +341,22 @@ export default function PembayaranPage() {
                                                         Lihat Detail
                                                     </Link>
                                                 </DropdownMenuItem>
+
+                                                {pembayaran.status === "ACTIVE" && (
+                                                    <DropdownMenuItem asChild>
+                                                        <span
+                                                            className={"text-destructive hover:text-destructive/90"}
+                                                            onClick={() => {
+                                                                pembayaranService.rollbackPembayaran(pembayaran.id).then(r => {
+                                                                    toast.success("Pembayaran berhasil dikembalikan ke draft");
+                                                                    fetchPembayarans();
+                                                                })
+                                                            }}>
+                                                            <RefreshCw className="mr-2 h-4 w-4"/>
+                                                            Kembali ke Draft
+                                                        </span>
+                                                    </DropdownMenuItem>
+                                                )}
 
                                                 {pembayaran.status === "DRAFT" && (
                                                     <DropdownMenuItem asChild>
