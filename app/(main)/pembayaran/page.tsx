@@ -10,7 +10,7 @@ import {
     Trash2,
     Eye,
     Search as SearchIcon,
-    File, RefreshCw,
+    RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
@@ -53,8 +53,7 @@ import {
     PembayaranFilters,
     PembayaranResponse,
     pembayaranService,
-    PembayaranType,
-    StatusPembayaran
+    
 } from "@/services/pembayaranService";
 
 export default function PembayaranPage() {
@@ -130,17 +129,6 @@ export default function PembayaranPage() {
         }
     };
 
-    // Refresh data
-    const handleRefresh = () => {
-        fetchPembayarans();
-    };
-
-    const clearFilters = () => {
-        setPembayaranType("");
-        setStatusPembayaran("");
-        setSearchTerm("");
-        setCurrentPage(1);
-    };
 
     const getStatusBadge = (status: string) => {
         const variants = {
