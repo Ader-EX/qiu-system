@@ -542,7 +542,6 @@ const ProdukPage = () => {
                 onSave={handleDialogSave}
                 item={state.editingItem}
                 satuanService={satuanService}
-                vendorService={vendorService}
                 kategoriService={kategoriService}
             />
 

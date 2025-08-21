@@ -10,7 +10,7 @@ import {
     Trash2,
     Eye,
     Search as SearchIcon,
-    File,
+    RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
@@ -53,8 +53,7 @@ import {
     PembayaranFilters,
     PembayaranResponse,
     pembayaranService,
-    PembayaranType,
-    StatusPembayaran
+    
 } from "@/services/pembayaranService";
 
 export default function PembayaranPage() {
@@ -130,17 +129,6 @@ export default function PembayaranPage() {
         }
     };
 
-    // Refresh data
-    const handleRefresh = () => {
-        fetchPembayarans();
-    };
-
-    const clearFilters = () => {
-        setPembayaranType("");
-        setStatusPembayaran("");
-        setSearchTerm("");
-        setCurrentPage(1);
-    };
 
     const getStatusBadge = (status: string) => {
         const variants = {
@@ -341,6 +329,22 @@ export default function PembayaranPage() {
                                                         Lihat Detail
                                                     </Link>
                                                 </DropdownMenuItem>
+
+                                                {pembayaran.status === "ACTIVE" && (
+                                                    <DropdownMenuItem asChild>
+                                                        <span
+                                                            className={"text-destructive hover:text-destructive/90"}
+                                                            onClick={() => {
+                                                                pembayaranService.rollbackPembayaran(pembayaran.id).then(r => {
+                                                                    toast.success("Pembayaran berhasil dikembalikan ke draft");
+                                                                    fetchPembayarans();
+                                                                })
+                                                            }}>
+                                                            <RefreshCw className="mr-2 h-4 w-4"/>
+                                                            Kembali ke Draft
+                                                        </span>
+                                                    </DropdownMenuItem>
+                                                )}
 
                                                 {pembayaran.status === "DRAFT" && (
                                                     <DropdownMenuItem asChild>

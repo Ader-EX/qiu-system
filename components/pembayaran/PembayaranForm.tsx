@@ -6,15 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import {
-  CalendarIcon,
-  FileText,
-  Plus,
-  RefreshCw,
-  Search,
-  Trash2,
-  X,
-} from "lucide-react";
+import { CalendarIcon, FileText, Plus, RefreshCw, X } from "lucide-react";
 import { cn, formatMoney } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -41,14 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 import { SidebarHeaderBar } from "@/components/ui/SidebarHeaderBar";
 import CustomBreadcrumb from "@/components/custom-breadcrumb";
@@ -60,15 +44,7 @@ import {
   pembayaranService,
   PembayaranUpdate,
 } from "@/services/pembayaranService";
-import {
-  Attachment,
-  pembelianService,
-  StatusPembelianEnum,
-} from "@/services/pembelianService";
-import {
-  penjualanService,
-  StatusPenjualanEnum,
-} from "@/services/penjualanService";
+import { Attachment } from "@/services/pembelianService";
 import { warehouseService } from "@/services/warehouseService";
 import { jenisPembayaranService } from "@/services/mataUangService";
 import toast from "react-hot-toast";
@@ -82,6 +58,7 @@ import { vendorService } from "@/services/vendorService";
 import { customerService } from "@/services/customerService";
 import { FileUploadButton } from "@/components/ImageUpload";
 import { imageService, ParentType } from "@/services/imageService";
+import { Spinner } from "@/components/ui/spinner";
 
 const FormSection = ({
   title,
@@ -122,10 +99,7 @@ const pembayaranSchema = z
       if (data.reference_type === "PEMBELIAN" && !data.vendor_id) {
         return false;
       }
-      if (data.reference_type === "PENJUALAN" && !data.customer_id) {
-        return false;
-      }
-      return true;
+      return !(data.reference_type === "PENJUALAN" && !data.customer_id);
     },
     {
       message:
@@ -147,12 +121,24 @@ export default function PembayaranForm({
 }: PembayaranFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReferenceDialogOpen, setIsReferenceDialogOpen] = useState(false);
+  const [initialDataSet, setInitialDataSet] = useState(false);
   const [selectedReferences, setSelectedReferences] = useState<
     SelectedReference[]
   >([]);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>(
     []
   );
+
+  const [preloadValues, setPreloadValues] = useState({
+    reference_type: undefined as string | undefined,
+    customer_id: undefined as string | undefined,
+    vendor_id: undefined as string | undefined,
+    currency_id: undefined as number | undefined,
+    warehouse_id: undefined as number | undefined,
+  });
+
+  // 2. Add loading state to prevent premature rendering
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const router = useRouter();
 
@@ -184,10 +170,14 @@ export default function PembayaranForm({
     watchedReferenceType === "PEMBELIAN" ? watchedVendorId : watchedCustomerId;
 
   useEffect(() => {
-    if ((mode !== "edit" && mode !== "view") || !pembayaranId) return;
+    if ((mode !== "edit" && mode !== "view") || !pembayaranId) {
+      setIsDataLoaded(true);
+      return;
+    }
 
     const loadPembayaranData = async () => {
       try {
+        setIsDataLoaded(false);
         console.log("Loading pembayaran data for ID:", pembayaranId);
 
         const data = await pembayaranService.getPembayaranById(
@@ -229,6 +219,17 @@ export default function PembayaranForm({
           }
         });
 
+        const newPreloadValues = {
+          customer_id: data.customer_id || undefined,
+          vendor_id: data.vendor_id || undefined,
+          currency_id: data.currency_id ? Number(data.currency_id) : undefined,
+          warehouse_id: data.warehouse_id
+            ? Number(data.warehouse_id)
+            : undefined,
+          reference_type: data.reference_type as "PEMBELIAN" | "PENJUALAN",
+        };
+        setPreloadValues(newPreloadValues);
+
         console.log("All attachments found:", allAttachments);
 
         const formData = {
@@ -252,7 +253,12 @@ export default function PembayaranForm({
         setExistingAttachments(allAttachments);
         setTimeout(() => {
           console.log("Resetting form with formData:", formData);
+          setIsDataLoaded(true);
           form.reset(formData);
+
+          setTimeout(() => {
+            setInitialDataSet(true);
+          }, 50);
         }, 100);
       } catch (error: any) {
         console.error("Error loading pembayaran data:", error);
@@ -264,14 +270,77 @@ export default function PembayaranForm({
   }, [mode, pembayaranId]);
 
   useEffect(() => {
-    if (mode === "edit" || mode === "view") return;
-    setSelectedReferences([]);
-    if (watchedReferenceType === "PEMBELIAN") {
-      form.setValue("customer_id", "");
-    } else {
-      form.setValue("vendor_id", "");
+    if (mode === "view") return;
+
+    if (mode === "edit" && (!isDataLoaded || !initialDataSet)) return;
+
+    if (mode === "add") {
+      if (watchedReferenceType === "PEMBELIAN") {
+        form.setValue("customer_id", "");
+      } else {
+        form.setValue("vendor_id", "");
+      }
+      setSelectedReferences([]);
+      return;
     }
-  }, [watchedReferenceType, form, mode]);
+
+    if (
+      mode === "edit" &&
+      isDataLoaded &&
+      initialDataSet &&
+      preloadValues.reference_type
+    ) {
+      const referenceTypeChanged =
+        watchedReferenceType !== preloadValues.reference_type;
+
+      if (watchedReferenceType === "PEMBELIAN") {
+        const vendorChanged = watchedVendorId !== preloadValues.vendor_id;
+
+        if (vendorChanged) {
+          console.log(
+            "Vendor changed:",
+            watchedVendorId,
+            "->",
+            preloadValues.vendor_id
+          );
+          setSelectedReferences([]);
+          toast.success("Selected references cleared due to vendor change");
+        }
+
+        if (referenceTypeChanged) {
+          form.setValue("customer_id", "");
+        }
+      }
+
+      if (watchedReferenceType === "PENJUALAN") {
+        const customerChanged = watchedCustomerId !== preloadValues.customer_id;
+
+        if (customerChanged) {
+          console.log(
+            "Customer changed:",
+            watchedCustomerId,
+            "->",
+            preloadValues.customer_id
+          );
+          setSelectedReferences([]);
+          toast.success("Selected references cleared due to customer change");
+        }
+
+        if (referenceTypeChanged) {
+          form.setValue("vendor_id", "");
+        }
+      }
+    }
+  }, [
+    watchedReferenceType,
+    watchedCustomerId,
+    watchedVendorId,
+    form,
+    mode,
+    isDataLoaded,
+    initialDataSet,
+    preloadValues,
+  ]);
 
   const handleReferenceSelect = (reference: SelectedReference) => {
     setSelectedReferences((prev) => {
@@ -472,8 +541,6 @@ export default function PembayaranForm({
           return { error: error.detail || error.message, fileName: file.name };
         }
       });
-
-      const uploadResults = await Promise.allSettled(uploadPromises);
     } catch (error: any) {
       console.error("Attachment upload error:", error);
       toast.error(`Attachment upload failed: ${error.detail || error.message}`);
@@ -505,6 +572,31 @@ export default function PembayaranForm({
       }
     )();
   };
+  if ((isEditMode || isViewMode) && !isDataLoaded) {
+    return (
+      <div className="space-y-6">
+        <SidebarHeaderBar
+          leftContent={
+            <CustomBreadcrumb
+              listData={[
+                "Pembayaran",
+                isEditMode ? "Edit Pembayaran" : "Tambah Pembayaran",
+              ]}
+              linkData={[
+                "pembayaran",
+                isEditMode
+                  ? `/pembayaran/edit/${pembayaranId}`
+                  : "/pembayaran/add",
+              ]}
+            />
+          }
+        />
+        <div className="flex justify-center items-center h-64">
+          <Spinner />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -609,19 +701,73 @@ export default function PembayaranForm({
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="reference_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Reference Type *</FormLabel>
+                  <Select
+                    disabled={isViewMode || isEditMode}
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih Reference Type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="PEMBELIAN">Pembelian</SelectItem>
+                      <SelectItem value="PENJUALAN">Penjualan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {watchedReferenceType === "PEMBELIAN" ? (
               isEditMode || isViewMode ? (
-                <FormItem>
-                  <FormLabel>Vendor *</FormLabel>
-                  <FormControl>
-                    <Input
-                      value={form.watch("vendor_id") || ""}
-                      disabled={true}
-                      className="bg-muted"
-                    />
-                  </FormControl>
-                </FormItem>
+                <FormField
+                  control={form.control}
+                  name="vendor_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <SearchableSelect
+                        key={`vendor-${
+                          preloadValues.vendor_id || "empty"
+                        }-${isDataLoaded}`}
+                        label="Vendor *"
+                        placeholder="Pilih Vendor"
+                        value={field.value || ""}
+                        preloadValue={preloadValues.vendor_id}
+                        disabled={isViewMode}
+                        onChange={(value) => {
+                          console.log("Vendor selected:", value);
+                          field.onChange(
+                            value === "all" || !value ? "" : value
+                          );
+                        }}
+                        fetchData={async (search) => {
+                          try {
+                            const response = await vendorService.getAllVendors({
+                              skip: 0,
+                              limit: 10,
+                              search_key: search,
+                            });
+                            return response;
+                          } catch (error) {
+                            console.error("Error fetching vendors:", error);
+                            throw error;
+                          }
+                        }}
+                        renderLabel={(item: any) => `${item.id} - ${item.name}`}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               ) : (
                 <FormField
                   control={form.control}
@@ -629,14 +775,19 @@ export default function PembayaranForm({
                   render={({ field }) => (
                     <FormItem>
                       <SearchableSelect
+                        key={`vendor-${
+                          preloadValues.vendor_id || "empty"
+                        }-${isDataLoaded}`}
                         label="Vendor *"
                         placeholder="Pilih Vendor"
                         value={field.value || ""}
-                        preloadValue={field.value}
+                        preloadValue={preloadValues.vendor_id}
                         disabled={isViewMode}
                         onChange={(value) => {
                           console.log("Vendor selected:", value);
-                          field.onChange(value);
+                          field.onChange(
+                            value === "all" || !value ? "" : value
+                          );
                         }}
                         fetchData={async (search) => {
                           try {
@@ -659,16 +810,44 @@ export default function PembayaranForm({
                 />
               )
             ) : isEditMode || isViewMode ? (
-              <FormItem>
-                <FormLabel>Customer *</FormLabel>
-                <FormControl>
-                  <Input
-                    value={form.watch("customer_id") || ""}
-                    disabled={true}
-                    className="bg-muted"
-                  />
-                </FormControl>
-              </FormItem>
+              <FormField
+                control={form.control}
+                name="customer_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <SearchableSelect
+                      key={`customer-${
+                        preloadValues.customer_id || "empty"
+                      }-${isDataLoaded}`}
+                      label="Customer *"
+                      placeholder="Pilih Customer"
+                      value={field.value ?? ""}
+                      preloadValue={preloadValues.customer_id}
+                      disabled={isViewMode}
+                      onChange={(value) => {
+                        console.log("Customer onChange:", value);
+                        field.onChange(value === "all" || !value ? "" : value);
+                      }}
+                      fetchData={async (search) => {
+                        const response = await customerService.getAllCustomers({
+                          page: 0,
+                          rowsPerPage: 10,
+                          search_key: search,
+                        });
+                        return response;
+                      }}
+                      renderLabel={(item: any) =>
+                        `${item.id} - ${item.name}${
+                          item?.curr_rel?.symbol
+                            ? ` (${item.curr_rel.symbol})`
+                            : ""
+                        }`
+                      }
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             ) : (
               <FormField
                 control={form.control}
@@ -676,12 +855,18 @@ export default function PembayaranForm({
                 render={({ field }) => (
                   <FormItem>
                     <SearchableSelect
+                      key={`customer-${
+                        preloadValues.customer_id || "empty"
+                      }-${isDataLoaded}`}
                       label="Customer *"
                       placeholder="Pilih Customer"
-                      value={field.value ?? undefined}
-                      preloadValue={field.value ?? undefined}
+                      value={field.value ?? ""}
+                      preloadValue={preloadValues.customer_id}
                       disabled={isViewMode}
-                      onChange={(value) => field.onChange(value)}
+                      onChange={(value) => {
+                        console.log("Customer onChange:", value);
+                        field.onChange(value === "all" || !value ? "" : value);
+                      }}
                       fetchData={async (search) => {
                         const response = await customerService.getAllCustomers({
                           page: 0,
