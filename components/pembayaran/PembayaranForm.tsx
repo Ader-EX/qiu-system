@@ -247,12 +247,9 @@ export default function PembayaranForm({
           attachments: [],
         };
 
-        console.log("Prepared formData:", formData);
-
         setSelectedReferences(references);
         setExistingAttachments(allAttachments);
         setTimeout(() => {
-          console.log("Resetting form with formData:", formData);
           setIsDataLoaded(true);
           form.reset(formData);
 
@@ -272,14 +269,10 @@ export default function PembayaranForm({
   useEffect(() => {
     if (mode === "view") return;
 
-    if (mode === "edit" && (!isDataLoaded || !initialDataSet)) return;
-
     if (mode === "add") {
-      if (watchedReferenceType === "PEMBELIAN") {
-        form.setValue("customer_id", "");
-      } else {
-        form.setValue("vendor_id", "");
-      }
+      const fieldToClear =
+        watchedReferenceType === "PEMBELIAN" ? "customer_id" : "vendor_id";
+      form.setValue(fieldToClear, "");
       setSelectedReferences([]);
       return;
     }
@@ -292,43 +285,21 @@ export default function PembayaranForm({
     ) {
       const referenceTypeChanged =
         watchedReferenceType !== preloadValues.reference_type;
+      const vendorChanged = watchedVendorId !== preloadValues.vendor_id;
+      const customerChanged = watchedCustomerId !== preloadValues.customer_id;
 
-      if (watchedReferenceType === "PEMBELIAN") {
-        const vendorChanged = watchedVendorId !== preloadValues.vendor_id;
-
-        if (vendorChanged) {
-          console.log(
-            "Vendor changed:",
-            watchedVendorId,
-            "->",
-            preloadValues.vendor_id
-          );
-          setSelectedReferences([]);
-          toast.success("Selected references cleared due to vendor change");
-        }
-
-        if (referenceTypeChanged) {
-          form.setValue("customer_id", "");
-        }
+      if (
+        referenceTypeChanged ||
+        (watchedReferenceType === "PEMBELIAN" && vendorChanged) ||
+        (watchedReferenceType === "PENJUALAN" && customerChanged)
+      ) {
+        setSelectedReferences([]);
       }
 
-      if (watchedReferenceType === "PENJUALAN") {
-        const customerChanged = watchedCustomerId !== preloadValues.customer_id;
-
-        if (customerChanged) {
-          console.log(
-            "Customer changed:",
-            watchedCustomerId,
-            "->",
-            preloadValues.customer_id
-          );
-          setSelectedReferences([]);
-          toast.success("Selected references cleared due to customer change");
-        }
-
-        if (referenceTypeChanged) {
-          form.setValue("vendor_id", "");
-        }
+      if (referenceTypeChanged) {
+        const fieldToClear =
+          watchedReferenceType === "PEMBELIAN" ? "customer_id" : "vendor_id";
+        form.setValue(fieldToClear, "");
       }
     }
   }, [
@@ -336,9 +307,9 @@ export default function PembayaranForm({
     watchedCustomerId,
     watchedVendorId,
     form,
-    mode,
     isDataLoaded,
     initialDataSet,
+    mode,
     preloadValues,
   ]);
 
@@ -372,7 +343,7 @@ export default function PembayaranForm({
       setExistingAttachments((prev) =>
         prev.filter((att) => att.id !== attachmentId)
       );
-      toast.success("Attachment removed successfully");
+      toast.success("Attachment berhasil dihapus");
     } catch (error: any) {
       toast.error(error.message || "Failed to remove attachment");
     }
@@ -701,148 +672,40 @@ export default function PembayaranForm({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="reference_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reference Type *</FormLabel>
-                  <Select
-                    disabled={isViewMode || isEditMode}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih Reference Type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="PEMBELIAN">Pembelian</SelectItem>
-                      <SelectItem value="PENJUALAN">Penjualan</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             {watchedReferenceType === "PEMBELIAN" ? (
-              isEditMode || isViewMode ? (
-                <FormField
-                  control={form.control}
-                  name="vendor_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <SearchableSelect
-                        key={`vendor-${
-                          preloadValues.vendor_id || "empty"
-                        }-${isDataLoaded}`}
-                        label="Vendor *"
-                        placeholder="Pilih Vendor"
-                        value={field.value || ""}
-                        preloadValue={preloadValues.vendor_id}
-                        disabled={isViewMode}
-                        onChange={(value) => {
-                          console.log("Vendor selected:", value);
-                          field.onChange(
-                            value === "all" || !value ? "" : value
-                          );
-                        }}
-                        fetchData={async (search) => {
-                          try {
-                            const response = await vendorService.getAllVendors({
-                              skip: 0,
-                              limit: 10,
-                              search_key: search,
-                            });
-                            return response;
-                          } catch (error) {
-                            console.error("Error fetching vendors:", error);
-                            throw error;
-                          }
-                        }}
-                        renderLabel={(item: any) => `${item.id} - ${item.name}`}
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : (
-                <FormField
-                  control={form.control}
-                  name="vendor_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <SearchableSelect
-                        key={`vendor-${
-                          preloadValues.vendor_id || "empty"
-                        }-${isDataLoaded}`}
-                        label="Vendor *"
-                        placeholder="Pilih Vendor"
-                        value={field.value || ""}
-                        preloadValue={preloadValues.vendor_id}
-                        disabled={isViewMode}
-                        onChange={(value) => {
-                          console.log("Vendor selected:", value);
-                          field.onChange(
-                            value === "all" || !value ? "" : value
-                          );
-                        }}
-                        fetchData={async (search) => {
-                          try {
-                            const response = await vendorService.getAllVendors({
-                              skip: 0,
-                              limit: 10,
-                              search_key: search,
-                            });
-                            return response;
-                          } catch (error) {
-                            console.error("Error fetching vendors:", error);
-                            throw error;
-                          }
-                        }}
-                        renderLabel={(item: any) => `${item.id} - ${item.name}`}
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )
-            ) : isEditMode || isViewMode ? (
               <FormField
                 control={form.control}
-                name="customer_id"
+                name="vendor_id"
                 render={({ field }) => (
                   <FormItem>
                     <SearchableSelect
-                      key={`customer-${
-                        preloadValues.customer_id || "empty"
+                      key={`vendor-${
+                        preloadValues.vendor_id || "empty"
                       }-${isDataLoaded}`}
-                      label="Customer *"
-                      placeholder="Pilih Customer"
-                      value={field.value ?? ""}
-                      preloadValue={preloadValues.customer_id}
+                      label="Vendor *"
+                      placeholder="Pilih Vendor"
+                      value={field.value || ""}
+                      preloadValue={preloadValues.vendor_id}
                       disabled={isViewMode}
                       onChange={(value) => {
-                        console.log("Customer onChange:", value);
+                        console.log("Vendor selected:", value);
                         field.onChange(value === "all" || !value ? "" : value);
                       }}
                       fetchData={async (search) => {
-                        const response = await customerService.getAllCustomers({
-                          page: 0,
-                          rowsPerPage: 10,
-                          search_key: search,
-                        });
-                        return response;
+                        try {
+                          const response = await vendorService.getAllVendors({
+                            skip: 0,
+                            limit: 10,
+                            search_key: search,
+                          });
+                          return response;
+                        } catch (error) {
+                          console.error("Error fetching vendors:", error);
+                          throw error;
+                        }
                       }}
-                      renderLabel={(item: any) =>
-                        `${item.id} - ${item.name}${
-                          item?.curr_rel?.symbol
-                            ? ` (${item.curr_rel.symbol})`
-                            : ""
-                        }`
-                      }
+                      renderLabel={(item: any) => `${item.id} - ${item.name}`}
                     />
                     <FormMessage />
                   </FormItem>
@@ -981,10 +844,11 @@ export default function PembayaranForm({
                         <div className="flex items-center space-x-3 truncate">
                           <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
                           <a
-                            href={pembayaranService.getDownloadUrl(
-                              pembayaranId!,
-                              att.id
-                            )}
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              imageService.handleDownload(att);
+                            }}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm font-medium hover:underline truncate"

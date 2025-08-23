@@ -71,6 +71,24 @@ class ImageService {
     return response.json();
   }
 
+  async downloadAttachment(attachment_id: string): Promise<Blob> {
+    const response = await fetch(
+      `${this.baseUrl}/upload/attachments/${attachment_id}/download`,
+      {
+        headers: this.getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error("Attachment not found");
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.blob(); // <-- instead of .json()
+  }
+
   async getAttachmentsByParent(
     parentType: ParentType,
     parentId: string
@@ -161,6 +179,16 @@ class ImageService {
       Authorization: `Bearer ${token}`,
     };
   }
+
+  handleDownload = async (att: { id: any; filename: any }) => {
+    const blob = await imageService.downloadAttachment(att.id);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = att.filename; // trigger browser download
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 }
 
 export const imageService = new ImageService();
