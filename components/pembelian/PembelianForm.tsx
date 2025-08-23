@@ -13,7 +13,7 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
-import { cn, formatMoney } from "@/lib/utils";
+import { cn, formatMoney, roundToPrecision } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -250,7 +250,7 @@ export default function PembelianForm({
 
   // 2. Total Item Discounts
   const totalItemDiscounts = watchedItems.reduce(
-    (sum, item) => sum + Number(item.discount || 0),
+    (sum, item) => sum + Number(item.qty || 0) * Number(item.discount || 0),
     0
   );
 
@@ -268,27 +268,25 @@ export default function PembelianForm({
     const itemDiscount = Number(item.discount || 0);
     const taxPercentage = Number(item.tax_percentage || 0);
 
-    // Calculate taxable amount: (Qty * Price Before Tax) - Item Discount
-    const taxableAmount = qty * priceBeforeTax - itemDiscount;
+    // Since discount is per unit, calculate net price per unit first
+    const netPricePerUnit = priceBeforeTax - itemDiscount;
 
-    // Apply tax to the taxable amount
-    const taxAmount = (taxableAmount * taxPercentage) / 100;
+    // Apply tax to the net price per unit, then multiply by quantity
+    const taxPerUnit = (netPricePerUnit * taxPercentage) / 100;
+    const totalTaxForItem = taxPerUnit * qty;
 
-    return sum + taxAmount;
+    return sum + totalTaxForItem;
   }, 0);
 
-  // 5. GRAND TOTAL
-  // Grand Total: Total + Tax + Expense
   const grandTotal = total + totalTax + watchedExpense;
   const remaining = grandTotal - (totalPaid + totalReturn);
 
-  // 6. FIXED: Additional Discount Percentage should be based on (subTotalBeforeTax - totalItemDiscounts)
   const baseForAdditionalDiscount = subTotalBeforeTax - totalItemDiscounts;
-  const additionalDiscountPercentage =
+  const additionalDiscountPercentage = roundToPrecision(
     baseForAdditionalDiscount > 0
       ? (watchedAdditionalDiscount / baseForAdditionalDiscount) * 100
-      : 0;
-
+      : 0
+  );
   const handleAddItem = (pickedItem: Item) => {
     const existingItemIndex = fields.findIndex(
       (field) => field.item_id === pickedItem.id
@@ -1010,10 +1008,20 @@ export default function PembelianForm({
                           <span className="text-sm">
                             {(
                               (Number(
-                                form.watch(`items.${index}.unit_price`)
+                                form.watch(`items.${index}.price_before_tax`)
                               ) || 0) -
                               (Number(form.watch(`items.${index}.discount`)) ||
-                                0)
+                                0) +
+                              ((Number(
+                                form.watch(`items.${index}.price_before_tax`)
+                              ) || 0) -
+                                (Number(
+                                  form.watch(`items.${index}.discount`)
+                                ) || 0)) *
+                                ((Number(
+                                  form.watch(`items.${index}.tax_percentage`)
+                                ) || 0) /
+                                  100)
                             ).toFixed(2)}
                           </span>
                         </TableCell>
@@ -1021,11 +1029,22 @@ export default function PembelianForm({
                           <span className="text-sm font-medium">
                             {(
                               (Number(form.watch(`items.${index}.qty`)) || 0) *
+                              ((Number(
+                                form.watch(`items.${index}.price_before_tax`)
+                              ) || 0) -
                                 (Number(
-                                  form.watch(`items.${index}.unit_price`)
+                                  form.watch(`items.${index}.discount`)
+                                ) || 0) +
+                                ((Number(
+                                  form.watch(`items.${index}.price_before_tax`)
                                 ) || 0) -
-                              (Number(form.watch(`items.${index}.discount`)) ||
-                                0)
+                                  (Number(
+                                    form.watch(`items.${index}.discount`)
+                                  ) || 0)) *
+                                  ((Number(
+                                    form.watch(`items.${index}.tax_percentage`)
+                                  ) || 0) /
+                                    100))
                             ).toFixed(2)}
                           </span>
                         </TableCell>
@@ -1094,23 +1113,23 @@ export default function PembelianForm({
                           }}
                           disabled={isViewMode}
                           className="w-[70%] text-right"
-                          placeholder="0.00"
+                          placeholder="0"
                           min="0"
                           max="100"
-                          step="0.01"
-                          value={additionalDiscountPercentage.toFixed(2)}
+                          value={additionalDiscountPercentage.toString()}
                           onChange={(e) => {
                             const percentage = Number(e.target.value) || 0;
-                            const amount =
-                              (subTotalBeforeTax * percentage) / 100;
-                            form.setValue(
-                              "additional_discount",
-                              Math.round(amount * 100) / 100,
-                              {
-                                shouldDirty: true,
-                                shouldValidate: true,
-                              }
+                            const baseForAdditionalDiscount =
+                              subTotalBeforeTax - totalItemDiscounts;
+
+                            const amount = roundToPrecision(
+                              (baseForAdditionalDiscount * percentage) / 100
                             );
+
+                            form.setValue("additional_discount", amount, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            });
                           }}
                         />
                       </div>
@@ -1131,7 +1150,6 @@ export default function PembelianForm({
                                   e.preventDefault();
                                 }
                               }}
-                              step="0.01"
                               {...field}
                               onChange={(e) =>
                                 field.onChange(Number(e.target.value))
@@ -1172,7 +1190,7 @@ export default function PembelianForm({
                         <Input
                           disabled={isViewMode}
                           type="number"
-                          className="w-[70%] text-right"
+                          className="w-[40%] text-right"
                           {...field}
                           onChange={(e) =>
                             field.onChange(Number(e.target.value))
@@ -1188,7 +1206,7 @@ export default function PembelianForm({
                   </div>
                   <div className="flex justify-between border-t pt-2 font-semibold">
                     <span>Remaining</span>
-                    <span>{formatMoney(grandTotal)}</span>
+                    <span>{formatMoney(remaining)}</span>
                   </div>
                 </div>
               </div>

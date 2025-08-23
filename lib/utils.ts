@@ -31,3 +31,8 @@ export const formatMoney = (
 
   return new Intl.NumberFormat(locale, options).format(numberAmount);
 };
+
+export const roundToPrecision = (num: any, precision = 2) => {
+  const multiplier = Math.pow(10, precision);
+  return Math.round(num * multiplier) / multiplier;
+};
