@@ -363,7 +363,7 @@ export default function PenjualanForm({
       };
 
       let resultId: any;
-      if (isEditMode && penjualanId) {
+      if ((isEditMode || isViewMode) && penjualanId) {
         const updateResult = await penjualanService.updatePenjualan(
           penjualanId,
           apiPayload as PenjualanUpdate
@@ -1138,6 +1138,13 @@ export default function PenjualanForm({
               >
                 <RefreshCw />
                 Rollback Pembelian
+              </Button>
+              <Button
+                type="button"
+                onClick={onDraftClick}
+                disabled={isSubmitting}
+              >
+                Simpan
               </Button>
             </div>
           )}

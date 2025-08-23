@@ -17,6 +17,7 @@ export enum StatusPembelianEnum {
 
 export interface PembelianItem {
   id?: number;
+  code?: string;
   item_id: string;
   item_name?: string;
   item_sku?: string;
@@ -24,9 +25,11 @@ export interface PembelianItem {
   satuan_name?: string;
   vendor_name?: string;
   qty: number;
+  discount: number;
   unit_price: number;
   total_price: number;
   tax_percentage?: number;
+  item_rel: any;
 }
 
 export interface Attachment {
@@ -42,13 +45,15 @@ export interface Pembelian {
   no_pembelian: string;
   status_pembayaran: StatusPembayaranEnum;
   status_pembelian: StatusPembelianEnum;
-  discount: number;
+
   additional_discount: number;
   expense: number;
   sales_date: string;
   sales_due_date: string;
   total_qty: number;
   total_price: number;
+  total_paid?: number;
+  total_return?: number;
   warehouse_id?: number;
   vendor_id?: string;
   top_id?: number;
@@ -57,7 +62,7 @@ export interface Pembelian {
   top_name?: string;
   currency_name?: string;
   created_at: string;
-  pembelian_items: PembelianItem[];
+  pembelian_items: any[];
   attachments: Attachment[];
 }
 
@@ -83,14 +88,15 @@ export interface PembelianCreate {
   top_id?: number;
   sales_date: string;
   sales_due_date?: string;
-  discount?: number;
+
   additional_discount?: number;
   expense?: number;
   items: Array<{
     item_id: number;
     qty: number;
-    unit_price: number; // after tax (ground truth)
-    tax_percentage: number; // ✨ add this
+    unit_price: number;
+    tax_percentage: number;
+    discount: number;
   }>;
 }
 
@@ -101,7 +107,7 @@ export interface PembelianUpdate {
   top_id?: number;
   sales_date?: string;
   sales_due_date?: string;
-  discount?: number;
+
   additional_discount?: number;
   expense?: number;
   items?: Array<{
@@ -109,6 +115,7 @@ export interface PembelianUpdate {
     qty?: number;
     unit_price?: number;
     tax_percentage?: number;
+    discount?: number;
   }>;
 }
 
@@ -119,7 +126,6 @@ export interface PembelianStatusUpdate {
 
 export interface TotalsResponse {
   subtotal: number;
-  discount: number;
   additional_discount: number;
   expense: number;
   total_qty: number;
@@ -181,6 +187,7 @@ class PembelianService {
       params.append("status_pembelian", filters.status_pembelian);
     if (filters.status_pembayaran)
       params.append("status_pembayaran", filters.status_pembayaran);
+    if (filters.search_key) params.append("search_key", filters.search_key);
     if (filters.vendor_id) params.append("vendor_id", filters.vendor_id);
     if (filters.warehouse_id)
       params.append("warehouse_id", filters.warehouse_id.toString());
@@ -320,7 +327,7 @@ class PembelianService {
     attachmentId: number
   ): Promise<SuccessResponse> {
     const response = await fetch(
-      `${this.baseUrl}/${pembelianId}/attachments/${attachmentId}`,
+      `${API_BASE_URL}/upload/attachments/${attachmentId}`,
       {
         method: "DELETE",
         headers: this.getAuthHeaders(),

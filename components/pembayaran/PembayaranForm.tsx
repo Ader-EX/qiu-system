@@ -201,7 +201,7 @@ export default function PembayaranForm({
               customer_name: ref.customer_name,
               vendor_name: ref.vendor_name,
             };
-            console.log("Mapped reference:", mappedRef);
+
             return mappedRef;
           }) || [];
 

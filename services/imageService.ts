@@ -110,7 +110,7 @@ class ImageService {
 
   async deleteAttachment(attachmentId: number): Promise<void> {
     const response = await fetch(
-      `${this.baseUrl}/attachments/${attachmentId}`,
+      `${this.baseUrl}/upload/attachments/${attachmentId}`,
       {
         method: "DELETE",
         headers: this.getAuthHeaders(),

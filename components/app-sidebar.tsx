@@ -11,6 +11,7 @@ import {
   FileText,
   Settings,
   CircleDollarSign,
+  HandCoins,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -57,6 +58,11 @@ const data = {
       title: "Pembayaran",
       url: "/pembayaran",
       icon: CircleDollarSign,
+    },
+    {
+      title: "Pengembalian",
+      url: "/pengembalian",
+      icon: HandCoins,
     },
     {
       title: "Vendor",
