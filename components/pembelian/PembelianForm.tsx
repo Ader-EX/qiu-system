@@ -263,16 +263,12 @@ export default function PembelianForm({
   // Tax: sum((Qty*Harga Satuan)*pajak%))
   // But we need to apply tax to the discounted amount per item
   const totalTax = watchedItems.reduce((sum, item) => {
-    const qty = Number(item.qty || 0);
     const priceBeforeTax = Number(item.price_before_tax || 0);
-    const itemDiscount = Number(item.discount || 0);
     const taxPercentage = Number(item.tax_percentage || 0);
+    const qty = Number(item.qty || 0);
 
-    // Since discount is per unit, calculate net price per unit first
-    const netPricePerUnit = priceBeforeTax - itemDiscount;
-
-    // Apply tax to the net price per unit, then multiply by quantity
-    const taxPerUnit = (netPricePerUnit * taxPercentage) / 100;
+    // Tax calculated on original price, then multiplied by quantity
+    const taxPerUnit = (priceBeforeTax * taxPercentage) / 100;
     const totalTaxForItem = taxPerUnit * qty;
 
     return sum + totalTaxForItem;
@@ -1005,47 +1001,69 @@ export default function PembelianForm({
                           />
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">
-                            {(
-                              (Number(
-                                form.watch(`items.${index}.price_before_tax`)
-                              ) || 0) -
-                              (Number(form.watch(`items.${index}.discount`)) ||
-                                0) +
-                              ((Number(
-                                form.watch(`items.${index}.price_before_tax`)
-                              ) || 0) -
-                                (Number(
-                                  form.watch(`items.${index}.discount`)
-                                ) || 0)) *
-                                ((Number(
-                                  form.watch(`items.${index}.tax_percentage`)
-                                ) || 0) /
-                                  100)
-                            ).toFixed(2)}
-                          </span>
+                          <TableCell>
+                            <span className="text-sm">
+                              {(() => {
+                                const priceBeforeTax =
+                                  Number(
+                                    form.watch(
+                                      `items.${index}.price_before_tax`
+                                    )
+                                  ) || 0;
+                                const discount =
+                                  Number(
+                                    form.watch(`items.${index}.discount`)
+                                  ) || 0;
+                                const taxPercentage =
+                                  Number(
+                                    form.watch(`items.${index}.tax_percentage`)
+                                  ) || 0;
+
+                                // Calculate tax on original price before discount
+                                const taxAmount =
+                                  (priceBeforeTax * taxPercentage) / 100;
+
+                                // Final price = original price + tax - discount
+                                const finalPrice =
+                                  priceBeforeTax + taxAmount - discount;
+
+                                return Math.max(0, finalPrice).toFixed(2);
+                              })()}
+                            </span>
+                          </TableCell>
                         </TableCell>
                         <TableCell>
                           <span className="text-sm font-medium">
-                            {(
-                              (Number(form.watch(`items.${index}.qty`)) || 0) *
-                              ((Number(
-                                form.watch(`items.${index}.price_before_tax`)
-                              ) || 0) -
-                                (Number(
-                                  form.watch(`items.${index}.discount`)
-                                ) || 0) +
-                                ((Number(
+                            {(() => {
+                              const qty =
+                                Number(form.watch(`items.${index}.qty`)) || 0;
+                              const priceBeforeTax =
+                                Number(
                                   form.watch(`items.${index}.price_before_tax`)
-                                ) || 0) -
-                                  (Number(
-                                    form.watch(`items.${index}.discount`)
-                                  ) || 0)) *
-                                  ((Number(
-                                    form.watch(`items.${index}.tax_percentage`)
-                                  ) || 0) /
-                                    100))
-                            ).toFixed(2)}
+                                ) || 0;
+                              const discount =
+                                Number(form.watch(`items.${index}.discount`)) ||
+                                0;
+                              const taxPercentage =
+                                Number(
+                                  form.watch(`items.${index}.tax_percentage`)
+                                ) || 0;
+
+                              // Calculate tax on original price before discount
+                              const taxAmount =
+                                (priceBeforeTax * taxPercentage) / 100;
+
+                              // Final price per unit = original price + tax - discount
+                              const finalPricePerUnit = Math.max(
+                                0,
+                                priceBeforeTax + taxAmount - discount
+                              );
+
+                              // Sub total = quantity × final price per unit
+                              const subTotal = qty * finalPricePerUnit;
+
+                              return subTotal.toFixed(2);
+                            })()}
                           </span>
                         </TableCell>
                         <TableCell>

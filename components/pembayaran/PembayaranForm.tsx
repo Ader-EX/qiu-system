@@ -195,7 +195,10 @@ export default function PembayaranForm({
               sales_date: ref.sales_date,
               sales_due_date: ref.sales_due_date,
               total_price: parseFloat(ref.total_price || "0"),
-              total_outstanding: parseFloat(ref.total_price || "0"), // You might need to calculate this differently
+              total_outstanding:
+                parseFloat(ref.total_price || "0") -
+                (parseFloat(detail.total_paid || "0") +
+                  parseFloat(detail.total_return || "0")),
               user_paid_amount: parseFloat(detail.total_paid || "0"),
               warehouse_name: ref.warehouse_name,
               customer_name: ref.customer_name,

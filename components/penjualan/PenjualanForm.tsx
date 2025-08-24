@@ -715,6 +715,11 @@ export default function PenjualanForm({
                     <Input
                       type="number"
                       {...field}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                        }
+                      }}
                       disabled={isViewMode}
                       onChange={(e) => field.onChange(Number(e.target.value))}
                     />
@@ -864,6 +869,11 @@ export default function PenjualanForm({
                               <Input
                                 disabled={isViewMode}
                                 type="number"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                  }
+                                }}
                                 className="w-20"
                                 {...field}
                                 onChange={(e) =>
@@ -881,6 +891,11 @@ export default function PenjualanForm({
                               <Input
                                 disabled={isViewMode}
                                 type="number"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                  }
+                                }}
                                 className="w-32"
                                 {...field}
                                 onChange={(e) =>
