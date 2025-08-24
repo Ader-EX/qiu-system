@@ -1001,36 +1001,31 @@ export default function PembelianForm({
                           />
                         </TableCell>
                         <TableCell>
-                          <TableCell>
-                            <span className="text-sm">
-                              {(() => {
-                                const priceBeforeTax =
-                                  Number(
-                                    form.watch(
-                                      `items.${index}.price_before_tax`
-                                    )
-                                  ) || 0;
-                                const discount =
-                                  Number(
-                                    form.watch(`items.${index}.discount`)
-                                  ) || 0;
-                                const taxPercentage =
-                                  Number(
-                                    form.watch(`items.${index}.tax_percentage`)
-                                  ) || 0;
+                          <span className="text-sm">
+                            {(() => {
+                              const priceBeforeTax =
+                                Number(
+                                  form.watch(`items.${index}.price_before_tax`)
+                                ) || 0;
+                              const discount =
+                                Number(form.watch(`items.${index}.discount`)) ||
+                                0;
+                              const taxPercentage =
+                                Number(
+                                  form.watch(`items.${index}.tax_percentage`)
+                                ) || 0;
 
-                                // Calculate tax on original price before discount
-                                const taxAmount =
-                                  (priceBeforeTax * taxPercentage) / 100;
+                              // Calculate tax on original price before discount
+                              const taxAmount =
+                                (priceBeforeTax * taxPercentage) / 100;
 
-                                // Final price = original price + tax - discount
-                                const finalPrice =
-                                  priceBeforeTax + taxAmount - discount;
+                              // Final price = original price + tax - discount
+                              const finalPrice =
+                                priceBeforeTax + taxAmount - discount;
 
-                                return Math.max(0, finalPrice).toFixed(2);
-                              })()}
-                            </span>
-                          </TableCell>
+                              return Math.max(0, finalPrice).toFixed(2);
+                            })()}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <span className="text-sm font-medium">

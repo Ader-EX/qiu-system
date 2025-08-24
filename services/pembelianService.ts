@@ -12,6 +12,7 @@ export enum StatusPembayaranEnum {
 export enum StatusPembelianEnum {
   DRAFT = "DRAFT",
   ACTIVE = "ACTIVE",
+  PROCESSED = "PROCESSED",
   COMPLETED = "COMPLETED",
 }
 
@@ -73,6 +74,7 @@ export interface PembelianListResponse {
   status_pembelian: StatusPembelianEnum;
   sales_date: string;
   total_paid: number;
+  total_return: number;
   total_qty: number;
   total_price: number;
   vendor_name?: string;

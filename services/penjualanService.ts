@@ -20,6 +20,7 @@ export interface PenjualanItem {
   item_id: string;
   item_name?: string;
   item_sku?: string;
+  discount: number;
   item_type?: string;
   satuan_name?: string;
   customer_name?: string;
@@ -27,6 +28,7 @@ export interface PenjualanItem {
   unit_price: number;
   total_price: number;
   tax_percentage?: number;
+  item_rel?: any;
 }
 
 export interface Attachment {
@@ -42,13 +44,15 @@ export interface Penjualan {
   no_penjualan: string;
   status_pembayaran: StatusPembayaranEnum;
   status_penjualan: StatusPenjualanEnum;
-  discount: number;
+
   additional_discount: number;
   expense: number;
   sales_date: string;
   sales_due_date: string;
   total_qty: number;
   total_price: number;
+  total_paid: number;
+  total_return: number;
   warehouse_id?: number;
   customer_id?: string;
   top_id?: number;

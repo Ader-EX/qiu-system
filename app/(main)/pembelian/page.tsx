@@ -76,6 +76,8 @@ export default function PembelianPage() {
         size: pageSize,
       });
 
+      console.log(response.data);
+
       setPembelians(response.data);
       setTotalItems(response.total);
     } catch (err) {
@@ -147,6 +149,10 @@ export default function PembelianPage() {
         variant: "okay" as const,
         label: "AKTIF",
       },
+      [StatusPembelianEnum.PROCESSED]: {
+        variant: "okay" as const,
+        label: "PROCESSED",
+      },
       [StatusPembelianEnum.COMPLETED]: {
         variant: "okay" as const,
         label: "Selesai",
@@ -164,11 +170,11 @@ export default function PembelianPage() {
         label: "Unpaid",
       },
       [StatusPembayaranEnum.HALF_PAID]: {
-        variant: "secondary" as const,
+        variant: "default" as const,
         label: "Half Paid",
       },
       [StatusPembayaranEnum.PAID]: {
-        variant: "default" as const,
+        variant: "okay" as const,
         label: "Completed",
       },
     };
@@ -304,7 +310,13 @@ export default function PembelianPage() {
                   <TableCell>
                     {formatMoney(pembelian.total_price ?? 0)}
                   </TableCell>
-                  <TableCell>{formatMoney(pembelian.total_paid)}</TableCell>
+                  <TableCell>
+                    {formatMoney(
+                      (Number(pembelian.total_price) || 0) -
+                        ((Number(pembelian.total_paid) || 0) +
+                          (Number(pembelian.total_return) || 0))
+                    )}
+                  </TableCell>
 
                   <TableCell>
                     {getStatusBadge(pembelian.status_pembelian)}

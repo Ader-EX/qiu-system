@@ -13,7 +13,7 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
-import { cn, formatMoney } from "@/lib/utils";
+import { cn, formatMoney, roundToPrecision } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +60,7 @@ import {
   penjualanService,
   PenjualanUpdate,
 } from "@/services/penjualanService";
+import { usePrintInvoice } from "@/hooks/usePrintInvoice";
 
 const FormSection = ({
   title,
@@ -76,7 +77,7 @@ const FormSection = ({
   </div>
 );
 
-// Unified Zod schema for ADD, EDIT, and VIEW
+// Unified Zod schema for both ADD and EDIT
 const penjualanSchema = z.object({
   no_penjualan: z.string().optional(),
   warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
@@ -84,7 +85,6 @@ const penjualanSchema = z.object({
   top_id: z.number().min(1, "Jenis Pembayaran harus dipilih"),
   sales_date: z.date({ required_error: "Sales Date harus diisi" }),
   sales_due_date: z.date({ required_error: "Sales Due Date harus diisi" }),
-  discount: z.number().min(0, "Discount tidak boleh negatif").default(0),
 
   additional_discount: z
     .number()
@@ -104,6 +104,7 @@ const penjualanSchema = z.object({
         price_before_tax: z
           .number()
           .min(0, "Price before tax tidak boleh negatif"),
+        discount: z.number().min(0, "Discount tidak boleh negatif").default(0),
       })
     )
     .min(1, "Minimal harus ada 1 item"),
@@ -121,14 +122,17 @@ interface PenjualanFormProps {
 
 export default function PenjualanForm({
   mode,
-  penjualanId: penjualanId,
+  penjualanId,
 }: PenjualanFormProps) {
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<Item[]>([]);
+  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  const [totalPaid, setTotalPaid] = useState<number>(0);
+  const [totalReturn, setTotalReturn] = useState<number>(0);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>(
     []
   );
+  const [isActive, setIsActive] = useState<boolean>(true);
 
   const router = useRouter();
 
@@ -138,14 +142,14 @@ export default function PenjualanForm({
   const form = useForm<PenjualanFormData>({
     resolver: zodResolver(penjualanSchema),
     defaultValues: {
-      no_penjualan: "-",
+      no_penjualan: isEditMode ? "" : `-`,
       warehouse_id: undefined,
       customer_id: "",
       top_id: undefined,
-      discount: 0,
+
       additional_discount: 0,
       expense: 0,
-      items: [],
+      items: [], // This will be populated in edit mode
       attachments: [],
     },
     mode: "onChange",
@@ -164,6 +168,8 @@ export default function PenjualanForm({
     control: form.control,
     name: "items",
   });
+  const { simplePrint, previewInvoice, advancedPrint, isPrinting } =
+    usePrintInvoice();
 
   useEffect(() => {
     if ((mode !== "edit" && mode !== "view") || !penjualanId) return;
@@ -175,93 +181,108 @@ export default function PenjualanForm({
         );
 
         const formData = {
-          no_penjualan: data.no_penjualan || "-",
+          no_penjualan: data.no_penjualan,
           warehouse_id: Number(data.warehouse_id),
           customer_id: String(data.customer_id),
           top_id: Number(data.top_id),
           sales_date: new Date(data.sales_date),
           sales_due_date: new Date(data.sales_due_date),
-          discount: Number(data.discount ?? 0),
+
           additional_discount: Number(data.additional_discount ?? 0),
           expense: Number(data.expense),
           status_pembayaran: data.status_pembayaran || "UNPAID",
           status_penjualan: data.status_penjualan || "DRAFT/ACTIVE",
           items: data.penjualan_items.map((item) => {
             const up = Number(item.unit_price);
-            const taxPercentage = item.tax_percentage ?? 10;
+            const tax = item.tax_percentage ?? 10;
 
             return {
               item_id: Number(item.item_id),
               qty: Number(item.qty),
               unit_price: up,
-              tax_percentage: taxPercentage,
-              price_before_tax: up / (1 + taxPercentage / 100),
+              discount: Number(item.discount ?? 0),
+              tax_percentage: tax,
+              price_before_tax: up / (1 + tax / 100),
             };
           }),
           attachments: [],
         };
+        setTotalPaid(Number(data.total_paid || 0));
+        setTotalReturn(Number(data.total_return || 0));
+        setIsActive(
+          data.status_penjualan == "ACTIVE" || data.status_penjualan == "DRAFT"
+        );
 
         setTimeout(() => {
           form.reset(formData);
         }, 100);
 
         setSelectedItems(
-          data.penjualan_items.map(
-            (item: any) =>
-              ({
-                id: item.item_id,
-                name: item.item_name,
-                price:
-                  Number(item.unit_price) /
-                  (1 + (item.tax_percentage ?? 10) / 100),
-              } as Item)
-          )
+          data.penjualan_items.map((item) => ({
+            id: Number(item.item_id), // Make sure this matches the form item_id type
+            code: item.item_rel?.code ?? "",
+            name: item.item_name ?? item.item_rel?.name ?? "",
+            price:
+              Number(item.unit_price) / (1 + (item.tax_percentage ?? 10) / 100),
+          }))
         );
 
         setExistingAttachments(data.attachments || []);
       } catch (error: any) {
-        toast.error(error.message || "Failed to load penjualan data");
+        toast.error(error.message || "Failed to load sales data");
       }
     };
 
     loadPenjualanData();
   }, [isEditMode, isViewMode, penjualanId]);
-
   const watchedItems = form.watch("items");
-  const watchedDiscount = Number(form.watch("discount") || 0);
   const watchedAdditionalDiscount = Number(
     form.watch("additional_discount") || 0
   );
   const watchedExpense = Number(form.watch("expense") || 0);
 
+  // 1. Sub Total (before tax, before any discounts)
   const subTotalBeforeTax = watchedItems.reduce(
     (sum, item) =>
       sum + Number(item.qty || 0) * Number(item.price_before_tax || 0),
     0
   );
 
-  const subTotalAfterTax = watchedItems.reduce(
-    (sum, item) => sum + Number(item.qty || 0) * Number(item.unit_price || 0),
+  // 2. Total Item Discounts
+  const totalItemDiscounts = watchedItems.reduce(
+    (sum, item) => sum + Number(item.qty || 0) * Number(item.discount || 0),
     0
   );
 
-  const totalTax = subTotalAfterTax - subTotalBeforeTax;
+  // 3. Total (after item discounts, before additional discount, before tax)
+  // Total: Sum(sub total) - sum(discount) - Additional discount
+  const total =
+    subTotalBeforeTax - totalItemDiscounts - watchedAdditionalDiscount;
 
-  const additionalDiscountPercentage =
-    subTotalBeforeTax > 0
-      ? (watchedAdditionalDiscount / subTotalBeforeTax) * 100
-      : 0;
+  // 4. TAX CALCULATION - FIXED
+  // Tax: sum((Qty*Harga Satuan)*pajak%))
+  // But we need to apply tax to the discounted amount per item
+  const totalTax = watchedItems.reduce((sum, item) => {
+    const priceBeforeTax = Number(item.price_before_tax || 0);
+    const taxPercentage = Number(item.tax_percentage || 0);
+    const qty = Number(item.qty || 0);
 
-  const additionalDiscountAmount = watchedAdditionalDiscount;
+    // Tax calculated on original price, then multiplied by quantity
+    const taxPerUnit = (priceBeforeTax * taxPercentage) / 100;
+    const totalTaxForItem = taxPerUnit * qty;
 
-  const discountAmount = (subTotalBeforeTax * watchedDiscount) / 100;
-  const grandTotal =
-    subTotalBeforeTax -
-    discountAmount -
-    additionalDiscountAmount +
-    totalTax +
-    watchedExpense;
+    return sum + totalTaxForItem;
+  }, 0);
 
+  const grandTotal = total + totalTax + watchedExpense;
+  const remaining = grandTotal - (totalPaid + totalReturn);
+
+  const baseForAdditionalDiscount = subTotalBeforeTax - totalItemDiscounts;
+  const additionalDiscountPercentage = roundToPrecision(
+    baseForAdditionalDiscount > 0
+      ? (watchedAdditionalDiscount / baseForAdditionalDiscount) * 100
+      : 0
+  );
   const handleAddItem = (pickedItem: Item) => {
     const existingItemIndex = fields.findIndex(
       (field) => field.item_id === pickedItem.id
@@ -272,9 +293,8 @@ export default function PenjualanForm({
       form.setValue(`items.${existingItemIndex}.qty`, currentQty + 1);
     } else {
       const priceBeforeTax = pickedItem.price;
-      const taxPercentage = 10; // Default 10%
-      const taxAmount = (priceBeforeTax * taxPercentage) / 100;
-      const unitPriceWithTax = priceBeforeTax + taxAmount;
+      const taxPercentage = 11;
+      const unitPriceWithTax = priceBeforeTax * (1 + taxPercentage / 100);
 
       setSelectedItems([...selectedItems, pickedItem]);
 
@@ -282,6 +302,7 @@ export default function PenjualanForm({
         item_id: pickedItem.id,
         qty: 1,
         unit_price: unitPriceWithTax,
+        discount: 0,
         tax_percentage: taxPercentage,
         price_before_tax: priceBeforeTax,
       });
@@ -294,30 +315,19 @@ export default function PenjualanForm({
     newSelectedItems.splice(index, 1);
     setSelectedItems(newSelectedItems);
   };
-
-  const handleTaxChange = (index: number, newTaxPercentage: number) => {
-    const priceBeforeTax = form.getValues(`items.${index}.price_before_tax`);
-    const taxAmount = (priceBeforeTax * newTaxPercentage) / 100;
-    const newUnitPrice = priceBeforeTax + taxAmount;
-
-    form.setValue(`items.${index}.tax_percentage`, newTaxPercentage);
-    form.setValue(`items.${index}.unit_price`, newUnitPrice);
-  };
-
   const handlePriceBeforeTaxChange = (
     index: number,
     newPriceBeforeTax: number
   ) => {
-    const taxPercentage = form.getValues(`items.${index}.tax_percentage`);
-    const taxAmount = (newPriceBeforeTax * taxPercentage) / 100;
-    const newUnitPrice = newPriceBeforeTax + taxAmount;
+    const taxPercentage = form.getValues(`items.${index}.tax_percentage`) || 0;
+    const newUnitPrice = newPriceBeforeTax * (1 + taxPercentage / 100);
 
     form.setValue(`items.${index}.price_before_tax`, newPriceBeforeTax);
     form.setValue(`items.${index}.unit_price`, newUnitPrice);
   };
 
   const handleRemoveExistingAttachment = async (attachmentId: number) => {
-    if (!isEditMode || !penjualanId) return;
+    if (!penjualanId) return;
 
     try {
       await penjualanService.deleteAttachment(penjualanId, attachmentId);
@@ -345,25 +355,28 @@ export default function PenjualanForm({
       }
 
       const apiPayload = {
-        no_penjualan: "",
+        no_penjualan: data.no_penjualan || `-`,
         warehouse_id: Number(data.warehouse_id),
         customer_id: data.customer_id,
         top_id: Number(data.top_id),
         sales_date: data.sales_date.toISOString(),
         sales_due_date: data.sales_due_date.toISOString(),
-        discount: Number(data.discount || 0),
+
         additional_discount: Number(data.additional_discount || 0),
         expense: Number(data.expense || 0),
+
         items: data.items.map((item) => ({
           item_id: Number(item.item_id),
+
           qty: Number(item.qty),
           unit_price: Number(item.unit_price),
           tax_percentage: Number(item.tax_percentage),
+          discount: Number(item.discount || 0),
         })),
       };
-
       let resultId: any;
-      if ((isEditMode || isViewMode) && penjualanId) {
+
+      if ((isViewMode || isEditMode) && penjualanId) {
         const updateResult = await penjualanService.updatePenjualan(
           penjualanId,
           apiPayload as PenjualanUpdate
@@ -373,15 +386,19 @@ export default function PenjualanForm({
 
         await handleAttachmentUpload(data.attachments, resultId);
 
-        toast.success("Penjualan berhasil terupdate.");
+        toast.success("Sales successfully updated.");
         if (finalize) {
           await penjualanService.finalizePenjualan(resultId);
         }
         router.back();
       } else {
         const result = await penjualanService.createPenjualan(apiPayload);
+
+        console.log("Create result:", result);
         resultId = result.id;
         if (!resultId) throw new Error("Failed to get ID from response.");
+
+        // Handle attachment upload for CREATE mode
         await handleAttachmentUpload(data.attachments, resultId);
 
         if (finalize) {
@@ -401,51 +418,74 @@ export default function PenjualanForm({
 
   const handleAttachmentUpload = async (attachments: any, parentId: number) => {
     if (!attachments) {
+      console.log("No attachments to upload");
       return;
     }
 
     try {
+      // Handle different attachment data structures
       let filesToUpload: File[] = [];
 
       if (attachments instanceof File) {
+        // Single file
         filesToUpload = [attachments];
       } else if (attachments instanceof FileList) {
+        // FileList from input
         filesToUpload = Array.from(attachments);
       } else if (Array.isArray(attachments)) {
+        // Array of files
         filesToUpload = attachments.filter((file) => file instanceof File);
       } else {
+        console.warn("Unsupported attachment format:", attachments);
         return;
       }
 
-      const uploadPromises = filesToUpload.map(async (file) => {
+      console.log("Files to upload:", filesToUpload);
+
+      // Upload each file
+      const uploadPromises = filesToUpload.map(async (file, index) => {
         try {
+          console.log(`Uploading file ${index + 1}:`, file.name);
+
           const validationError = imageService.validateFile(file);
           if (validationError) {
             throw new Error(`File "${file.name}": ${validationError}`);
           }
-          return await imageService.uploadImage({
+
+          const uploadResult = await imageService.uploadImage({
             file: file,
             parent_type: ParentType.PENJUALANS,
             parent_id: parentId,
           });
+
+          console.log(`Upload result for ${file.name}:`, uploadResult);
+          return uploadResult;
         } catch (error: any) {
+          console.error(`Error uploading file ${file.name}:`, error);
+          // Instead of throwing, we'll collect the error
           return { error: error.detail, fileName: file.name };
         }
       });
 
-      await Promise.allSettled(uploadPromises);
+      const uploadResults = await Promise.allSettled(uploadPromises);
     } catch (error: any) {
-      toast.error(`Attachment upload failed: ${error.message}`);
+      console.error("Attachment upload error:", error);
+      toast.error(`Attachment upload failed: ${error.detail}`);
     }
   };
 
   const handleExistingAttachments = async (penjualanId: string) => {
     try {
-      return await imageService.getAttachmentsByParent(
+      console.log("Fetching existing attachments for penjualan:", penjualanId);
+      const existingAttachments = await imageService.getAttachmentsByParent(
         ParentType.PENJUALANS,
         penjualanId
       );
+
+      console.log("Existing attachments:", existingAttachments);
+      return existingAttachments;
     } catch (error) {
+      console.error("Error fetching existing attachments:", error);
       return [];
     }
   };
@@ -643,6 +683,7 @@ export default function PenjualanForm({
                     value={field.value ?? undefined}
                     preloadValue={field.value}
                     onChange={(value) => {
+                      console.log("[Warehouse] Selected value:", value);
                       const numValue = Number(value);
                       field.onChange(numValue);
                     }}
@@ -652,7 +693,7 @@ export default function PenjualanForm({
                         const response =
                           await warehouseService.getAllWarehouses({
                             skip: 0,
-                            limit: 10,
+                            limit: 10, // Increase limit
                             search: search,
                           });
                         return response;
@@ -682,6 +723,7 @@ export default function PenjualanForm({
                     preloadValue={field.value}
                     disabled={isViewMode}
                     onChange={(value) => {
+                      console.log("[Payment] Selected value:", value);
                       const numValue = Number(value);
                       field.onChange(numValue);
                     }}
@@ -690,7 +732,7 @@ export default function PenjualanForm({
                         const response =
                           await jenisPembayaranService.getAllMataUang({
                             skip: 0,
-                            limit: 10,
+                            limit: 10, // Increase limit
                             search: search,
                           });
                         return response;
@@ -700,30 +742,6 @@ export default function PenjualanForm({
                     }}
                     renderLabel={(item: any) => `${item.symbol} - ${item.name}`}
                   />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="discount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Discount (%)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                        }
-                      }}
-                      disabled={isViewMode}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -771,18 +789,15 @@ export default function PenjualanForm({
                             {att.filename}
                           </a>
                         </div>
-                        {isEditMode && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              handleRemoveExistingAttachment(att.id)
-                            }
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveExistingAttachment(att.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -794,6 +809,7 @@ export default function PenjualanForm({
               </div>
             )}
 
+            {/* Upload new attachments */}
             <div className="md:col-span-2">
               <FormField
                 control={form.control}
@@ -805,11 +821,11 @@ export default function PenjualanForm({
                     </FormLabel>
                     <FormControl>
                       <FileUploadButton
+                        disabled={!isActive}
                         value={field.value || []}
                         onChangeAction={field.onChange}
                         maxFiles={3}
                         maxSizeMB={4}
-                        disabled={isViewMode}
                         accept={{ "application/pdf": [".pdf"] }}
                       />
                     </FormControl>
@@ -821,10 +837,15 @@ export default function PenjualanForm({
           </FormSection>
 
           {/* Item Details */}
+
           <div className="flex w-full justify-between items-center">
             <CardTitle className="text-lg">Detail Item</CardTitle>
             {!isViewMode && (
-              <Button type="button" onClick={() => setIsItemDialogOpen(true)}>
+              <Button
+                type="button"
+                onClick={() => setIsItemDialogOpen(true)}
+                className=""
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Tambah Item
               </Button>
@@ -845,6 +866,7 @@ export default function PenjualanForm({
                     <TableHead>Qty</TableHead>
                     <TableHead>Harga Sebelum Pajak</TableHead>
                     <TableHead>Pajak (%)</TableHead>
+                    <TableHead>Discount</TableHead>
                     <TableHead>Harga Setelah Pajak</TableHead>
                     <TableHead>Sub Total</TableHead>
                     <TableHead></TableHead>
@@ -853,11 +875,15 @@ export default function PenjualanForm({
                 <TableBody>
                   {fields.map((field, index) => {
                     const item = watchedItems[index];
-                    const subTotal = (item?.qty || 0) * (item?.unit_price || 0);
+                    const subTotal =
+                      (item?.qty || 0) * (item?.unit_price || 0) -
+                      (item?.discount || 0);
 
                     return (
                       <TableRow key={field.id}>
-                        <TableCell>{selectedItems[index]?.id || ""}</TableCell>
+                        <TableCell>
+                          {selectedItems[index]?.code || ""}
+                        </TableCell>
                         <TableCell>
                           {selectedItems[index]?.name || ""}
                         </TableCell>
@@ -867,14 +893,14 @@ export default function PenjualanForm({
                             name={`items.${index}.qty`}
                             render={({ field }) => (
                               <Input
-                                disabled={isViewMode}
+                                disabled={isViewMode || false}
                                 type="number"
+                                className=""
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") {
                                     e.preventDefault();
                                   }
                                 }}
-                                className="w-20"
                                 {...field}
                                 onChange={(e) =>
                                   field.onChange(Number(e.target.value))
@@ -889,14 +915,14 @@ export default function PenjualanForm({
                             name={`items.${index}.price_before_tax`}
                             render={({ field }) => (
                               <Input
-                                disabled={isViewMode}
+                                disabled={isViewMode || false}
                                 type="number"
+                                className=""
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") {
                                     e.preventDefault();
                                   }
                                 }}
-                                className="w-32"
                                 {...field}
                                 onChange={(e) =>
                                   handlePriceBeforeTaxChange(
@@ -914,21 +940,34 @@ export default function PenjualanForm({
                             name={`items.${index}.tax_percentage`}
                             render={({ field }) => (
                               <Input
-                                disabled={isViewMode}
+                                disabled={isViewMode || false}
                                 type="number"
-                                className="w-20"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                className=""
                                 {...field}
                                 onChange={(e) => {
-                                  const val = e.target.valueAsNumber ?? 0;
-                                  field.onChange(val);
-                                  const before =
+                                  const newTaxPercentage =
+                                    Number(e.target.value) || 0;
+                                  field.onChange(newTaxPercentage);
+
+                                  // Get current price before tax
+                                  const priceBeforeTax =
                                     form.getValues(
                                       `items.${index}.price_before_tax`
-                                    ) ?? 0;
-                                  const newUnit = before + (before * val) / 100;
+                                    ) || 0;
+
+                                  // Calculate new unit price with updated tax
+                                  const newUnitPrice =
+                                    priceBeforeTax *
+                                    (1 + newTaxPercentage / 100);
+
                                   form.setValue(
                                     `items.${index}.unit_price`,
-                                    newUnit,
+                                    newUnitPrice,
                                     {
                                       shouldDirty: true,
                                       shouldValidate: true,
@@ -940,13 +979,86 @@ export default function PenjualanForm({
                           />
                         </TableCell>
                         <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.discount`}
+                            render={({ field }) => (
+                              <Input
+                                disabled={isViewMode || false}
+                                type="number"
+                                className=""
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(Number(e.target.value))
+                                }
+                              />
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
                           <span className="text-sm">
-                            {formatMoney(item?.unit_price || 0)}
+                            {(() => {
+                              const priceBeforeTax =
+                                Number(
+                                  form.watch(`items.${index}.price_before_tax`)
+                                ) || 0;
+                              const discount =
+                                Number(form.watch(`items.${index}.discount`)) ||
+                                0;
+                              const taxPercentage =
+                                Number(
+                                  form.watch(`items.${index}.tax_percentage`)
+                                ) || 0;
+
+                              // Calculate tax on original price before discount
+                              const taxAmount =
+                                (priceBeforeTax * taxPercentage) / 100;
+
+                              // Final price = original price + tax - discount
+                              const finalPrice =
+                                priceBeforeTax + taxAmount - discount;
+
+                              return Math.max(0, finalPrice).toFixed(2);
+                            })()}
                           </span>
                         </TableCell>
                         <TableCell>
                           <span className="text-sm font-medium">
-                            {formatMoney(subTotal)}
+                            {(() => {
+                              const qty =
+                                Number(form.watch(`items.${index}.qty`)) || 0;
+                              const priceBeforeTax =
+                                Number(
+                                  form.watch(`items.${index}.price_before_tax`)
+                                ) || 0;
+                              const discount =
+                                Number(form.watch(`items.${index}.discount`)) ||
+                                0;
+                              const taxPercentage =
+                                Number(
+                                  form.watch(`items.${index}.tax_percentage`)
+                                ) || 0;
+
+                              // Calculate tax on original price before discount
+                              const taxAmount =
+                                (priceBeforeTax * taxPercentage) / 100;
+
+                              // Final price per unit = original price + tax - discount
+                              const finalPricePerUnit = Math.max(
+                                0,
+                                priceBeforeTax + taxAmount - discount
+                              );
+
+                              // Sub total = quantity × final price per unit
+                              const subTotal = qty * finalPricePerUnit;
+
+                              return subTotal.toFixed(2);
+                            })()}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -973,21 +1085,30 @@ export default function PenjualanForm({
                     <Input
                       type="text"
                       disabled={true}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                        }
+                      }}
                       className="w-[40%] text-right"
                       value={formatMoney(subTotalBeforeTax) || 0}
                     />
                   </div>
                   <div className="flex justify-between">
-                    <span className={"mr-4"}>
-                      Discount ({watchedDiscount}%)
-                    </span>
+                    <span className={"mr-4"}>Discount</span>{" "}
                     <Input
                       type="text"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                        }
+                      }}
                       disabled={true}
                       className="w-[40%] text-right"
-                      value={formatMoney(discountAmount) || 0}
+                      value={formatMoney(totalItemDiscounts) || 0}
                     />
                   </div>
+
                   <div className="flex justify-between items-start">
                     <span className="mt-2">Additional Discount</span>
                     <div className="flex flex-col space-y-2">
@@ -998,25 +1119,30 @@ export default function PenjualanForm({
                         </span>
                         <Input
                           type="number"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                            }
+                          }}
                           disabled={isViewMode}
                           className="w-[70%] text-right"
-                          placeholder="0.00"
+                          placeholder="0"
                           min="0"
                           max="100"
-                          step="0.01"
-                          value={additionalDiscountPercentage.toFixed(2)}
+                          value={additionalDiscountPercentage.toString()}
                           onChange={(e) => {
                             const percentage = Number(e.target.value) || 0;
-                            const amount =
-                              (subTotalBeforeTax * percentage) / 100;
-                            form.setValue(
-                              "additional_discount",
-                              Math.round(amount * 100) / 100,
-                              {
-                                shouldDirty: true,
-                                shouldValidate: true,
-                              }
+                            const baseForAdditionalDiscount =
+                              subTotalBeforeTax - totalItemDiscounts;
+
+                            const amount = roundToPrecision(
+                              (baseForAdditionalDiscount * percentage) / 100
                             );
+
+                            form.setValue("additional_discount", amount, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            });
                           }}
                         />
                       </div>
@@ -1032,7 +1158,11 @@ export default function PenjualanForm({
                               className="w-[70%] text-right"
                               placeholder="0"
                               min="0"
-                              step="0.01"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                }
+                              }}
                               {...field}
                               onChange={(e) =>
                                 field.onChange(Number(e.target.value))
@@ -1050,13 +1180,7 @@ export default function PenjualanForm({
                       type="text"
                       disabled={true}
                       className="w-[40%] text-right"
-                      value={
-                        formatMoney(
-                          subTotalBeforeTax +
-                            discountAmount +
-                            watchedAdditionalDiscount
-                        ) || 0
-                      }
+                      value={formatMoney(total) || 0}
                     />
                   </div>
 
@@ -1066,9 +1190,7 @@ export default function PenjualanForm({
                       type="text"
                       disabled={true}
                       className="w-[40%] text-right"
-                      value={
-                        formatMoney(subTotalAfterTax - subTotalBeforeTax) || 0
-                      }
+                      value={formatMoney(totalTax) || 0}
                     />
                   </div>
 
@@ -1081,7 +1203,7 @@ export default function PenjualanForm({
                         <Input
                           disabled={isViewMode}
                           type="number"
-                          className="w-[70%] text-right"
+                          className="w-[40%] text-right"
                           {...field}
                           onChange={(e) =>
                             field.onChange(Number(e.target.value))
@@ -1094,6 +1216,10 @@ export default function PenjualanForm({
                   <div className="flex justify-between border-t pt-2 font-semibold">
                     <span>Grand Total</span>
                     <span>{formatMoney(grandTotal)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2 font-semibold">
+                    <span>Remaining</span>
+                    <span>{formatMoney(remaining)}</span>
                   </div>
                 </div>
               </div>
@@ -1152,12 +1278,12 @@ export default function PenjualanForm({
                 }}
               >
                 <RefreshCw />
-                Rollback Pembelian
+                Rollback Penjualan
               </Button>
               <Button
                 type="button"
                 onClick={onDraftClick}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !isActive}
               >
                 Simpan
               </Button>
