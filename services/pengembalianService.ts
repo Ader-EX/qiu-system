@@ -1,40 +1,37 @@
 import Cookies from "js-cookie";
 import { PaginatedResponse } from "@/types/types";
 import { Attachment } from "@/services/pembelianService";
+import { PembayaranFilters } from "./pembayaranService";
 
-export type PembayaranType = {
+export type PengembalianType = {
   PENJUALAN: "PENJUALAN";
   PEMBELIAN: "PEMBELIAN";
 };
 
-export type PembayaranFilters = {
-  search_key?: string;
-  tipe_referensi?: string;
-  status?: string;
-  page?: number;
-  size?: number;
+export type StatusPengembalian = {
+  DRAFT: "DRAFT";
+  ACTIVE: "ACTIVE";
 };
 
-export type PembayaranDetailCreate = {
+export type PengembalianDetailCreate = {
   pembelian_id?: number;
   penjualan_id?: number;
-  total_paid: number;
+  total_return: number;
 };
 
-export type PembayaranCreate = {
+export type PengembalianCreate = {
   payment_date: string;
   reference_type: string;
   currency_id: number;
   warehouse_id: number;
-
   customer_id?: string;
   vendor_id?: string;
-  pembayaran_details: PembayaranDetailCreate[];
+  pembayaran_details: PengembalianDetailCreate[];
 };
 
-export type PembayaranUpdate = {
+export type PengembalianUpdate = {
   payment_date?: string;
-  total_paid?: number;
+  total_return?: number;
   reference_type?: string;
   currency_id?: number;
   warehouse_id?: number;
@@ -45,12 +42,12 @@ export type PembayaranUpdate = {
   vendor_id?: string;
 };
 
-export type PembayaranDetail = {
+export type PengembalianDetail = {
   id: number;
   pembayaran_id: number;
   pembelian_id?: number;
   penjualan_id?: number;
-  total_paid: string;
+  total_return: string;
   pembelian_rel?: {
     id: number;
     no_pembelian: string;
@@ -100,7 +97,7 @@ export type PembayaranDetail = {
 };
 
 // Updated to match the actual JSON response structure
-export type PembayaranResponse = {
+export type PengembalianResponse = {
   id: number;
   no_pembayaran: string;
   status: string;
@@ -128,7 +125,7 @@ export type PembayaranResponse = {
     name: string;
     symbol: string;
   };
-  pembayaran_details: PembayaranDetail[];
+  pembayaran_details: PengembalianDetail[];
   reference_numbers: any[];
   reference_partners: any[];
   updated_at?: string;
@@ -137,7 +134,7 @@ export type PembayaranResponse = {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-class PembayaranService {
+class PengembalianService {
   private baseUrl: string;
 
   constructor(destination: string = "pembayaran") {
@@ -145,9 +142,9 @@ class PembayaranService {
   }
 
   // GET ALL
-  async getAllPembayaran(
+  async getAllPengembalian(
     filters: PembayaranFilters = {}
-  ): Promise<PaginatedResponse<PembayaranResponse>> {
+  ): Promise<PaginatedResponse<PengembalianResponse>> {
     const params = new URLSearchParams();
 
     if (filters.search_key) params.append("search_key", filters.search_key);
@@ -173,7 +170,7 @@ class PembayaranService {
   }
 
   // GET BY ID
-  async getPembayaranById(id: number): Promise<PembayaranResponse> {
+  async getPengembalianById(id: number): Promise<PengembalianResponse> {
     const response = await fetch(`${this.baseUrl}/${id}`, {
       headers: this.getAuthHeaders(),
     });
@@ -194,7 +191,9 @@ class PembayaranService {
   }
 
   // CREATE
-  async createPembayaran(data: PembayaranCreate): Promise<PembayaranResponse> {
+  async createPengembalian(
+    data: PengembalianCreate
+  ): Promise<PengembalianResponse> {
     const response = await fetch(this.baseUrl, {
       method: "POST",
       headers: this.getAuthHeaders(),
@@ -212,10 +211,10 @@ class PembayaranService {
   }
 
   // UPDATE
-  async updatePembayaran(
+  async updatePengembalian(
     id: string,
-    data: PembayaranUpdate
-  ): Promise<PembayaranResponse> {
+    data: PengembalianUpdate
+  ): Promise<PengembalianResponse> {
     const response = await fetch(`${this.baseUrl}/${id}`, {
       method: "PUT",
       headers: this.getAuthHeaders(),
@@ -233,7 +232,7 @@ class PembayaranService {
   }
 
   // DELETE
-  async deletePembayaran(id: number): Promise<void> {
+  async deletePengembalian(id: number): Promise<void> {
     const response = await fetch(`${this.baseUrl}/${id}`, {
       method: "DELETE",
       headers: this.getAuthHeaders(),
@@ -248,7 +247,7 @@ class PembayaranService {
   }
 
   // FINALIZE
-  async finalizePembayaran(id: number): Promise<PembayaranResponse> {
+  async finalizePengembalian(id: number): Promise<PengembalianResponse> {
     const response = await fetch(`${this.baseUrl}/${id}/finalize`, {
       method: "PUT",
       headers: this.getAuthHeaders(),
@@ -264,7 +263,7 @@ class PembayaranService {
     return response.json();
   }
 
-  async rollbackPembayaran(id: number): Promise<PembayaranResponse> {
+  async rollbackPengembalian(id: number): Promise<PengembalianResponse> {
     const response = await fetch(`${this.baseUrl}/${id}/draft`, {
       method: "PUT",
       headers: this.getAuthHeaders(),
@@ -290,4 +289,4 @@ class PembayaranService {
   }
 }
 
-export const pembayaranService = new PembayaranService();
+export const pengembalianService = new PengembalianService();
