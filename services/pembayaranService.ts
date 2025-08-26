@@ -99,7 +99,6 @@ export type PembayaranDetail = {
   };
 };
 
-// Updated to match the actual JSON response structure
 export type PembayaranResponse = {
   id: number;
   no_pembayaran: string;

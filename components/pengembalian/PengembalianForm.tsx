@@ -38,12 +38,6 @@ import { SidebarHeaderBar } from "@/components/ui/SidebarHeaderBar";
 import CustomBreadcrumb from "@/components/custom-breadcrumb";
 import SearchableSelect from "@/components/SearchableSelect";
 
-import {
-  PembayaranCreate,
-  PembayaranDetailCreate,
-  pembayaranService,
-  PembayaranUpdate,
-} from "@/services/pembayaranService";
 import { Attachment } from "@/services/pembelianService";
 import { warehouseService } from "@/services/warehouseService";
 import { jenisPembayaranService } from "@/services/mataUangService";
@@ -59,24 +53,15 @@ import { customerService } from "@/services/customerService";
 import { FileUploadButton } from "@/components/ImageUpload";
 import { imageService, ParentType } from "@/services/imageService";
 import { Spinner } from "@/components/ui/spinner";
+import { FormSection } from "../pembayaran/PembayaranForm";
+import {
+  PengembalianCreate,
+  PengembalianDetailCreate,
+  pengembalianService,
+  PengembalianUpdate,
+} from "@/services/pengembalianService";
 
-export const FormSection = ({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) => (
-  <div className="flex flex-col md:flex-row w-full justify-between pt-6 border-t first:pt-0 first:border-none">
-    <h4 className="text-lg font-semibold mb-4 md:mb-0 md:w-[30%]">{title}</h4>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:w-[70%]">
-      {children}
-    </div>
-  </div>
-);
-
-// Fixed schema - made customer_id and vendor_id optional since they're conditional
-const pembayaranSchema = z
+const pengembalianSchema = z
   .object({
     payment_code: z.string().optional(),
     payment_date: z.date({ required_error: "Payment date harus diisi" }),
@@ -95,7 +80,6 @@ const pembayaranSchema = z
   })
   .refine(
     (data) => {
-      // Add conditional validation
       if (data.reference_type === "PEMBELIAN" && !data.vendor_id) {
         return false;
       }
@@ -108,17 +92,17 @@ const pembayaranSchema = z
     }
   );
 
-type PembayaranFormData = z.infer<typeof pembayaranSchema>;
+type PengembalianFormData = z.infer<typeof pengembalianSchema>;
 
-interface PembayaranFormProps {
+interface PengembalianFormProps {
   mode: "add" | "edit" | "view";
-  pembayaranId?: string;
+  pengembalianId?: string;
 }
 
 export default function PembayaranForm({
   mode,
-  pembayaranId,
-}: PembayaranFormProps) {
+  pengembalianId: pengembalianId,
+}: PengembalianFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReferenceDialogOpen, setIsReferenceDialogOpen] = useState(false);
   const [initialDataSet, setInitialDataSet] = useState(false);
@@ -144,8 +128,8 @@ export default function PembayaranForm({
   const isEditMode = mode === "edit";
   const isViewMode = mode === "view";
 
-  const form = useForm<PembayaranFormData>({
-    resolver: zodResolver(pembayaranSchema),
+  const form = useForm<PengembalianFormData>({
+    resolver: zodResolver(pengembalianSchema),
     defaultValues: {
       payment_code: isEditMode ? "" : "-",
       payment_date: new Date(),
@@ -168,23 +152,23 @@ export default function PembayaranForm({
     watchedReferenceType === "PEMBELIAN" ? watchedVendorId : watchedCustomerId;
 
   useEffect(() => {
-    if ((mode !== "edit" && mode !== "view") || !pembayaranId) {
+    if ((mode !== "edit" && mode !== "view") || !pengembalianId) {
       setIsDataLoaded(true);
       return;
     }
 
-    const loadPembayaranData = async () => {
+    const loadPembelianData = async () => {
       try {
         setIsDataLoaded(false);
-        console.log("Loading pembayaran data for ID:", pembayaranId);
+        console.log("Loading pembayaran data for ID:", pengembalianId);
 
-        const data = await pembayaranService.getPembayaranById(
-          Number(pembayaranId)
+        const data = await pengembalianService.getPengembalianById(
+          Number(pengembalianId)
         );
         console.log("Fetched pembayaran data:", data);
 
         const references: SelectedReference[] =
-          data.pembayaran_details?.map((detail: any) => {
+          data.pengembalian_details?.map((detail: any) => {
             const ref = detail.pembelian_rel || detail.penjualan_rel;
             const mappedRef = {
               id: ref.id,
@@ -195,9 +179,9 @@ export default function PembayaranForm({
               total_price: parseFloat(ref.total_price || "0"),
               total_outstanding:
                 parseFloat(ref.total_price || "0") -
-                (parseFloat(detail.total_paid || "0") +
+                (parseFloat(detail.total_return || "0") +
                   parseFloat(detail.total_return || "0")),
-              user_paid_amount: parseFloat(detail.total_paid || "0"),
+              user_paid_amount: parseFloat(detail.total_return || "0"),
               warehouse_name: ref.warehouse_name,
               customer_name: ref.customer_name,
               vendor_name: ref.vendor_name,
@@ -211,11 +195,9 @@ export default function PembayaranForm({
         // Extract attachments from the pembayaran object itself (if any)
         let allAttachments: Attachment[] = data.attachments || [];
 
-        // Also extract attachments from reference objects (pembelian_rel/penjualan_rel)
-        data.pembayaran_details?.forEach((detail: any) => {
+        data.pengembalian_details?.forEach((detail: any) => {
           const ref = detail.pembelian_rel || detail.penjualan_rel;
           if (ref && ref.attachments) {
-            // Add reference attachments to the list
             allAttachments = [...allAttachments, ...ref.attachments];
           }
         });
@@ -234,7 +216,7 @@ export default function PembayaranForm({
         console.log("All attachments found:", allAttachments);
 
         const formData = {
-          payment_code: data.no_pembayaran || "-",
+          payment_code: data.no_pengembalian || "-",
           payment_date: new Date(data.payment_date),
           reference_type: data.reference_type as "PEMBELIAN" | "PENJUALAN",
           currency_id: Number(data.currency_id) || 0,
@@ -264,8 +246,8 @@ export default function PembayaranForm({
       }
     };
 
-    loadPembayaranData();
-  }, [mode, pembayaranId]);
+    loadPembelianData();
+  }, [mode, pengembalianId]);
 
   useEffect(() => {
     if (mode === "view") return;
@@ -337,7 +319,7 @@ export default function PembayaranForm({
   };
 
   const handleRemoveExistingAttachment = async (attachmentId: number) => {
-    if (!isEditMode || !pembayaranId) return;
+    if (!isEditMode || !pengembalianId) return;
 
     try {
       await imageService.deleteAttachment(attachmentId);
@@ -394,7 +376,7 @@ export default function PembayaranForm({
   };
 
   const handleSubmit = async (
-    data: PembayaranFormData,
+    data: PengembalianFormData,
     finalize: boolean = false
   ) => {
     setIsSubmitting(true);
@@ -406,48 +388,48 @@ export default function PembayaranForm({
         return;
       }
 
-      const pembayaran_details: PembayaranDetailCreate[] =
+      const pengembalian_details: PengembalianDetailCreate[] =
         selectedReferences.map((ref) => ({
-          total_paid: ref.user_paid_amount || ref.total_outstanding,
+          total_return: ref.user_paid_amount || ref.total_outstanding,
           reference_id: ref.id,
           ...(data.reference_type === "PEMBELIAN"
             ? { pembelian_id: ref.id }
             : { penjualan_id: ref.id }),
         }));
 
-      const apiPayload: PembayaranCreate = {
+      const apiPayload: PengembalianCreate = {
         payment_date: data.payment_date.toISOString(),
         reference_type: data.reference_type,
         currency_id: Number(data.currency_id),
         warehouse_id: Number(data.warehouse_id),
         customer_id: data.customer_id || undefined,
         vendor_id: data.vendor_id || undefined,
-        pembayaran_details,
+        pengembalian_details,
       };
 
       console.log("API Payload:", apiPayload);
 
       let resultId: any;
 
-      if (isEditMode && pembayaranId) {
-        await pembayaranService.updatePembayaran(
-          pembayaranId,
-          apiPayload as PembayaranUpdate
+      if (isEditMode && pengembalianId) {
+        await pengembalianService.updatePengembalian(
+          pengembalianId,
+          apiPayload as PengembalianUpdate
         );
-        resultId = pembayaranId;
+        resultId = pengembalianId;
 
         if (data.attachments && data.attachments.length > 0) {
           await handleAttachmentUpload(data.attachments, resultId);
         }
 
         if (finalize) {
-          await pembayaranService.finalizePembayaran(Number(resultId));
+          await pengembalianService.finalizePengembalian(Number(resultId));
         }
 
-        toast.success("Pembayaran berhasil diubah");
+        toast.success("Pengembalian berhasil diubah");
         router.back();
       } else {
-        const result = await pembayaranService.createPembayaran(apiPayload);
+        const result = await pengembalianService.createPengembalian(apiPayload);
         resultId = result.id;
 
         if (data.attachments && data.attachments.length > 0) {
@@ -455,10 +437,10 @@ export default function PembayaranForm({
         }
 
         if (finalize) {
-          await pembayaranService.finalizePembayaran(Number(resultId));
+          await pengembalianService.finalizePengembalian(Number(resultId));
         }
 
-        toast.success("Pembayaran berhasil dibuat");
+        toast.success("Pengembalian berhasil dibuat");
         router.back();
       }
     } catch (error: any) {
@@ -502,7 +484,7 @@ export default function PembayaranForm({
 
           const uploadResult = await imageService.uploadImage({
             file: file,
-            parent_type: ParentType.PEMBAYARANS,
+            parent_type: ParentType.PENGEMBALIANS,
             parent_id: parentId,
           });
 
@@ -551,14 +533,14 @@ export default function PembayaranForm({
           leftContent={
             <CustomBreadcrumb
               listData={[
-                "Pembayaran",
-                isEditMode ? "Edit Pembayaran" : "Tambah Pembayaran",
+                "Pengembalian",
+                isEditMode ? "Edit Pengembalian" : "Tambah Pengembalian",
               ]}
               linkData={[
-                "pembayaran",
+                "pengembalian",
                 isEditMode
-                  ? `/pembayaran/edit/${pembayaranId}`
-                  : "/pembayaran/add",
+                  ? `/pengembalian/edit/${pengembalianId}`
+                  : "/pengembalian/add",
               ]}
             />
           }
@@ -576,14 +558,14 @@ export default function PembayaranForm({
         leftContent={
           <CustomBreadcrumb
             listData={[
-              "Pembayaran",
-              isEditMode ? "Edit Pembayaran" : "Tambah Pembayaran",
+              "Pengembalian",
+              isEditMode ? "Edit Pengembalian" : "Tambah Pengembalian",
             ]}
             linkData={[
-              "pembayaran",
+              "pengembalian",
               isEditMode
-                ? `/pembayaran/edit/${pembayaranId}`
-                : "/pembayaran/add",
+                ? `/pengembalian/edit/${pengembalianId}`
+                : "/pengembalian/add",
             ]}
           />
         }
@@ -592,7 +574,7 @@ export default function PembayaranForm({
       <Form {...form}>
         <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
           {/* Payment Information */}
-          <FormSection title="Informasi Pembayaran">
+          <FormSection title="Informasi Pengembalian">
             <FormField
               control={form.control}
               name="payment_code"

@@ -7,6 +7,7 @@ export enum ParentType {
   PEMBELIANS = "PEMBELIANS",
   PENJUALANS = "PENJUALANS",
   PEMBAYARANS = "PEMBAYARANS",
+  PENGEMBALIANS = "PENGEMBALIANS",
 }
 
 export interface ImageUploadRequest {

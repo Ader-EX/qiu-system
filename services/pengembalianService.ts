@@ -16,7 +16,7 @@ export type StatusPengembalian = {
 export type PengembalianDetailCreate = {
   pembelian_id?: number;
   penjualan_id?: number;
-  total_return: number;
+  total_paid: number;
 };
 
 export type PengembalianCreate = {
@@ -26,12 +26,12 @@ export type PengembalianCreate = {
   warehouse_id: number;
   customer_id?: string;
   vendor_id?: string;
-  pembayaran_details: PengembalianDetailCreate[];
+  pengembalian_details: PengembalianDetailCreate[];
 };
 
 export type PengembalianUpdate = {
   payment_date?: string;
-  total_return?: number;
+  total_paid?: number;
   reference_type?: string;
   currency_id?: number;
   warehouse_id?: number;
@@ -44,14 +44,14 @@ export type PengembalianUpdate = {
 
 export type PengembalianDetail = {
   id: number;
-  pembayaran_id: number;
+  pengembalian_id: number;
   pembelian_id?: number;
   penjualan_id?: number;
   total_return: string;
   pembelian_rel?: {
     id: number;
     no_pembelian: string;
-    status_pembayaran: string;
+    status_pengembalian: string;
     status_pembelian: string;
     sales_date: string;
     sales_due_date: string;
@@ -74,7 +74,7 @@ export type PengembalianDetail = {
   penjualan_rel?: {
     id: number;
     no_penjualan: string;
-    status_pembayaran: string;
+    status_pengembalian: string;
     status_penjualan: string;
     sales_date: string;
     sales_due_date: string;
@@ -96,10 +96,9 @@ export type PengembalianDetail = {
   };
 };
 
-// Updated to match the actual JSON response structure
 export type PengembalianResponse = {
   id: number;
-  no_pembayaran: string;
+  no_pengembalian: string;
   status: string;
   created_at: string;
   payment_date: string;
@@ -125,7 +124,7 @@ export type PengembalianResponse = {
     name: string;
     symbol: string;
   };
-  pembayaran_details: PengembalianDetail[];
+  pengembalian_details: PengembalianDetail[];
   reference_numbers: any[];
   reference_partners: any[];
   updated_at?: string;
@@ -137,7 +136,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 class PengembalianService {
   private baseUrl: string;
 
-  constructor(destination: string = "pembayaran") {
+  constructor(destination: string = "pengembalian") {
     this.baseUrl = `${API_BASE_URL}/${destination}`;
   }
 
