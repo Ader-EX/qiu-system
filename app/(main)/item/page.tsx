@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useState, useCallback} from "react";
+import {useEffect, useState, useCallback, useRef} from "react";
 import {
     Plus,
     Search,
@@ -352,8 +352,29 @@ const ProdukPage = () => {
             ? `${state.sortBy}-${state.sortOrder}`
             : "all";
 
-    // Calculate total pages
     const totalPages = Math.ceil(state.total / state.rowsPerPage);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileUpload = async (event: any) => {
+        const file = event.target.files[0];
+        if (file) {
+            try {
+                await itemService.uploadItem(file);
+                toast.success("File uploaded successfully");
+                fetchItems();
+            } catch (error: any) {
+                console.error("Upload error:", error);
+                toast.error(`${error.message.split("400:")[1]}` || "File upload failed");
+            }
+        }
+    };
+    const triggerFileUpload = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
 
     return (
         <div className="space-y-6">
@@ -361,7 +382,14 @@ const ProdukPage = () => {
                 title="Items"
                 rightContent={
                     <HeaderActions.ActionGroup mobileLayout="wrap">
-                        <Button variant="outline" size="sm">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            accept=".xlsx,.xls,.csv"
+                            style={{display: 'none'}}
+                        />
+                        <Button onClick={triggerFileUpload} variant="outline" size="sm">
                             <Upload className="h-4 w-4 mr-2"/>
                             Import
                         </Button>

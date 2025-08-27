@@ -93,6 +93,24 @@ class ItemService {
         return response.json();
     }
 
+    async uploadItem(file: File): Promise<void> {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch(`${this.baseUrl}/import-excel?skip_on_error=false`, {
+            method: "POST",
+            headers: this.getAuthHeadersForFormData(),
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+                errorData.detail || `HTTP error! status: ${response.status}`
+            );
+        }
+    }
+
     async getItemById(id: string): Promise<Item> {
         const response = await fetch(`${this.baseUrl}/${id}`, {
             method: "GET",
