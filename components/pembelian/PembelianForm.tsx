@@ -960,7 +960,7 @@ export default function PembelianForm({
                                                                             `items.${index}.price_before_tax`
                                                                         ) || 0;
 
-                                                                    // Calculate new unit price with updated tax
+
                                                                     const newUnitPrice =
                                                                         priceBeforeTax *
                                                                         (1 + newTaxPercentage / 100);
@@ -1044,17 +1044,14 @@ export default function PembelianForm({
                                         form.watch(`items.${index}.tax_percentage`)
                                     ) || 0;
 
-                                // Calculate tax on original price before discount
                                 const taxAmount =
                                     (priceBeforeTax * taxPercentage) / 100;
 
-                                // Final price per unit = original price + tax - discount
                                 const finalPricePerUnit = Math.max(
                                     0,
                                     priceBeforeTax + taxAmount - discount
                                 );
 
-                                // Sub total = quantity × final price per unit
                                 const subTotal = qty * finalPricePerUnit;
 
                                 return subTotal.toFixed(2);
