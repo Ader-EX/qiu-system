@@ -8,7 +8,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {getStockStatus} from "@/lib/utils";
+import {formatMoney, getStockStatus} from "@/lib/utils";
 import Image from "next/image";
 import carouselone from "@/public/not-found.png";
 import {Item, AttachmentResponse} from "@/types/types";
@@ -107,7 +107,7 @@ export default function ProductListView({
                                         <div className={"flex w-full justify-between"}>
                                             <div className="flex items-center space-x-4 mt-1">
                                                 <p className="text-sm font-semibold text-green-600">
-                                                    Rp {product.price}
+                                                    {formatMoney(product.price)}
                                                 </p>
                                             </div>
                                             <Badge

@@ -17,6 +17,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {Item} from "@/types/types";
+import {formatMoney} from "@/lib/utils";
 
 interface ProductTableViewProps {
     products?: Item[];
@@ -58,7 +59,7 @@ export default function ProductTableView({
                                 <TableCell>{product.total_item}</TableCell>
 
                                 <TableCell>{product?.satuan_rel?.name}</TableCell>
-                                <TableCell className="font-semibold">{product.price}</TableCell>
+                                <TableCell className="font-semibold">{formatMoney(product.price)}</TableCell>
 
                                 <TableCell>
                                     <Badge variant={product.is_active ? "okay" : "secondary"}>

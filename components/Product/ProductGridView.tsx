@@ -27,6 +27,7 @@ import carouselone from "@/public/not-found.png";
 import {Badge} from "@/components/ui/badge";
 import Image, {StaticImageData} from "next/image";
 import {Item, AttachmentResponse} from "@/types/types";
+import {formatMoney} from "@/lib/utils";
 
 interface ImageCarouselProps {
     attachments: AttachmentResponse[]; // Changed from photos to attachments
@@ -179,14 +180,14 @@ export const ProductGridView: React.FC<{
                             <CardTitle className="text-sm line-clamp-2 leading-tight">
                                 {product.name}
                             </CardTitle>
-                            <CardDescription className="font-mono text-xs">
+                            <CardDescription className=" text-xs">
                                 SKU: {product.sku}
                             </CardDescription>
                         </div>
 
                         <div className="flex w-full justify-between items-center">
                             <p className="text-sm font-bold text-green-600">
-                                {Number(product.price)}
+                                {formatMoney(Number(product.price))}
                             </p>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>

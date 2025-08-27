@@ -8,7 +8,7 @@ import Cookies from "js-cookie";
 import {Button} from "@/components/ui/button";
 import {Label} from "@/components/ui/label";
 import axios from "axios";
-import {EyeIcon, EyeOffIcon} from "lucide-react";
+import {EyeIcon, EyeOffIcon, Loader2} from "lucide-react";
 
 import {useForm} from "react-hook-form";
 
@@ -17,6 +17,7 @@ import {useRouter} from "next/navigation";
 
 const LoginPage = () => {
     const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const {
         register,
@@ -27,6 +28,10 @@ const LoginPage = () => {
     const router = useRouter();
 
     const onSubmit = async (data: any) => {
+        setIsLoading(true);
+
+        const loadingToast = toast.loading("Sedang login...");
+
         try {
             const response = await axios.post(
                 `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
@@ -39,20 +44,23 @@ const LoginPage = () => {
             const {access_token, refresh_token, detail} = response.data;
 
             if (access_token && refresh_token) {
-                toast.dismiss();
+                toast.dismiss(loadingToast);
                 toast.success("Login berhasil!");
 
                 Cookies.set("access_token", access_token);
                 Cookies.set("refresh_token", refresh_token);
                 router.push("/dashboard");
             } else {
-                toast.dismiss();
+                toast.dismiss(loadingToast);
                 toast.error(detail || "Invalid credentials");
             }
         } catch (error: any) {
+            toast.dismiss(loadingToast);
             const message =
                 error.response?.data?.detail || "Login gagal, silahkan coba lagi nanti";
             toast.error(message);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -89,6 +97,7 @@ const LoginPage = () => {
                                     {...register("username", {required: true})}
                                     className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                     placeholder="Masukkan Username"
+                                    disabled={isLoading}
                                 />
                             </div>
                             <div>
@@ -100,10 +109,13 @@ const LoginPage = () => {
                                             {...register("password", {required: true})}
                                             type={showPassword ? `text` : `password`}
                                             placeholder="*******"
+                                            disabled={isLoading}
                                         />
                                         <div
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-4 bottom-2 cursor-pointer hover:scale-[105%] focus:text"
+                                            onClick={() => !isLoading && setShowPassword(!showPassword)}
+                                            className={`absolute right-4 bottom-2 cursor-pointer hover:scale-[105%] focus:text ${
+                                                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                                            }`}
                                         >
                                             {!showPassword ? (
                                                 <EyeIcon className="size-5"/>
@@ -115,8 +127,19 @@ const LoginPage = () => {
                                 </div>
                             </div>
 
-                            <Button type="submit" className="flex w-full">
-                                Masuk
+                            <Button
+                                type="submit"
+                                className="flex w-full"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                                        Sedang masuk...
+                                    </>
+                                ) : (
+                                    'Masuk'
+                                )}
                             </Button>
                         </form>
                     </div>
