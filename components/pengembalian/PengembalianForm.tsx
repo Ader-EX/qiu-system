@@ -721,7 +721,7 @@ export default function PembayaranForm({
                                                 return response;
                                             }}
                                             renderLabel={(item: any) =>
-                                                `${item.id} - ${item.name}${
+                                                `${item.code} - ${item.name}${
                                                     item?.curr_rel?.symbol
                                                         ? ` (${item.curr_rel.symbol})`
                                                         : ""
