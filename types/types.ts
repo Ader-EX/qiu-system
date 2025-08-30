@@ -104,7 +104,7 @@ export const isImageAttachment = (attachment: AttachmentResponse): boolean => {
 };
 
 export interface Customer {
-  id: string;
+  id: number;
   name: string;
   code: string;
   address: string;

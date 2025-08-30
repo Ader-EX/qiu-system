@@ -1,53 +1,54 @@
-"use client"
-import {useState, useCallback} from 'react';
-import toast from 'react-hot-toast';
+"use client";
+import { useState, useCallback } from "react";
+import toast from "react-hot-toast";
 
 interface PrintInvoiceOptions {
-    autoClose?: boolean;
-    printDelay?: number;
-    customStyles?: string;
-    windowFeatures?: string;
+  autoClose?: boolean;
+  printDelay?: number;
+  customStyles?: string;
+  windowFeatures?: string;
 }
 
 interface InvoiceService {
-    getInvoice: (id: number) => Promise<string>;
+  getInvoice: (id: number) => Promise<string>;
 }
 
 export const usePrintInvoice = () => {
-    const [isPrinting, setIsPrinting] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
-    const printInvoice = useCallback(async (
-        invoiceService: InvoiceService,
-        invoiceId: number,
-        invoiceNumber: string,
-        options: PrintInvoiceOptions = {}
+  const printInvoice = useCallback(
+    async (
+      invoiceService: InvoiceService,
+      invoiceId: number,
+      invoiceNumber: string,
+      options: PrintInvoiceOptions = {}
     ) => {
-        const {
-            autoClose = true,
-            printDelay = 250,
-            customStyles = '',
-            windowFeatures = 'width=800,height=600,scrollbars=yes,resizable=yes'
-        } = options;
+      const {
+        autoClose = true,
+        printDelay = 250,
+        customStyles = "",
+        windowFeatures = "width=800,height=600,scrollbars=yes,resizable=yes",
+      } = options;
 
-        setIsPrinting(true);
+      setIsPrinting(true);
 
-        try {
-            const html = await invoiceService.getInvoice(invoiceId);
+      try {
+        const html = await invoiceService.getInvoice(invoiceId);
 
-            if (!html || html.trim().length === 0) {
-                toast.error("Invoice data tidak ditemukan");
-                return;
-            }
+        if (!html || html.trim().length === 0) {
+          toast.error("Invoice data tidak ditemukan");
+          return;
+        }
 
-            // Open in new window
-            const printWindow = window.open('', '_blank', windowFeatures);
+        // Open in new window
+        const printWindow = window.open("", "_blank", windowFeatures);
 
-            if (!printWindow) {
-                toast.error("Gagal membuka invoice. Pastikan popup tidak diblokir.");
-                return;
-            }
+        if (!printWindow) {
+          toast.error("Gagal membuka invoice. Pastikan popup tidak diblokir.");
+          return;
+        }
 
-            const defaultStyles = `
+        const defaultStyles = `
                 @media screen {
                     body { 
                         font-family: Arial, sans-serif; 
@@ -99,10 +100,14 @@ export const usePrintInvoice = () => {
                 }
                 
                 @media print {
-                    body { margin: 0; }
+                    body { 
+                        margin: 0; 
+                        width: 210mm !important;
+                        max-width: 210mm !important;
+                    }
                     @page { 
-                        margin: 0.5in; 
-                        size: A4;
+                        margin: 10mm 15mm; 
+                        size: A4 portrait;
                     }
                     .print-controls, .no-print {
                         display: none !important;
@@ -110,10 +115,18 @@ export const usePrintInvoice = () => {
                     .print-header {
                         border-bottom: 2px solid #333;
                     }
+                    table {
+                        page-break-inside: avoid;
+                        width: 100% !important;
+                        table-layout: fixed;
+                    }
+                    * {
+                        box-sizing: border-box;
+                    }
                 }
             `;
 
-            const fullHTML = `
+        const fullHTML = `
                 <!DOCTYPE html>
                 <html lang="id">
                 <head>
@@ -170,58 +183,68 @@ export const usePrintInvoice = () => {
                 </html>
             `;
 
-            printWindow.document.write(fullHTML);
-            printWindow.document.close();
+        printWindow.document.write(fullHTML);
+        printWindow.document.close();
 
-            toast.success("Invoice berhasil dibuka untuk dicetak!");
+        toast.success("Invoice berhasil dibuka untuk dicetak!");
+      } catch (error) {
+        console.error("Failed to print invoice:", error);
+        toast.error("Gagal membuka invoice untuk dicetak.");
+      } finally {
+        setIsPrinting(false);
+      }
+    },
+    []
+  );
 
-        } catch (error) {
-            console.error("Failed to print invoice:", error);
-            toast.error("Gagal membuka invoice untuk dicetak.");
-        } finally {
-            setIsPrinting(false);
-        }
-    }, []);
-
-    // Simple print function (original behavior)
-    const simplePrint = useCallback(async (
-        invoiceService: InvoiceService,
-        invoiceId: number,
-        invoiceNumber: string
+  // Simple print function (original behavior)
+  const simplePrint = useCallback(
+    async (
+      invoiceService: InvoiceService,
+      invoiceId: number,
+      invoiceNumber: string
     ) => {
-        return printInvoice(invoiceService, invoiceId, invoiceNumber, {
-            autoClose: true,
-            printDelay: 250
-        });
-    }, [printInvoice]);
+      return printInvoice(invoiceService, invoiceId, invoiceNumber, {
+        autoClose: true,
+        printDelay: 250,
+      });
+    },
+    [printInvoice]
+  );
 
-    // Advanced print with custom options
-    const advancedPrint = useCallback(async (
-        invoiceService: InvoiceService,
-        invoiceId: number,
-        invoiceNumber: string,
-        options: PrintInvoiceOptions
+  // Advanced print with custom options
+  const advancedPrint = useCallback(
+    async (
+      invoiceService: InvoiceService,
+      invoiceId: number,
+      invoiceNumber: string,
+      options: PrintInvoiceOptions
     ) => {
-        return printInvoice(invoiceService, invoiceId, invoiceNumber, options);
-    }, [printInvoice]);
+      return printInvoice(invoiceService, invoiceId, invoiceNumber, options);
+    },
+    [printInvoice]
+  );
 
-    // Preview only (no auto-print)
-    const previewInvoice = useCallback(async (
-        invoiceService: InvoiceService,
-        invoiceId: number,
-        invoiceNumber: string
+  // Preview only (no auto-print)
+  const previewInvoice = useCallback(
+    async (
+      invoiceService: InvoiceService,
+      invoiceId: number,
+      invoiceNumber: string
     ) => {
-        return printInvoice(invoiceService, invoiceId, invoiceNumber, {
-            autoClose: false,
-            printDelay: 0
-        });
-    }, [printInvoice]);
+      return printInvoice(invoiceService, invoiceId, invoiceNumber, {
+        autoClose: false,
+        printDelay: 0,
+      });
+    },
+    [printInvoice]
+  );
 
-    return {
-        printInvoice,
-        simplePrint,
-        advancedPrint,
-        previewInvoice,
-        isPrinting
-    };
+  return {
+    printInvoice,
+    simplePrint,
+    advancedPrint,
+    previewInvoice,
+    isPrinting,
+  };
 };

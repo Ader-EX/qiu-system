@@ -38,6 +38,21 @@ export type LaporanPembelianRows = {
   tax: string;
   grand_total: string;
 };
+
+export type DashboardData = {
+  total_products: number;
+  percentage_month_products: number;
+  status_month_products: string;
+  total_customer: number;
+  percentage_month_customer: number;
+  status_month_customer: string;
+  total_pembelian: string;
+  percentage_month_pembelian: number;
+  status_month_pembelian: string;
+  total_penjualan: string;
+  percentage_month_penjualan: number;
+  status_month_penjualan: string;
+};
 const NEXT_PUBLIC_API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -46,6 +61,26 @@ class UtilsService {
 
   constructor(destination: string = "utils") {
     this.baseUrl = `${NEXT_PUBLIC_API_URL}/${destination}`;
+  }
+
+  async getStatistics(): Promise<DashboardData> {
+    const url = this.baseUrl + `/statistics`;
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch laporan: ${response.statusText}`);
+      }
+
+      const result = (await response.json()) as DashboardData;
+      return result;
+    } catch (error) {
+      console.error("Error fetching laporan.h:", error);
+      throw error;
+    }
   }
 
   async getLabaRugi(from_date: Date, to_date: Date): Promise<LabaRugiResponse> {
