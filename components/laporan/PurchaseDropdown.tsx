@@ -32,7 +32,6 @@ const PurchaseDropdown = () => {
     useState<PaginatedResponse<LaporanPembelianRows> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const handleGenerateReport = async () => {
     if (!dateFrom || !dateTo) {
       toast.error("Silakan pilih tanggal mulai dan selesai");
