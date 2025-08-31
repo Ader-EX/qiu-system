@@ -53,7 +53,7 @@ const SalesReport = () => {
       const response = await utilsService.getLaporanPenjualan(
         dateFrom,
         dateTo,
-        1, // Start with page 1
+        0, // Start with page 1
         pageSize
       );
       setReportData(response);
@@ -189,7 +189,7 @@ const SalesReport = () => {
 
   // Report Display State
   return (
-    <div className=" mx-auto ">
+    <div className="w-full max-w-full overflow-hidden">
       {/* Header */}
       <div className="border-b pb-4 mb-6">
         <div className="flex justify-between items-center">
@@ -225,113 +225,113 @@ const SalesReport = () => {
         </div>
       )}
 
-      {/* Data Table Container - Fixed Height with Scrollable Table Only */}
-      <div className="bg-white border rounded-lg overflow-hidden mb-4">
-        {/* Table Container with Fixed Height and Scroll */}
-        <div className="h-96 overflow-auto">
+      <div className="w-full border rounded-lg bg-white overflow-hidden mb-4">
+        <div className="overflow-auto max-h-96 w-full max-w-full">
           {isLoading ? (
             <div className="flex justify-center items-center h-full">
               <Spinner />
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Kode Lambung
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    No Penjualan
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Item Code
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Item Name
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Qty
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Sub Total
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tax
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Grand Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {reportData?.data?.map((row, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(row.date)}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {row.customer}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {row.kode_lambung || "-"}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {row.no_penjualan}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          row.status === "Paid"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {row.item_code}
-                    </td>
-                    <td className="px-3 py-4 text-sm text-gray-900 max-w-xs truncate">
-                      {row.item_name}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {row.qty.toLocaleString("id-ID")}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatMoney(parseFloat(row.price))}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatMoney(parseFloat(row.sub_total))}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatMoney(parseFloat(row.total))}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatMoney(parseFloat(row.tax))}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
-                      {formatMoney(parseFloat(row.grand_total))}
-                    </td>
+            <div className="w-full max-w-full overflow-x-auto">
+              <table className="table-fixed divide-y divide-gray-200">
+                <thead className="bg-gray-50 ">
+                  <tr>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Kode Lambung
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      No Penjualan
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Item Code
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Item Name
+                    </th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Qty
+                    </th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Price
+                    </th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sub Total
+                    </th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total
+                    </th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tax
+                    </th>
+                    <th className="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Grand Total
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {reportData?.data?.map((row, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                        {formatDate(row.date)}
+                      </td>
+                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                        {row.customer}
+                      </td>
+                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                        {row.kode_lambung || "-"}
+                      </td>
+                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                        {row.no_penjualan}
+                      </td>
+                      <td className="px-2 py-4">
+                        <span
+                          className={`inline-flex px-1 py-1 text-xs font-semibold rounded-full ${
+                            row.status === "Paid"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                        {row.item_code}
+                      </td>
+                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                        {row.item_name}
+                      </td>
+                      <td className="px-2 py-4 text-xs text-gray-900 text-right truncate">
+                        {row.qty.toLocaleString("id-ID")}
+                      </td>
+                      <td className="px-2 py-4 text-xs text-gray-900 text-right truncate">
+                        {formatMoney(parseFloat(row.price))}
+                      </td>
+                      <td className="px-2 py-4 text-xs text-gray-900 text-right truncate">
+                        {formatMoney(parseFloat(row.sub_total))}
+                      </td>
+                      <td className="px-2 py-4 text-xs text-gray-900 text-right truncate">
+                        {formatMoney(parseFloat(row.total))}
+                      </td>
+                      <td className="px-2 py-4 text-xs text-gray-900 text-right truncate">
+                        {formatMoney(parseFloat(row.tax))}
+                      </td>
+                      <td className="px-2 py-4 text-xs font-semibold text-gray-900 text-right truncate">
+                        {formatMoney(parseFloat(row.grand_total))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 

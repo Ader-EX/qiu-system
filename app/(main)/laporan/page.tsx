@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import {
   FileText,
@@ -37,27 +36,44 @@ import PurchaseDropdown from "@/components/laporan/PurchaseDropdown";
 
 export default function LaporanPage() {
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-full overflow-hidden space-y-6">
       <SidebarHeaderBar title="Laporan" />
-      <Tabs defaultValue="labarugi" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="labarugi">Laba Rugi</TabsTrigger>
-          <TabsTrigger value="penjualan">Penjualan</TabsTrigger>
-          <TabsTrigger value="pembelian">Pembelian</TabsTrigger>
-        </TabsList>
+      <div className="w-full max-w-full overflow-hidden">
+        <Tabs defaultValue="labarugi" className="space-y-6 w-full max-w-full">
+          <TabsList>
+            <TabsTrigger value="labarugi">Laba Rugi</TabsTrigger>
+            <TabsTrigger value="penjualan">Penjualan</TabsTrigger>
+            <TabsTrigger value="pembelian">Pembelian</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="labarugi" className="space-y-6">
-          <LabaRugiDropdown />
-        </TabsContent>
+          <TabsContent
+            value="labarugi"
+            className="space-y-6 w-full max-w-full overflow-hidden"
+          >
+            <div className="w-full max-w-full overflow-hidden">
+              <LabaRugiDropdown />
+            </div>
+          </TabsContent>
 
-        <TabsContent value="penjualan" className="space-y-6">
-          <SalesReport />
-        </TabsContent>
+          <TabsContent
+            value="penjualan"
+            className="space-y-6 w-full max-w-full overflow-hidden"
+          >
+            <div className="w-full max-w-full overflow-hidden">
+              <SalesReport />
+            </div>
+          </TabsContent>
 
-        <TabsContent value="pembelian" className="space-y-6">
-          <PurchaseDropdown />
-        </TabsContent>
-      </Tabs>
+          <TabsContent
+            value="pembelian"
+            className="space-y-6 w-full max-w-full overflow-hidden"
+          >
+            <div className="w-full max-w-full overflow-hidden">
+              <PurchaseDropdown />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

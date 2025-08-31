@@ -13,7 +13,12 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
-import { cn, formatMoney, roundToPrecision } from "@/lib/utils";
+import {
+  cn,
+  formatDateForAPI,
+  formatMoney,
+  roundToPrecision,
+} from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -359,8 +364,8 @@ export default function PenjualanForm({
         warehouse_id: Number(data.warehouse_id),
         customer_id: data.customer_id,
         top_id: Number(data.top_id),
-        sales_date: data.sales_date.toISOString(),
-        sales_due_date: data.sales_due_date.toISOString(),
+        sales_date: formatDateForAPI(data.sales_date),
+        sales_due_date: formatDateForAPI(data.sales_due_date),
 
         additional_discount: Number(data.additional_discount || 0),
         expense: Number(data.expense || 0),

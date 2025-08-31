@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { formatISO } from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -35,4 +36,40 @@ export const formatMoney = (
 export const roundToPrecision = (num: any, precision = 2) => {
   const multiplier = Math.pow(10, precision);
   return Math.round(num * multiplier) / multiplier;
+};
+
+/**
+ * Converts a Date object to date-only string format (YYYY-MM-DD)
+ * without timezone conversion issues
+ */
+export const formatDateForAPI = (date: Date): string => {
+  // Option 1: Simple split approach
+  return date.toISOString().split("T")[0];
+};
+
+/**
+ * Alternative date formatting using date-fns
+ * Formats date in local timezone without time component
+ */
+export const formatDateForAPIWithDateFns = (date: Date): string => {
+  return formatISO(date, { representation: "date" });
+};
+
+export const safeFormatDateForAPI = (
+  date?: Date | null
+): string | undefined => {
+  if (!date) return undefined;
+  return formatDateForAPI(date);
+};
+
+export const formatDatesForAPI = (dates: { [key: string]: Date }) => {
+  const formatted: { [key: string]: string } = {};
+
+  Object.entries(dates).forEach(([key, date]) => {
+    if (date) {
+      formatted[key] = formatDateForAPI(date);
+    }
+  });
+
+  return formatted;
 };

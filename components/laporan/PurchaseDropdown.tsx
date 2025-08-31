@@ -188,7 +188,7 @@ const PurchaseDropdown = () => {
 
   // Report Display State
   return (
-    <div className=" mx-auto ">
+    <div className="w-full max-w-full overflow-hidden">
       {/* Header */}
       <div className="border-b pb-4 mb-6">
         <div className="flex justify-between items-center">
@@ -227,14 +227,14 @@ const PurchaseDropdown = () => {
       {/* Data Table Container - Fixed Height with Scrollable Table Only */}
       <div className="bg-white border rounded-lg overflow-hidden mb-4">
         {/* Table Container with Fixed Height and Scroll */}
-        <div className="h-96 overflow-auto">
+        <div className="overflow-auto max-h-96 max-w-full">
           {isLoading ? (
             <div className="flex justify-center items-center h-full">
               <Spinner />
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
+              <thead className="bg-gray-50">
                 <tr>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date
