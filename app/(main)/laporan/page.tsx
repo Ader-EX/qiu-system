@@ -36,41 +36,28 @@ import PurchaseDropdown from "@/components/laporan/PurchaseDropdown";
 
 export default function LaporanPage() {
   return (
-    <div className="w-full max-w-full overflow-hidden space-y-6">
+    <div className="min-h-screen overflow-x-hidden">
       <SidebarHeaderBar title="Laporan" />
-      <div className="w-full max-w-full overflow-hidden">
-        <Tabs defaultValue="labarugi" className="space-y-6 w-full max-w-full">
+      <div className="max-w-full overflow-x-hidden px-4">
+        <Tabs defaultValue="labarugi" className="space-y-6 max-w-full">
           <TabsList>
             <TabsTrigger value="labarugi">Laba Rugi</TabsTrigger>
             <TabsTrigger value="penjualan">Penjualan</TabsTrigger>
             <TabsTrigger value="pembelian">Pembelian</TabsTrigger>
           </TabsList>
 
-          <TabsContent
-            value="labarugi"
-            className="space-y-6 w-full max-w-full overflow-hidden"
-          >
-            <div className="w-full max-w-full overflow-hidden">
-              <LabaRugiDropdown />
-            </div>
+          <TabsContent value="labarugi" className="space-y-6 max-w-full">
+            <LabaRugiDropdown />
           </TabsContent>
 
-          <TabsContent
-            value="penjualan"
-            className="space-y-6 w-full max-w-full overflow-hidden"
-          >
-            <div className="w-full max-w-full overflow-hidden">
+          <TabsContent value="penjualan" className="min-w-0 overflow-x-hidden">
+            <div className="min-w-0">
               <SalesDropdown />
             </div>
           </TabsContent>
 
-          <TabsContent
-            value="pembelian"
-            className="space-y-6 w-full max-w-full overflow-hidden"
-          >
-            <div className="w-full max-w-full overflow-hidden">
-              <PurchaseDropdown />
-            </div>
+          <TabsContent value="pembelian" className="space-y-6 max-w-full">
+            <PurchaseDropdown />
           </TabsContent>
         </Tabs>
       </div>

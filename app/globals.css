@@ -4,6 +4,9 @@
 @import "react-day-picker/dist/style.css";
 
 body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   font-family: Arial, Helvetica, sans-serif;
 }
 
