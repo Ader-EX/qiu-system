@@ -22,7 +22,7 @@ const formatDate = (dateString: any) => {
   });
 };
 
-const SalesReport = () => {
+const SalesDropdown = () => {
   const [dateFrom, setDateFrom] = useState<Date>(new Date(2025, 0, 1));
   const [dateTo, setDateTo] = useState<Date>(new Date());
   const [showForm, setShowForm] = useState(true);
@@ -95,6 +95,30 @@ const SalesReport = () => {
       console.error("Download error:", error);
     }
   };
+
+  // Calculate totals
+  const calculateTotals = () => {
+    if (!reportData?.data?.length) {
+      return {
+        subTotal: 0,
+        total: 0,
+        tax: 0,
+        grandTotal: 0,
+      };
+    }
+
+    return reportData.data.reduce(
+      (acc, row) => ({
+        subTotal: acc.subTotal + parseFloat(row.sub_total),
+        total: acc.total + parseFloat(row.total),
+        tax: acc.tax + parseFloat(row.tax),
+        grandTotal: acc.grandTotal + parseFloat(row.grand_total),
+      }),
+      { subTotal: 0, total: 0, tax: 0, grandTotal: 0 }
+    );
+  };
+
+  const totals = calculateTotals();
 
   // Calculate pagination info
   const totalPages = reportData ? Math.ceil(reportData.total / pageSize) : 0;
@@ -225,15 +249,15 @@ const SalesReport = () => {
         </div>
       )}
 
-      <div className="w-full border rounded-lg bg-white overflow-hidden mb-4">
-        <div className="overflow-auto max-h-96 w-full max-w-full">
+      <div className="bg-white border rounded-lg overflow-hidden mb-4">
+        <div className="overflow-auto max-h-96 max-w-full">
           {isLoading ? (
             <div className="flex justify-center items-center h-full">
               <Spinner />
             </div>
           ) : (
-            <div className="w-full max-w-full overflow-x-auto">
-              <table className="table-fixed divide-y divide-gray-200">
+            <div className="w-full ">
+              <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 ">
                   <tr>
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -280,16 +304,16 @@ const SalesReport = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {reportData?.data?.map((row, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                      <td className="px-2 py-4 text-xs text-gray-900 whitespace-normal break-words">
                         {formatDate(row.date)}
                       </td>
-                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                      <td className="px-2 py-4 text-xs text-gray-900 whitespace-normal break-words">
                         {row.customer}
                       </td>
-                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                      <td className="px-2 py-4 text-xs text-gray-900 whitespace-normal break-words">
                         {row.kode_lambung || "-"}
                       </td>
-                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                      <td className="px-2 py-4 text-xs text-gray-900 whitespace-normal break-words">
                         {row.no_penjualan}
                       </td>
                       <td className="px-2 py-4">
@@ -303,32 +327,56 @@ const SalesReport = () => {
                           {row.status}
                         </span>
                       </td>
-                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                      <td className="px-2 py-4 text-xs text-gray-900 whitespace-normal break-words">
                         {row.item_code}
                       </td>
-                      <td className="px-2 py-4 text-xs text-gray-900 truncate">
+                      <td className="px-2 py-4 text-xs text-gray-900 whitespace-normal break-words">
                         {row.item_name}
                       </td>
-                      <td className="px-2 py-4 text-xs text-gray-900 text-right truncate">
+                      <td className="px-2 py-4 text-xs text-gray-900 text-right whitespace-normal break-words">
                         {row.qty.toLocaleString("id-ID")}
                       </td>
-                      <td className="px-2 py-4 text-xs text-gray-900 text-right truncate">
+                      <td className="px-2 py-4 text-xs text-gray-900 text-right whitespace-normal break-words">
                         {formatMoney(parseFloat(row.price))}
                       </td>
-                      <td className="px-2 py-4 text-xs text-gray-900 text-right truncate">
+                      <td className="px-2 py-4 text-xs text-gray-900 text-right whitespace-normal break-words">
                         {formatMoney(parseFloat(row.sub_total))}
                       </td>
-                      <td className="px-2 py-4 text-xs text-gray-900 text-right truncate">
+                      <td className="px-2 py-4 text-xs text-gray-900 text-right whitespace-normal break-words">
                         {formatMoney(parseFloat(row.total))}
                       </td>
-                      <td className="px-2 py-4 text-xs text-gray-900 text-right truncate">
+                      <td className="px-2 py-4 text-xs text-gray-900 text-right whitespace-normal break-words">
                         {formatMoney(parseFloat(row.tax))}
                       </td>
-                      <td className="px-2 py-4 text-xs font-semibold text-gray-900 text-right truncate">
+                      <td className="px-2 py-4 text-xs font-semibold text-gray-900 text-right whitespace-normal break-words">
                         {formatMoney(parseFloat(row.grand_total))}
                       </td>
                     </tr>
                   ))}
+                  {/* Summary Row */}
+
+                  {reportData?.data && reportData.data.length > 0 && (
+                    <tr className="bg-gray-100 border-t-2 border-gray-300">
+                      <td
+                        colSpan={9}
+                        className="px-2 py-3 text-xs font-semibold text-gray-900"
+                      >
+                        TOTAL
+                      </td>
+                      <td className="px-2 py-3 text-xs font-semibold text-gray-900 text-right">
+                        {formatMoney(totals.subTotal)}
+                      </td>
+                      <td className="px-2 py-3 text-xs font-semibold text-gray-900 text-right">
+                        {formatMoney(totals.total)}
+                      </td>
+                      <td className="px-2 py-3 text-xs font-semibold text-gray-900 text-right">
+                        {formatMoney(totals.tax)}
+                      </td>
+                      <td className="px-2 py-3 text-xs font-semibold text-gray-900 text-right">
+                        {formatMoney(totals.grandTotal)}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -357,4 +405,4 @@ const SalesReport = () => {
   );
 };
 
-export default SalesReport;
+export default SalesDropdown;

@@ -16,7 +16,7 @@ export type StatusPengembalian = {
 export type PengembalianDetailCreate = {
   pembelian_id?: number;
   penjualan_id?: number;
-  total_paid: number;
+  total_return: number;
 };
 
 export type PengembalianCreate = {

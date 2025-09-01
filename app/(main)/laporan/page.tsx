@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LabaRugiDropdown from "@/components/laporan/LabaRugiDropdown";
-import SalesReport from "@/components/laporan/SalesDropdown";
+import SalesDropdown from "@/components/laporan/SalesDropdown";
 import {
   HeaderActions,
   SidebarHeaderBar,
@@ -60,7 +60,7 @@ export default function LaporanPage() {
             className="space-y-6 w-full max-w-full overflow-hidden"
           >
             <div className="w-full max-w-full overflow-hidden">
-              <SalesReport />
+              <SalesDropdown />
             </div>
           </TabsContent>
 

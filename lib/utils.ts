@@ -43,10 +43,10 @@ export const roundToPrecision = (num: any, precision = 2) => {
  * without timezone conversion issues
  */
 export const formatDateForAPI = (date: Date): string => {
-  // Option 1: Simple split approach
-  return date.toISOString().split("T")[0];
+  const nextDay = new Date(date);
+  nextDay.setDate(nextDay.getDate() + 1); // add +1 day
+  return nextDay.toISOString().split("T")[0];
 };
-
 /**
  * Alternative date formatting using date-fns
  * Formats date in local timezone without time component

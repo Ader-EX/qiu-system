@@ -181,11 +181,8 @@ export default function PengembalianPage() {
     const details = pengembalian.pengembalian_details ?? [];
 
     return details.reduce((sum, d) => {
-      const value =
-        parseFloat(d.total_return || "0") ||
-        parseFloat((d as any)?.pembelian_rel?.total_return || "0") ||
-        parseFloat((d as any)?.penjualan_rel?.total_return || "0");
-      return sum + value;
+      const value = parseFloat(d.total_return || "0");
+      return value;
     }, 0);
   };
 

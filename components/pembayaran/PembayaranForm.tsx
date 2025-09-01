@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { CalendarIcon, FileText, Plus, RefreshCw, X } from "lucide-react";
-import { cn, formatMoney } from "@/lib/utils";
+import { cn, formatDateForAPI, formatMoney } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -416,7 +416,7 @@ export default function PembayaranForm({
         }));
 
       const apiPayload: PembayaranCreate = {
-        payment_date: data.payment_date.toISOString(),
+        payment_date: formatDateForAPI(data.payment_date),
         reference_type: data.reference_type,
         currency_id: Number(data.currency_id),
         warehouse_id: Number(data.warehouse_id),

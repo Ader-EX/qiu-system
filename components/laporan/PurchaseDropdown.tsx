@@ -102,6 +102,29 @@ const PurchaseDropdown = () => {
     ? Math.min(currentPage * pageSize, reportData.total)
     : 0;
 
+  const calculateTotals = () => {
+    if (!reportData?.data?.length) {
+      return {
+        subTotal: 0,
+        total: 0,
+        tax: 0,
+        grandTotal: 0,
+      };
+    }
+
+    return reportData.data.reduce(
+      (acc, row) => ({
+        subTotal: acc.subTotal + parseFloat(row.sub_total),
+        total: acc.total + parseFloat(row.total),
+        tax: acc.tax + parseFloat(row.tax),
+        grandTotal: acc.grandTotal + parseFloat(row.grand_total),
+      }),
+      { subTotal: 0, total: 0, tax: 0, grandTotal: 0 }
+    );
+  };
+
+  const totals = calculateTotals();
+
   const handlePageChange = async (page: number) => {
     setCurrentPage(page);
     setIsLoading(true);
@@ -233,98 +256,122 @@ const PurchaseDropdown = () => {
               <Spinner />
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Vendor
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    No Pembelian
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Item Code
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Item Name
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Qty
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Sub Total
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tax
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Grand Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {reportData?.data?.map((row, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(row.date)}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {row.vendor}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {row.no_pembelian}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          row.status === "Paid"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {row.item_code}
-                    </td>
-                    <td className="px-3 py-4 text-sm text-gray-900 max-w-xs truncate">
-                      {row.item_name}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {row.qty.toLocaleString("id-ID")}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatMoney(parseFloat(row.price))}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatMoney(parseFloat(row.sub_total))}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatMoney(parseFloat(row.total))}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatMoney(parseFloat(row.tax))}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
-                      {formatMoney(parseFloat(row.grand_total))}
-                    </td>
+            <div className="w-full ">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Vendor
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      No Pembelian
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Item Code
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Item Name
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Qty
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Price
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sub Total
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tax
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Grand Total
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {reportData?.data?.map((row, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                        {formatDate(row.date)}
+                      </td>
+                      <td className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                        {row.vendor}
+                      </td>
+                      <td className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                        {row.no_pembelian}
+                      </td>
+                      <td className="px-3 py-4 whitespace-normal break-words">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            row.status === "Paid"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                        {row.item_code}
+                      </td>
+                      <td className="px-3 py-4 text-sm text-gray-900 max-w-xs whitespace-normal break-words">
+                        {row.item_name}
+                      </td>
+                      <td className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900 text-right">
+                        {row.qty.toLocaleString("id-ID")}
+                      </td>
+                      <td className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900 text-right">
+                        {formatMoney(parseFloat(row.price))}
+                      </td>
+                      <td className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900 text-right">
+                        {formatMoney(parseFloat(row.sub_total))}
+                      </td>
+                      <td className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900 text-right">
+                        {formatMoney(parseFloat(row.total))}
+                      </td>
+                      <td className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900 text-right">
+                        {formatMoney(parseFloat(row.tax))}
+                      </td>
+                      <td className="px-3 py-4 whitespace-normal break-words text-sm font-semibold text-gray-900 text-right">
+                        {formatMoney(parseFloat(row.grand_total))}
+                      </td>
+                    </tr>
+                  ))}
+                  {reportData?.data && reportData.data.length > 0 && (
+                    <tr className="bg-gray-100 border-t-2 border-gray-300">
+                      <td
+                        colSpan={8}
+                        className="px-2 py-3 text-xs font-semibold text-gray-900"
+                      >
+                        TOTAL
+                      </td>
+                      <td className="px-2 py-3 text-xs font-semibold text-gray-900 text-right">
+                        {formatMoney(totals.subTotal)}
+                      </td>
+                      <td className="px-2 py-3 text-xs font-semibold text-gray-900 text-right">
+                        {formatMoney(totals.total)}
+                      </td>
+                      <td className="px-2 py-3 text-xs font-semibold text-gray-900 text-right">
+                        {formatMoney(totals.tax)}
+                      </td>
+                      <td className="px-2 py-3 text-xs font-semibold text-gray-900 text-right">
+                        {formatMoney(totals.grandTotal)}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
