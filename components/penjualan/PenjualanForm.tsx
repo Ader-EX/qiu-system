@@ -259,20 +259,14 @@ export default function PenjualanForm({
     0
   );
 
-  // 3. Total (after item discounts, before additional discount, before tax)
-  // Total: Sum(sub total) - sum(discount) - Additional discount
   const total =
     subTotalBeforeTax - totalItemDiscounts - watchedAdditionalDiscount;
 
-  // 4. TAX CALCULATION - FIXED
-  // Tax: sum((Qty*Harga Satuan)*pajak%))
-  // But we need to apply tax to the discounted amount per item
   const totalTax = watchedItems.reduce((sum, item) => {
     const priceBeforeTax = Number(item.price_before_tax || 0);
     const taxPercentage = Number(item.tax_percentage || 0);
     const qty = Number(item.qty || 0);
 
-    // Tax calculated on original price, then multiplied by quantity
     const taxPerUnit = (priceBeforeTax * taxPercentage) / 100;
     const totalTaxForItem = taxPerUnit * qty;
 
@@ -657,6 +651,7 @@ export default function PenjualanForm({
                         const response = await customerService.getAllCustomers({
                           page: 0,
                           rowsPerPage: 10,
+                          is_active: true,
                           search_key: search,
                         });
                         return response;
@@ -698,6 +693,7 @@ export default function PenjualanForm({
                         const response =
                           await warehouseService.getAllWarehouses({
                             skip: 0,
+                            is_active: true,
                             limit: 10, // Increase limit
                             search: search,
                           });
@@ -737,6 +733,7 @@ export default function PenjualanForm({
                         const response =
                           await jenisPembayaranService.getAllMataUang({
                             skip: 0,
+                            is_active: true,
                             limit: 10, // Increase limit
                             search: search,
                           });
@@ -1288,7 +1285,7 @@ export default function PenjualanForm({
               <Button
                 type="button"
                 onClick={onDraftClick}
-                disabled={isSubmitting || !isActive}
+                disabled={isSubmitting}
               >
                 Simpan
               </Button>

@@ -94,7 +94,12 @@ export default function VendorPage() {
   // Memoize fetch functions to prevent recreating them on every render
   const fetchCurrencyData = useMemo(
     () => (search: string) => {
-      return mataUangService.getAllMataUang({ skip: 0, limit: 50, search });
+      return mataUangService.getAllMataUang({
+        skip: 0,
+        limit: 50,
+        is_active: true,
+        search,
+      });
     },
     []
   );
@@ -103,6 +108,7 @@ export default function VendorPage() {
     () => (search: string) => {
       return jenisPembayaranService.getAllMataUang({
         skip: 0,
+        is_active: true,
         limit: 50,
         search,
       });

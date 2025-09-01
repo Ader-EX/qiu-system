@@ -698,6 +698,7 @@ export default function PembayaranForm({
                           const response = await vendorService.getAllVendors({
                             skip: 0,
                             limit: 10,
+                            is_active: true,
                             search_key: search,
                           });
                           return response;
@@ -735,6 +736,7 @@ export default function PembayaranForm({
                         const response = await customerService.getAllCustomers({
                           page: 0,
                           rowsPerPage: 10,
+                          is_active: true,
                           search_key: search,
                         });
                         return response;
@@ -776,6 +778,7 @@ export default function PembayaranForm({
                           await jenisPembayaranService.getAllMataUang({
                             skip: 0,
                             limit: 10,
+                            is_active: true,
                             search: search,
                           });
                         return response;
@@ -814,6 +817,7 @@ export default function PembayaranForm({
                         const response =
                           await warehouseService.getAllWarehouses({
                             skip: 0,
+                            is_active: true,
                             limit: 10,
                             search: search,
                           });

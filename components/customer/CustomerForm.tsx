@@ -92,6 +92,7 @@ export default function CustomerForm({ mode, customerId }: CustomerFormProps) {
   const handleCurrencySelect = useCallback((search: string) => {
     return mataUangService.getAllMataUang({
       skip: 0,
+      is_active: true,
       limit: 5,
       search,
     });

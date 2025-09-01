@@ -657,6 +657,7 @@ export default function PembelianForm({
                         const response = await vendorService.getAllVendors({
                           skip: 0,
                           limit: 10,
+                          is_active: true,
                           search_key: search,
                         });
                         return response;
@@ -698,7 +699,8 @@ export default function PembelianForm({
                         const response =
                           await warehouseService.getAllWarehouses({
                             skip: 0,
-                            limit: 10, // Increase limit
+                            is_active: true,
+                            limit: 10,
                             search: search,
                           });
                         return response;
@@ -737,7 +739,8 @@ export default function PembelianForm({
                         const response =
                           await jenisPembayaranService.getAllMataUang({
                             skip: 0,
-                            limit: 10, // Increase limit
+                            limit: 10,
+                            is_active: true,
                             search: search,
                           });
                         return response;
@@ -826,7 +829,6 @@ export default function PembelianForm({
                     </FormLabel>
                     <FormControl>
                       <FileUploadButton
-                        disabled={!isActive}
                         value={field.value || []}
                         onChangeAction={field.onChange}
                         maxFiles={3}
@@ -1284,7 +1286,7 @@ export default function PembelianForm({
               <Button
                 type="button"
                 onClick={onDraftClick}
-                disabled={isSubmitting || !isActive}
+                disabled={isSubmitting}
               >
                 Simpan
               </Button>

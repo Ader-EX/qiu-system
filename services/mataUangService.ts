@@ -1,210 +1,211 @@
 // services/currencyService.ts
-import {TOPUnit} from "@/types/types";
+import { TOPUnit } from "@/types/types";
 import Cookies from "js-cookie";
 
-const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
+const NEXT_PUBLIC_API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface unitService {
-    name: string;
-    symbol: string;
-    is_active: boolean;
+  name: string;
+  symbol: string;
+  is_active: boolean;
 }
 
 export interface MataUangUpdate {
-    name?: string;
-    symbol: string;
-    is_active?: boolean;
+  name?: string;
+  symbol: string;
+  is_active?: boolean;
 }
 
 export type MataUangListResponse = {
-    data: TOPUnit[];
-    total: number;
+  data: TOPUnit[];
+  total: number;
 };
 
-
 export type ItemListResponse = {
-    data: TOPUnit[];
-    total: number;
+  data: TOPUnit[];
+  total: number;
 };
 
 class MataUangService {
-    private baseUrl: string;
+  private baseUrl: string;
 
-    constructor(destination: string = "currency") {
-        this.baseUrl = `${NEXT_PUBLIC_API_URL}/${destination}`;
+  constructor(destination: string = "currency") {
+    this.baseUrl = `${NEXT_PUBLIC_API_URL}/${destination}`;
+  }
+
+  async getAllMataUang({
+    skip = 0,
+    limit = 10,
+    is_active,
+    search = "",
+  }: {
+    skip: number;
+    limit: number;
+    is_active: boolean;
+    search: string;
+  }): Promise<MataUangListResponse> {
+    const params = new URLSearchParams();
+    params.append("skip", String(skip));
+    params.append("limit", String(limit));
+    if (is_active) {
+      params.append("is_active", String(is_active));
+    }
+    if (search) {
+      params.append("search_key", search);
     }
 
-    async getAllMataUang({
-                             skip = 0,
-                             limit = 10,
-                             search = "",
+    const url = `${this.baseUrl}?${params.toString()}`;
 
-                         }: {
-        skip: number;
-        limit: number;
-        search: string;
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      });
 
-    }): Promise<MataUangListResponse> {
-        const params = new URLSearchParams();
-        params.append("skip", String(skip));
-        params.append("limit", String(limit));
+      if (!response.ok) {
+        throw new Error(`Failed to fetch currencies: ${response.statusText}`);
+      }
 
+      const result = (await response.json()) as MataUangListResponse;
+      return result;
+    } catch (error) {
+      console.error("Error fetching currencies.h:", error);
+      throw error;
+    }
+  }
 
-        if (search) {
-            params.append("search_key", search);
-        }
+  async getAllItem({
+    skip = 0,
+    limit = 10,
+    search = "",
+  }: {
+    skip: number;
+    limit: number;
+    search: string;
+  }): Promise<MataUangListResponse> {
+    const params = new URLSearchParams();
+    params.append("page", String(skip));
+    params.append("rowsPerPage", String(limit));
 
-        const url = `${this.baseUrl}?${params.toString()}`;
-
-        try {
-            const response = await fetch(url, {
-                method: "GET",
-                headers: this.getAuthHeaders(),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch currencies: ${response.statusText}`);
-            }
-
-            const result = (await response.json()) as MataUangListResponse;
-            return result;
-        } catch (error) {
-            console.error("Error fetching currencies.h:", error);
-            throw error;
-        }
+    if (search) {
+      params.append("search_key", search);
     }
 
+    const url = `${this.baseUrl}?${params.toString()}`;
 
-    async getAllItem({
-                         skip = 0,
-                         limit = 10,
-                         search = "",
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      });
 
-                     }: {
-        skip: number;
-        limit: number;
-        search: string;
+      if (!response.ok) {
+        throw new Error(`Failed to fetch item: ${response.statusText}`);
+      }
 
-    }): Promise<MataUangListResponse> {
-        const params = new URLSearchParams();
-        params.append("page", String(skip));
-        params.append("rowsPerPage", String(limit));
-
-
-        if (search) {
-            params.append("search_key", search);
-        }
-
-        const url = `${this.baseUrl}?${params.toString()}`;
-
-        try {
-            const response = await fetch(url, {
-                method: "GET",
-                headers: this.getAuthHeaders(),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch item: ${response.statusText}`);
-            }
-
-            const result = (await response.json()) as MataUangListResponse;
-            return result;
-        } catch (error) {
-            console.error("Error fetching item:", error);
-            throw error;
-        }
+      const result = (await response.json()) as MataUangListResponse;
+      return result;
+    } catch (error) {
+      console.error("Error fetching item:", error);
+      throw error;
     }
+  }
 
-    async getMataUang(id: number): Promise<TOPUnit> {
-        try {
-            const response = await fetch(`${this.baseUrl}/${id}`, {
-                method: "GET",
-                headers: this.getAuthHeaders(),
-            });
+  async getMataUang(id: number): Promise<TOPUnit> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${id}`, {
+        method: "GET",
+        headers: this.getAuthHeaders(),
+      });
 
-            if (!response.ok) {
-                throw new Error(`Failed to fetch currency: ${response.statusText}`);
-            }
+      if (!response.ok) {
+        throw new Error(`Failed to fetch currency: ${response.statusText}`);
+      }
 
-            return await response.json();
-        } catch (error) {
-            console.error("Error fetching currency:", error);
-            throw error;
-        }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching currency:", error);
+      throw error;
     }
+  }
 
-    async createMataUang(currencyData: unitService): Promise<TOPUnit> {
-        try {
-            const response = await fetch(this.baseUrl, {
-                method: "POST",
-                headers: this.getAuthHeaders(),
-                body: JSON.stringify(currencyData),
-            });
+  async createMataUang(currencyData: unitService): Promise<TOPUnit> {
+    try {
+      const response = await fetch(this.baseUrl, {
+        method: "POST",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(currencyData),
+      });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to create currency: ${response.statusText} - ${errorText}`);
-            }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to create currency: ${response.statusText} - ${errorText}`
+        );
+      }
 
-            return await response.json();
-        } catch (error) {
-            console.error("Error creating currency:", error);
-            throw error;
-        }
+      return await response.json();
+    } catch (error) {
+      console.error("Error creating currency:", error);
+      throw error;
     }
+  }
 
-    async updateMataUang(
-        id: number,
-        mataUangUpdate: MataUangUpdate
-    ): Promise<TOPUnit> {
-        try {
-            const response = await fetch(`${this.baseUrl}/${id}`, {
-                method: "PUT",
-                headers: this.getAuthHeaders(),
-                body: JSON.stringify(mataUangUpdate),
-            });
+  async updateMataUang(
+    id: number,
+    mataUangUpdate: MataUangUpdate
+  ): Promise<TOPUnit> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${id}`, {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(mataUangUpdate),
+      });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to update currency: ${response.statusText} - ${errorText}`);
-            }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to update currency: ${response.statusText} - ${errorText}`
+        );
+      }
 
-            return await response.json();
-        } catch (error) {
-            console.error("Error updating currency:", error);
-            throw error;
-        }
+      return await response.json();
+    } catch (error) {
+      console.error("Error updating currency:", error);
+      throw error;
     }
+  }
 
-    async deleteMataUang(id: number): Promise<void> {
-        try {
-            const response = await fetch(`${this.baseUrl}/${id}`, {
-                method: "DELETE",
-                headers: this.getAuthHeaders(),
-            });
+  async deleteMataUang(id: number): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${id}`, {
+        method: "DELETE",
+        headers: this.getAuthHeaders(),
+      });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to delete currency: ${response.statusText} - ${errorText}`);
-            }
-        } catch (error) {
-            console.error("Error deleting currency:", error);
-            throw error;
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Failed to delete currency: ${response.statusText} - ${errorText}`
+        );
+      }
+    } catch (error) {
+      console.error("Error deleting currency:", error);
+      throw error;
     }
+  }
 
-    private getAuthHeaders(): HeadersInit {
-        const token = Cookies.get("access_token");
-        return {
-            "Content-Type": "application/json",
-            ...(token && {Authorization: `Bearer ${token}`}),
-        };
-    }
+  private getAuthHeaders(): HeadersInit {
+    const token = Cookies.get("access_token");
+    return {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+  }
 }
 
-
 export const mataUangService = new MataUangService("currency");
-export const jenisPembayaranService = new MataUangService("top")
-export const satuanService = new MataUangService("satuan")
-export const itemService = new MataUangService("item")
+export const jenisPembayaranService = new MataUangService("top");
+export const satuanService = new MataUangService("satuan");
+export const itemService = new MataUangService("item");
