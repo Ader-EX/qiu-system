@@ -63,7 +63,7 @@ export default function PembelianPage() {
     const [statusPembayaran, setStatusPembayaran] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const [pageSize] = useState(50);
+
     const {simplePrint, previewInvoice, advancedPrint, isPrinting} =
         usePrintInvoice();
 
@@ -73,7 +73,7 @@ export default function PembelianPage() {
             const response = await pembelianService.getAllPembelian({
                 ...filters,
                 page: currentPage,
-                size: pageSize,
+                size: rowsPerPage,
             });
 
             console.log(response.data);
@@ -196,7 +196,7 @@ export default function PembelianPage() {
         });
     };
 
-    const totalPages = Math.ceil(totalItems / pageSize);
+    const totalPages = Math.ceil(totalItems / rowsPerPage);
 
     const handleSearch = async () => {
         setCurrentPage(1);
