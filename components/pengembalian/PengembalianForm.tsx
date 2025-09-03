@@ -840,6 +840,7 @@ export default function PengembalianForm({
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
+                                                    type={"button"}
                                                     onClick={() => handleRemoveExistingAttachment(att.id)}
                                                     className="text-red-500 hover:text-red-700"
                                                 >
