@@ -401,6 +401,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                                 satuanService.getAllMataUang({
                                                     skip: 0,
                                                     limit: 5,
+                                                    is_active: true,
                                                     search,
                                                 })
                                             }
@@ -432,6 +433,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                                     skip: 0,
                                                     limit: 5,
                                                     type: 1,
+                                                    is_active: true,
                                                     search,
                                                 })
                                             }
@@ -458,6 +460,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                                     skip: 0,
                                                     limit: 5,
                                                     type: 2,
+                                                    is_active: true,
                                                     search,
                                                 })
                                             }
