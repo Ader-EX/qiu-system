@@ -339,7 +339,7 @@ export default function PembelianForm({
             setExistingAttachments((prev) =>
                 prev.filter((att) => att.id !== attachmentId)
             );
-            toast.success("Attachment removed successfully");
+            toast.success("Attachment berhasil dihapus");
         } catch (error: any) {
             toast.error(error.message || "Failed to remove attachment");
         }
@@ -391,7 +391,7 @@ export default function PembelianForm({
 
                 await handleAttachmentUpload(data.attachments, resultId);
 
-                toast.success("Purchase successfully updated.");
+                toast.success("Purchase berhasil diperbarui.");
                 if (finalize) {
                     await pembelianService.finalizePembelian(resultId);
                 }
@@ -527,6 +527,7 @@ export default function PembelianForm({
                         <FormField
                             control={form.control}
                             name="no_pembelian"
+                            disabled
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>No. Pembelian</FormLabel>

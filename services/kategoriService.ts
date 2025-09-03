@@ -29,11 +29,14 @@ class CategoryService {
                                skip = 0,
                                limit = 10,
                                type = 1,
+                               is_active,
                                search = "",
                            }: {
         skip: number;
         limit: number;
+
         type: number;
+        is_active?: boolean;
         search: string;
 
     }): Promise<CategoryListResponse> {
@@ -44,6 +47,10 @@ class CategoryService {
 
         if (search) {
             params.append("search_key", search);
+        }
+
+        if (is_active) {
+            params.append("is_active", String(is_active));
         }
 
         const url = `${this.baseUrl}?${params.toString()}`;

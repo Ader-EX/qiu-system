@@ -361,7 +361,7 @@ const ProdukPage = () => {
         if (file) {
             try {
                 await itemService.uploadItem(file);
-                toast.success("File uploaded successfully");
+                toast.success("File berhasil diunggah");
                 fetchItems();
             } catch (error: any) {
                 console.error("Upload error:", error);

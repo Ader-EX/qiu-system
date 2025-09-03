@@ -334,7 +334,7 @@ export default function PenjualanForm({
             setExistingAttachments((prev) =>
                 prev.filter((att) => att.id !== attachmentId)
             );
-            toast.success("Attachment removed successfully");
+            toast.success("Attachment berhasil dihapus");
         } catch (error: any) {
             toast.error(error.message || "Failed to remove attachment");
         }
@@ -386,7 +386,7 @@ export default function PenjualanForm({
 
                 await handleAttachmentUpload(data.attachments, resultId);
 
-                toast.success("Sales successfully updated.");
+                toast.success("Sales berhasil diperbarui");
                 if (finalize) {
                     await penjualanService.finalizePenjualan(resultId);
                 }
