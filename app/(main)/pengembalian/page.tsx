@@ -80,7 +80,7 @@ export default function PengembalianPage() {
         } catch (err) {
             const errorMsg =
                 err instanceof Error ? err.message : "Gagal memuat data pengembalian";
-            toast.error(errorMsg);
+            toast.error("Gagal memuat data pengembalian");
         }
     };
 

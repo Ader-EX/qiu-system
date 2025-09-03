@@ -85,7 +85,7 @@ export default function PenjualanPage() {
         } catch (err) {
             const errorMsg =
                 err instanceof Error ? err.message : "Gagal memuat data penjualan";
-            toast.error(errorMsg);
+
         }
     };
 
@@ -125,7 +125,7 @@ export default function PenjualanPage() {
         } catch (err) {
             const errorMsg =
                 err instanceof Error ? err.message : "Gagal menghapus penjualan";
-            toast.error(errorMsg);
+            toast.error("Gagal menghapus penjualan");
         }
     };
 

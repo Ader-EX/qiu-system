@@ -136,7 +136,7 @@ const ProdukPage = () => {
                 error: errorMessage,
                 loading: false,
             }));
-            toast.error(errorMessage);
+
         }
     }, [
         state.currentPage,
@@ -330,7 +330,7 @@ const ProdukPage = () => {
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : "Failed to save item";
-            toast.error(errorMessage);
+            toast.error("Gagal menyimpan Item");
         }
     };
 
@@ -342,7 +342,7 @@ const ProdukPage = () => {
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : "Failed to delete item";
-            toast.error(errorMessage);
+            toast.error("Item gagal dihapus");
         }
     };
 

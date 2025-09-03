@@ -52,12 +52,12 @@ const LoginPage = () => {
                 router.push("/dashboard");
             } else {
                 toast.dismiss(loadingToast);
-                toast.error(detail || "Invalid credentials");
+                toast.error(detail || "Login gagal, silahkan coba lagi nanti");
             }
         } catch (error: any) {
             toast.dismiss(loadingToast);
             const message =
-                error.response?.data?.detail || "Login gagal, silahkan coba lagi nanti";
+                error.response?.data?.detail || "Login gagal, silahkan coba lagi";
             toast.error(message);
         } finally {
             setIsLoading(false);

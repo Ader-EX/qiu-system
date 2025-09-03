@@ -83,7 +83,7 @@ export default function PembelianPage() {
         } catch (err) {
             const errorMsg =
                 err instanceof Error ? err.message : "Failed to fetch pembelians";
-            toast.error(errorMsg);
+
         }
     };
 
@@ -123,7 +123,7 @@ export default function PembelianPage() {
         } catch (err) {
             const errorMsg =
                 err instanceof Error ? err.message : "Failed to delete pembelian";
-            toast.error(errorMsg);
+            toast.error("Entri pembelian gagal dihapus");
         }
     };
 
