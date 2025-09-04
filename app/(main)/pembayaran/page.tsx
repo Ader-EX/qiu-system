@@ -176,7 +176,6 @@ export default function PembayaranPage() {
         return references.length > 0 ? references.join(", ") : "-";
     };
 
-    // Helper function to calculate total payment amount
     const getTotalPayment = (pembayaran: PembayaranResponse) => {
         if (
             !pembayaran.pembayaran_details ||
@@ -279,7 +278,7 @@ export default function PembayaranPage() {
                             <SelectValue placeholder="Tipe Pembayaran"/>
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">Semua Tipe</SelectItem>
+                            <SelectItem value="ALL">Semua Tipe</SelectItem>
                             <SelectItem value="PENJUALAN">PENJUALAN</SelectItem>
                             <SelectItem value="PEMBELIAN">PEMBELIAN</SelectItem>
                         </SelectContent>
@@ -290,17 +289,13 @@ export default function PembayaranPage() {
                             <SelectValue placeholder="Status Pembayaran"/>
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">Semua Status</SelectItem>
+                            <SelectItem value="ALL">Semua Status</SelectItem>
                             <SelectItem value="DRAFT">Draft</SelectItem>
                             <SelectItem value="ACTIVE">Aktif</SelectItem>
                         </SelectContent>
                     </Select>
 
-                    {(searchTerm || pembayaranType || statusPembayaran) && (
-                        <Button variant="outline" onClick={handleClearFilters}>
-                            Clear Filters
-                        </Button>
-                    )}
+                  
                 </div>
             </div>
 
