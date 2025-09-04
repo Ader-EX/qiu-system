@@ -56,18 +56,17 @@ import {
 
 export default function PembayaranPage() {
     const [pembayarans, setPembayarans] = useState<PembayaranResponse[]>([]);
-
     const [searchTerm, setSearchTerm] = useState("");
+    const [searchInput, setSearchInput] = useState(""); // Separate state for input
     const [rowsPerPage, setRowsPerPage] = useState(5);
-
     const [pembayaranType, setPembayaranType] = useState("");
     const [statusPembayaran, setStatusPembayaran] = useState("");
-
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-
+    const [isLoading, setIsLoading] = useState(false);
 
     const fetchPembayarans = async (filters: PembayaranFilters = {}) => {
+        setIsLoading(true);
         try {
             const response = await pembayaranService.getAllPembayaran({
                 ...filters,
@@ -81,30 +80,40 @@ export default function PembayaranPage() {
             const errorMsg =
                 err instanceof Error ? err.message : "Gagal memuat data pembayaran";
             toast.error(errorMsg);
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    useEffect(() => {
+    // Build filters object
+    const buildFilters = (): PembayaranFilters => {
         const filters: PembayaranFilters = {};
 
-        if (pembayaranType) filters.tipe_referensi = pembayaranType;
-        if (statusPembayaran) filters.status = statusPembayaran;
-        if (searchTerm) filters.search_key = searchTerm;
-        if (rowsPerPage) filters.size = rowsPerPage;
+        if (pembayaranType && pembayaranType !== "ALL") {
+            filters.tipe_referensi = pembayaranType;
+        }
+        if (statusPembayaran && statusPembayaran !== "ALL") {
+            filters.status = statusPembayaran;
+        }
+        if (searchTerm) {
+            filters.search_key = searchTerm;
+        }
 
+        return filters;
+    };
+
+    // Effect for fetching data when filters or pagination changes
+    useEffect(() => {
+        const filters = buildFilters();
         fetchPembayarans(filters);
-    }, [currentPage, pembayaranType, statusPembayaran, rowsPerPage]);
+    }, [currentPage, pembayaranType, statusPembayaran, searchTerm, rowsPerPage]);
 
-    const filteredPembayarans = pembayarans.filter(
-        (pembayaran) =>
-            pembayaran.no_pembayaran
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-            (pembayaran.customer_name
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
-                false)
-    );
+    // Reset to first page when filters change
+    useEffect(() => {
+        if (currentPage !== 1) {
+            setCurrentPage(1);
+        }
+    }, [pembayaranType, statusPembayaran, searchTerm]);
 
     const handleDeleteClick = (id: number) => {
         confirmDelete(id).then(() => toast.success("Pembayaran berhasil dihapus!"));
@@ -115,8 +124,9 @@ export default function PembayaranPage() {
 
         try {
             await pembayaranService.deletePembayaran(id);
-
-            await fetchPembayarans();
+            // Refresh with current filters
+            const filters = buildFilters();
+            await fetchPembayarans(filters);
         } catch (err) {
             const errorMsg =
                 err instanceof Error ? err.message : "Gagal menghapus pembayaran";
@@ -180,9 +190,9 @@ export default function PembayaranPage() {
         }, 0);
     };
 
-    const handleRowsPerPageChange = (i: number) => {
-        setRowsPerPage(i);
-        setCurrentPage(1);
+    const handleRowsPerPageChange = (newRowsPerPage: number) => {
+        setRowsPerPage(newRowsPerPage);
+        setCurrentPage(1); // Reset to first page
     };
 
     const formatDate = (dateString: string) => {
@@ -195,14 +205,35 @@ export default function PembayaranPage() {
 
     const totalPages = Math.ceil(totalItems / rowsPerPage);
 
-    const handleSearch = async () => {
+    const handleSearch = () => {
+        setSearchTerm(searchInput.trim());
         setCurrentPage(1);
-        await fetchPembayarans();
     };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
             handleSearch();
+        }
+    };
+
+    const handleClearFilters = () => {
+        setSearchTerm("");
+        setSearchInput("");
+        setPembayaranType("");
+        setStatusPembayaran("");
+        setCurrentPage(1);
+    };
+
+    const handleRollback = async (pembayaranId: number) => {
+        try {
+            await pembayaranService.rollbackPembayaran(pembayaranId);
+            toast.success("Pembayaran berhasil dikembalikan ke draft");
+            // Refresh with current filters
+            const filters = buildFilters();
+            await fetchPembayarans(filters);
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : "Gagal rollback pembayaran";
+            toast.error(errorMsg);
         }
     };
 
@@ -230,14 +261,14 @@ export default function PembayaranPage() {
                             className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                         <Input
                             placeholder="Cari Pembayaran..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
                             onKeyDown={handleSearchKeyDown}
                             className="pl-7 w-full"
                         />
                     </div>
 
-                    <Button onClick={handleSearch}>
+                    <Button onClick={handleSearch} disabled={isLoading}>
                         <SearchIcon className="h-4 w-4"/>
                     </Button>
                 </div>
@@ -248,9 +279,9 @@ export default function PembayaranPage() {
                             <SelectValue placeholder="Tipe Pembayaran"/>
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="ALL">Semua Tipe</SelectItem>
-                            <SelectItem value={"PENJUALAN"}>PENJUALAN</SelectItem>
-                            <SelectItem value={"PEMBELIAN"}>PEMBELIAN</SelectItem>
+                            <SelectItem value="">Semua Tipe</SelectItem>
+                            <SelectItem value="PENJUALAN">PENJUALAN</SelectItem>
+                            <SelectItem value="PEMBELIAN">PEMBELIAN</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -259,134 +290,130 @@ export default function PembayaranPage() {
                             <SelectValue placeholder="Status Pembayaran"/>
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="ALL">Semua Status</SelectItem>
-                            <SelectItem value={"DRAFT"}>Draft</SelectItem>
-                            <SelectItem value={"ACTIVE"}>Aktif</SelectItem>
+                            <SelectItem value="">Semua Status</SelectItem>
+                            <SelectItem value="DRAFT">Draft</SelectItem>
+                            <SelectItem value="ACTIVE">Aktif</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    {(searchTerm || pembayaranType || statusPembayaran) && (
+                        <Button variant="outline" onClick={handleClearFilters}>
+                            Clear Filters
+                        </Button>
+                    )}
                 </div>
             </div>
 
-            <>
-                <Table>
-                    <TableHeader>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>No Pembayaran</TableHead>
+                        <TableHead>No. Referensi</TableHead>
+                        <TableHead>Tipe Referensi</TableHead>
+                        <TableHead>Tanggal</TableHead>
+                        <TableHead>Total Pembayaran</TableHead>
+                        <TableHead>Status Transaksi</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {isLoading ? (
                         <TableRow>
-                            <TableHead>No Pembayaran</TableHead>
-                            <TableHead>No. Referensi</TableHead>
-                            <TableHead>Tipe Referensi</TableHead>
-                            <TableHead>Tanggal</TableHead>
-                            <TableHead>Total Pembayaran</TableHead>
-                            <TableHead>Status Transaksi</TableHead>
-                            <TableHead className="text-right">Aksi</TableHead>
+                            <TableCell colSpan={7} className="text-center py-8">
+                                <p className="text-muted-foreground">Loading...</p>
+                            </TableCell>
                         </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredPembayarans.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8">
-                                    <p className="text-muted-foreground">
-                                        {searchTerm
-                                            ? "Tidak ada pembayaran yang cocok dengan pencarian"
-                                            : "Belum ada data pembayaran"}
-                                    </p>
+                    ) : pembayarans.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8">
+                                <p className="text-muted-foreground">
+                                    {searchTerm || pembayaranType || statusPembayaran
+                                        ? "Tidak ada pembayaran yang cocok dengan filter"
+                                        : "Belum ada data pembayaran"}
+                                </p>
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        pembayarans.map((pembayaran) => (
+                            <TableRow key={pembayaran.id}>
+                                <TableCell className="font-medium">
+                                    <span className="font-mono">
+                                        {pembayaran.no_pembayaran}
+                                    </span>
                                 </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredPembayarans.map((pembayaran) => (
-                                <TableRow key={pembayaran.id}>
-                                    <TableCell className="font-medium">
-                    <span className="font-mono">
-                      {pembayaran.no_pembayaran}
-                    </span>
-                                    </TableCell>
-                                    <TableCell>
-                    <span className="font-mono text-sm">
-                      {getReferenceNumbers(pembayaran)}
-                    </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant="okay">{pembayaran.reference_type}</Badge>
-                                    </TableCell>
-                                    <TableCell>{formatDate(pembayaran.payment_date)}</TableCell>
-                                    <TableCell>
-                                        {formatMoney(getTotalPayment(pembayaran))}
-                                    </TableCell>
-                                    <TableCell>{getStatusBadge(pembayaran.status)}</TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <MoreHorizontal className="h-4 w-4"/>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
+                                <TableCell>
+                                    <span className="font-mono text-sm">
+                                        {getReferenceNumbers(pembayaran)}
+                                    </span>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant="okay">{pembayaran.reference_type}</Badge>
+                                </TableCell>
+                                <TableCell>{formatDate(pembayaran.payment_date)}</TableCell>
+                                <TableCell>
+                                    {formatMoney(getTotalPayment(pembayaran))}
+                                </TableCell>
+                                <TableCell>{getStatusBadge(pembayaran.status)}</TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <MoreHorizontal className="h-4 w-4"/>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem asChild>
+                                                <Link href={`/pembayaran/${pembayaran.id}/view`}>
+                                                    <Eye className="mr-2 h-4 w-4"/>
+                                                    Lihat Detail
+                                                </Link>
+                                            </DropdownMenuItem>
+
+                                            {pembayaran.status === "ACTIVE" && (
+                                                <DropdownMenuItem
+                                                    onClick={() => handleRollback(pembayaran.id)}
+                                                    className="text-destructive hover:text-destructive/90"
+                                                >
+                                                    <RefreshCw className="mr-2 h-4 w-4"/>
+                                                    Kembali ke Draft
+                                                </DropdownMenuItem>
+                                            )}
+
+                                            {pembayaran.status === "DRAFT" && (
                                                 <DropdownMenuItem asChild>
-                                                    <Link href={`/pembayaran/${pembayaran.id}/view`}>
-                                                        <Eye className="mr-2 h-4 w-4"/>
-                                                        Lihat Detail
+                                                    <Link href={`/pembayaran/${pembayaran.id}/edit`}>
+                                                        <Edit className="mr-2 h-4 w-4"/>
+                                                        Edit
                                                     </Link>
                                                 </DropdownMenuItem>
+                                            )}
 
-                                                {pembayaran.status === "ACTIVE" && (
-                                                    <DropdownMenuItem asChild>
-                            <span
-                                className={
-                                    "text-destructive hover:text-destructive/90"
-                                }
-                                onClick={() => {
-                                    pembayaranService
-                                        .rollbackPembayaran(pembayaran.id)
-                                        .then((r) => {
-                                            toast.success(
-                                                "Pembayaran berhasil dikembalikan ke draft"
-                                            );
-                                            fetchPembayarans();
-                                        });
-                                }}
-                            >
-                              <RefreshCw className="mr-2 h-4 w-4"/>
-                              Kembali ke Draft
-                            </span>
-                                                    </DropdownMenuItem>
-                                                )}
+                                            {pembayaran.status === "DRAFT" && (
+                                                <DropdownMenuItem
+                                                    onClick={() => handleDeleteClick(Number(pembayaran.id))}
+                                                    className="text-red-600"
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4"/>
+                                                    Hapus
+                                                </DropdownMenuItem>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    )}
+                </TableBody>
+            </Table>
 
-                                                {pembayaran.status === "DRAFT" && (
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={`/pembayaran/${pembayaran.id}/edit`}>
-                                                            <Edit className="mr-2 h-4 w-4"/>
-                                                            Edit
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                )}
-                                                {pembayaran.status === "DRAFT" && (
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            handleDeleteClick(Number(pembayaran.id))
-                                                        }
-                                                        className="text-red-600"
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4"/>
-                                                        Hapus
-                                                    </DropdownMenuItem>
-                                                )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-
-                <GlobalPaginationFunction
-                    page={currentPage}
-                    total={totalItems}
-                    totalPages={totalPages}
-                    rowsPerPage={rowsPerPage}
-                    handleRowsPerPageChange={handleRowsPerPageChange}
-                    handlePageChange={setCurrentPage}
-                />
-            </>
+            <GlobalPaginationFunction
+                page={currentPage}
+                total={totalItems}
+                totalPages={totalPages}
+                rowsPerPage={rowsPerPage}
+                handleRowsPerPageChange={handleRowsPerPageChange}
+                handlePageChange={setCurrentPage}
+            />
         </div>
     );
 }

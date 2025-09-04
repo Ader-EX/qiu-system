@@ -47,7 +47,7 @@ const ReferenceSelectionDialog = ({
     const [references, setReferences] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
-    const [currentSearch, setCurrentSearch] = useState(""); // Track the search term being used for API calls
+    const [currentSearch, setCurrentSearch] = useState("");
 
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(20);

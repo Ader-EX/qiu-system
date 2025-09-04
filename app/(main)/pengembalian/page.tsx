@@ -53,21 +53,17 @@ import {
 import {PembayaranFilters} from "@/services/pembayaranService";
 
 export default function PengembalianPage() {
-    const [pengembalians, setPengembalians] = useState<PengembalianResponse[]>(
-        []
-    );
-
+    const [pengembalians, setPengembalians] = useState<PengembalianResponse[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [rowsPerPage, setRowsPerPage] = useState(5);
-
     const [pengembalianType, setPengembalianType] = useState("");
     const [statusPengembalian, setStatusPengembalian] = useState("");
-
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-
+    const [isLoading, setIsLoading] = useState(false);
 
     const fetchPengembalians = async (filters: PembayaranFilters = {}) => {
+        setIsLoading(true);
         try {
             const response = await pengembalianService.getAllPengembalian({
                 ...filters,
@@ -75,41 +71,55 @@ export default function PengembalianPage() {
                 size: rowsPerPage,
             });
 
-            setPengembalians(response.data);
-            setTotalItems(response.total);
+            setPengembalians(response.data || []);
+            setTotalItems(response.total || 0);
         } catch (err) {
             const errorMsg =
                 err instanceof Error ? err.message : "Gagal memuat data pengembalian";
-            toast.error("Gagal memuat data pengembalian");
+            toast.error(errorMsg);
+            setPengembalians([]);
+            setTotalItems(0);
+        } finally {
+            setIsLoading(false);
         }
     };
 
+    // Build filters object
+    const buildFilters = (): PembayaranFilters => {
+        const filters: PembayaranFilters = {
+            page: currentPage,
+            size: rowsPerPage,
+        };
+
+        if (pengembalianType && pengembalianType !== "ALL") {
+            filters.tipe_referensi = pengembalianType;
+        }
+        if (statusPengembalian && statusPengembalian !== "ALL") {
+            filters.status = statusPengembalian;
+        }
+        if (searchTerm.trim()) {
+            filters.search_key = searchTerm.trim();
+        }
+
+        return filters;
+    };
+
+    // Effect for initial load and filter changes
     useEffect(() => {
-        const filters: PembayaranFilters = {};
-
-        if (pengembalianType) filters.tipe_referensi = pengembalianType;
-        if (statusPengembalian) filters.status = statusPengembalian;
-        if (searchTerm) filters.search_key = searchTerm;
-        if (rowsPerPage) filters.size = rowsPerPage;
-
+        const filters = buildFilters();
         fetchPengembalians(filters);
     }, [currentPage, pengembalianType, statusPengembalian, rowsPerPage]);
 
-    const filteredPengembalians = (pengembalians ?? []).filter(
-        (pengembalian) =>
-            pengembalian?.no_pengembalian
-                ?.toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
-            (pengembalian?.customer_name
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
-                false)
-    );
+    // Remove the client-side filtering since we're using server-side filtering
+    const displayedPengembalians = pengembalians;
 
-    const handleDeleteClick = (id: number) => {
-        confirmDelete(id).then(() =>
-            toast.success("Pengembalian berhasil dihapus!")
-        );
+    const handleDeleteClick = async (id: number) => {
+        try {
+            await confirmDelete(id);
+            toast.success("Pengembalian berhasil dihapus!");
+        } catch (error) {
+            // Error already handled in confirmDelete
+        }
     };
 
     const confirmDelete = async (id: number) => {
@@ -117,12 +127,14 @@ export default function PengembalianPage() {
 
         try {
             await pengembalianService.deletePengembalian(id);
-
-            await fetchPengembalians();
+            // Refresh data after deletion
+            const filters = buildFilters();
+            await fetchPengembalians(filters);
         } catch (err) {
             const errorMsg =
                 err instanceof Error ? err.message : "Gagal menghapus pengembalian";
             toast.error(errorMsg);
+            throw err; // Re-throw to prevent success message
         }
     };
 
@@ -168,47 +180,65 @@ export default function PengembalianPage() {
         return references.length > 0 ? references.join(", ") : "-";
     };
 
-    const toNum = (v: unknown): number => {
-        if (typeof v === "number") return Number.isFinite(v) ? v : 0;
-        if (typeof v === "string") {
-            const n = parseFloat(v);
-            return Number.isFinite(n) ? n : 0;
-        }
-        return 0;
-    };
-
     const getTotalReturn = (pengembalian: PengembalianResponse): number => {
         const details = pengembalian.pengembalian_details ?? [];
 
         return details.reduce((sum, d) => {
             const value = parseFloat(d.total_return || "0");
-            return value;
+            return sum + (Number.isFinite(value) ? value : 0);
         }, 0);
     };
 
-    const handleRowsPerPageChange = (i: number) => {
-        setRowsPerPage(i);
-        setCurrentPage(1);
+    const handleRowsPerPageChange = (newRowsPerPage: number) => {
+        setRowsPerPage(newRowsPerPage);
+        setCurrentPage(1); // Reset to first page when changing page size
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString("id-ID", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-        });
+        try {
+            return new Date(dateString).toLocaleDateString("id-ID", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+            });
+        } catch (error) {
+            return "-";
+        }
     };
 
     const totalPages = Math.ceil(totalItems / rowsPerPage);
 
     const handleSearch = async () => {
-        setCurrentPage(1);
-        await fetchPengembalians();
+        setCurrentPage(1); // Reset to first page when searching
+        const filters = buildFilters();
+        await fetchPengembalians(filters);
     };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
             handleSearch();
+        }
+    };
+
+    const handleTypeChange = (value: string) => {
+        setPengembalianType(value);
+        setCurrentPage(1); // Reset to first page when filter changes
+    };
+
+    const handleStatusChange = (value: string) => {
+        setStatusPengembalian(value);
+        setCurrentPage(1); // Reset to first page when filter changes
+    };
+
+    const handleRollback = async (pengembalianId: number) => {
+        try {
+            await pengembalianService.rollbackPengembalian(pengembalianId);
+            toast.success("Pengembalian berhasil dikembalikan ke draft");
+            const filters = buildFilters();
+            await fetchPengembalians(filters);
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : "Gagal melakukan rollback";
+            toast.error(errorMsg);
         }
     };
 
@@ -243,152 +273,144 @@ export default function PengembalianPage() {
                         />
                     </div>
 
-                    <Button onClick={handleSearch}>
+                    <Button onClick={handleSearch} disabled={isLoading}>
                         <SearchIcon className="h-4 w-4"/>
                     </Button>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                    <Select value={pengembalianType} onValueChange={setPengembalianType}>
+                    <Select value={pengembalianType} onValueChange={handleTypeChange}>
                         <SelectTrigger className="w-40">
                             <SelectValue placeholder="Tipe Pengembalian"/>
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="ALL">Semua Tipe</SelectItem>
-                            <SelectItem value={"PENJUALAN"}>PENJUALAN</SelectItem>
-                            <SelectItem value={"PEMBELIAN"}>PEMBELIAN</SelectItem>
+                            <SelectItem value="PENJUALAN">PENJUALAN</SelectItem>
+                            <SelectItem value="PEMBELIAN">PEMBELIAN</SelectItem>
                         </SelectContent>
                     </Select>
 
                     <Select
                         value={statusPengembalian}
-                        onValueChange={setStatusPengembalian}
+                        onValueChange={handleStatusChange}
                     >
                         <SelectTrigger className="w-40">
                             <SelectValue placeholder="Status Pengembalian"/>
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="ALL">Semua Status</SelectItem>
-                            <SelectItem value={"DRAFT"}>Draft</SelectItem>
-                            <SelectItem value={"ACTIVE"}>Aktif</SelectItem>
+                            <SelectItem value="DRAFT">Draft</SelectItem>
+                            <SelectItem value="ACTIVE">Aktif</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
             </div>
 
-            <>
-                <Table>
-                    <TableHeader>
+            {/* Table */}
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>No Pengembalian</TableHead>
+                        <TableHead>No. Referensi</TableHead>
+                        <TableHead>Tipe Referensi</TableHead>
+                        <TableHead>Tanggal</TableHead>
+                        <TableHead>Total Pengembalian</TableHead>
+                        <TableHead>Status Transaksi</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {isLoading ? (
                         <TableRow>
-                            <TableHead>No Pengembalian</TableHead>
-                            <TableHead>No. Referensi</TableHead>
-                            <TableHead>Tipe Referensi</TableHead>
-                            <TableHead>Tanggal</TableHead>
-                            <TableHead>Total Pengembalian</TableHead>
-                            <TableHead>Status Transaksi</TableHead>
-                            <TableHead className="text-right">Aksi</TableHead>
+                            <TableCell colSpan={7} className="text-center py-8">
+                                <p className="text-muted-foreground">Memuat data...</p>
+                            </TableCell>
                         </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredPengembalians.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8">
-                                    <p className="text-muted-foreground">
-                                        {searchTerm
-                                            ? "Tidak ada pengembalian yang cocok dengan pencarian"
-                                            : "Belum ada data pengembalian"}
-                                    </p>
+                    ) : displayedPengembalians.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8">
+                                <p className="text-muted-foreground">
+                                    {searchTerm || pengembalianType || statusPengembalian
+                                        ? "Tidak ada pengembalian yang cocok dengan filter"
+                                        : "Belum ada data pengembalian"}
+                                </p>
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        displayedPengembalians.map((pengembalian) => (
+                            <TableRow key={pengembalian.id}>
+                                <TableCell className="font-medium">
+                                    <span className="font-mono">
+                                        {pengembalian.no_pengembalian}
+                                    </span>
                                 </TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredPengembalians.map((pengembalian) => (
-                                <TableRow key={pengembalian.id}>
-                                    <TableCell className="font-medium">
-                    <span className="font-mono">
-                      {pengembalian.no_pengembalian}
-                    </span>
-                                    </TableCell>
-                                    <TableCell>
-                    <span className="font-mono text-sm">
-                      {getReferenceNumbers(pengembalian)}
-                    </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant="okay">{pengembalian.reference_type}</Badge>
-                                    </TableCell>
-                                    <TableCell>{formatDate(pengembalian.payment_date)}</TableCell>
-                                    <TableCell>
-                                        {formatMoney(getTotalReturn(pengembalian))}
-                                    </TableCell>
-                                    <TableCell>{getStatusBadge(pengembalian.status)}</TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <MoreHorizontal className="h-4 w-4"/>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
+                                <TableCell>
+                                    <span className="font-mono text-sm">
+                                        {getReferenceNumbers(pengembalian)}
+                                    </span>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant="okay">{pengembalian.reference_type}</Badge>
+                                </TableCell>
+                                <TableCell>{formatDate(pengembalian.payment_date)}</TableCell>
+                                <TableCell>
+                                    {formatMoney(getTotalReturn(pengembalian))}
+                                </TableCell>
+                                <TableCell>{getStatusBadge(pengembalian.status)}</TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <MoreHorizontal className="h-4 w-4"/>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem asChild>
+                                                <Link href={`/pengembalian/${pengembalian.id}/view`}>
+                                                    <Eye className="mr-2 h-4 w-4"/>
+                                                    Lihat Detail
+                                                </Link>
+                                            </DropdownMenuItem>
+
+                                            {pengembalian.status === "ACTIVE" && (
+                                                <DropdownMenuItem
+                                                    onClick={() => handleRollback(pengembalian.id)}
+                                                    className="text-destructive hover:text-destructive/90"
+                                                >
+                                                    <RefreshCw className="mr-2 h-4 w-4"/>
+                                                    Kembali ke Draft
+                                                </DropdownMenuItem>
+                                            )}
+
+                                            {pengembalian.status === "DRAFT" && (
                                                 <DropdownMenuItem asChild>
-                                                    <Link href={`/pengembalian/${pengembalian.id}/view`}>
-                                                        <Eye className="mr-2 h-4 w-4"/>
-                                                        Lihat Detail
+                                                    <Link href={`/pengembalian/${pengembalian.id}/edit`}>
+                                                        <Edit className="mr-2 h-4 w-4"/>
+                                                        Edit
                                                     </Link>
                                                 </DropdownMenuItem>
+                                            )}
 
-                                                {pengembalian.status === "ACTIVE" && (
-                                                    <DropdownMenuItem asChild>
-                            <span
-                                className={
-                                    "text-destructive hover:text-destructive/90"
-                                }
-                                onClick={() => {
-                                    pengembalianService
-                                        .rollbackPengembalian(pengembalian.id)
-                                        .then((r) => {
-                                            toast.success(
-                                                "Pengembalian berhasil dikembalikan ke draft"
-                                            );
-                                            fetchPengembalians();
-                                        });
-                                }}
-                            >
-                              <RefreshCw className="mr-2 h-4 w-4"/>
-                              Kembali ke Draft
-                            </span>
-                                                    </DropdownMenuItem>
-                                                )}
+                                            {pengembalian.status === "DRAFT" && (
+                                                <DropdownMenuItem
+                                                    onClick={() => handleDeleteClick(Number(pengembalian.id))}
+                                                    className="text-red-600"
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4"/>
+                                                    Hapus
+                                                </DropdownMenuItem>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    )}
+                </TableBody>
+            </Table>
 
-                                                {pengembalian.status === "DRAFT" && (
-                                                    <DropdownMenuItem asChild>
-                                                        <Link
-                                                            href={`/pengembalian/${pengembalian.id}/edit`}
-                                                        >
-                                                            <Edit className="mr-2 h-4 w-4"/>
-                                                            Edit
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                )}
-                                                {pengembalian.status === "DRAFT" && (
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            handleDeleteClick(Number(pengembalian.id))
-                                                        }
-                                                        className="text-red-600"
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4"/>
-                                                        Hapus
-                                                    </DropdownMenuItem>
-                                                )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-
+            {/* Pagination */}
+            {!isLoading && totalItems > 0 && (
                 <GlobalPaginationFunction
                     page={currentPage}
                     total={totalItems}
@@ -397,7 +419,7 @@ export default function PengembalianPage() {
                     handleRowsPerPageChange={handleRowsPerPageChange}
                     handlePageChange={setCurrentPage}
                 />
-            </>
+            )}
         </div>
     );
 }
