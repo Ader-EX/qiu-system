@@ -47,31 +47,41 @@ const ReferenceSelectionDialog = ({
     const [references, setReferences] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
+    const [currentSearch, setCurrentSearch] = useState(""); // Track the search term being used for API calls
 
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(20);
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
 
+    // Reset states when dialog opens
     useEffect(() => {
         if (open) {
-            loadReferences();
+            setPage(1);
+            setSearch("");
+            setCurrentSearch("");
+            loadReferences(1, "");
         }
-    }, [open, referenceType, page, rowsPerPage]);
+    }, [open, referenceType]);
 
-    // 👇 let the loader accept overrides so it doesn't rely on stale state
-    const loadReferences = async (opts?: { page?: number; search?: string }) => {
-        const currentPage = (opts?.page ?? page) - 1;
-        const currentSearch = opts?.search ?? search;
+    // Load references when page or rowsPerPage changes (but not search - that's handled separately)
+    useEffect(() => {
+        if (open) {
+            loadReferences(page, currentSearch);
+        }
+    }, [page, rowsPerPage]);
 
-        console.log(currentSearch);
+    const loadReferences = async (targetPage: number, searchTerm: string) => {
+        const pageIndex = targetPage - 1;
+
+        console.log(`Loading references - Page: ${targetPage}, Search: "${searchTerm}"`);
         setLoading(true);
         try {
             if (referenceType === "PEMBELIAN") {
                 const response = await pembelianService.getAllPembelian({
-                    page: currentPage,
+                    page: pageIndex,
                     size: rowsPerPage,
-                    search_key: currentSearch,
+                    search_key: searchTerm,
                     status_pembelian: StatusPembelianEnum.ACTIVE,
                     vendor_id: referenceId,
                 });
@@ -80,9 +90,9 @@ const ReferenceSelectionDialog = ({
                 setTotalPages(Math.ceil((response.total || 0) / rowsPerPage));
             } else {
                 const response = await penjualanService.getAllPenjualan({
-                    page: currentPage,
+                    page: pageIndex,
                     size: rowsPerPage,
-                    search_key: currentSearch,
+                    search_key: searchTerm,
                     status_penjualan: StatusPenjualanEnum.ACTIVE,
                     customer_id: referenceId,
                 });
@@ -99,10 +109,21 @@ const ReferenceSelectionDialog = ({
     };
 
     const handleSearch = () => {
-        const nextPage = 1;
-        setPage(nextPage);
-        // Pass the new page value directly to loadReferences
-        loadReferences({page: nextPage, search});
+        // Reset to first page when searching
+        setPage(1);
+        setCurrentSearch(search);
+        loadReferences(1, search);
+    };
+
+    const handlePageChange = (newPage: number) => {
+        setPage(newPage);
+        // loadReferences will be called by useEffect
+    };
+
+    const handleRowsPerPageChange = (newRowsPerPage: number) => {
+        setRowsPerPage(newRowsPerPage);
+        setPage(1); // Reset to first page when changing rows per page
+        // loadReferences will be called by useEffect
     };
 
     const handleSelect = (reference: any) => {
@@ -126,11 +147,20 @@ const ReferenceSelectionDialog = ({
         onOpenChange(false);
     };
 
+    const handleClose = () => {
+        // Reset all states when closing
+        setSearch("");
+        setCurrentSearch("");
+        setPage(1);
+        setReferences([]);
+        onOpenChange(false);
+    };
+
     return (
         <div className={`fixed inset-0 z-50 ${open ? "block" : "hidden"}`}>
             <div
                 className="fixed inset-0 bg-black/50"
-                onClick={() => onOpenChange(false)}
+                onClick={handleClose}
             />
             <div
                 className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-auto">
@@ -138,7 +168,7 @@ const ReferenceSelectionDialog = ({
                     <h2 className="text-lg font-semibold">
                         Select {referenceType === "PEMBELIAN" ? "Pembelian" : "Penjualan"}
                     </h2>
-                    <Button variant="ghost" onClick={() => onOpenChange(false)}>
+                    <Button variant="ghost" onClick={handleClose}>
                         ×
                     </Button>
                 </div>
@@ -158,6 +188,26 @@ const ReferenceSelectionDialog = ({
                         <Search className="h-4 w-4"/>
                     </Button>
                 </div>
+
+                {/* Show current search term if active */}
+                {currentSearch && (
+                    <div className="mb-4 text-sm text-gray-600">
+                        Searching for: "{currentSearch}"
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2 h-auto p-1 text-xs"
+                            onClick={() => {
+                                setSearch("");
+                                setCurrentSearch("");
+                                setPage(1);
+                                loadReferences(1, "");
+                            }}
+                        >
+                            Clear
+                        </Button>
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="text-center py-8">Loading...</div>
@@ -192,14 +242,21 @@ const ReferenceSelectionDialog = ({
                             </TableBody>
                         </Table>
 
+                        {references.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                                No {referenceType === "PEMBELIAN" ? "pembelian" : "penjualan"} found
+                                {currentSearch && ` for "${currentSearch}"`}
+                            </div>
+                        )}
+
                         <div className="mt-4">
                             <GlobalPaginationFunction
                                 page={page}
                                 total={total}
                                 totalPages={totalPages}
                                 rowsPerPage={rowsPerPage}
-                                handleRowsPerPageChange={(value) => setRowsPerPage(value)}
-                                handlePageChange={(value) => setPage(value)}
+                                handleRowsPerPageChange={handleRowsPerPageChange}
+                                handlePageChange={handlePageChange}
                             />
                         </div>
                     </>

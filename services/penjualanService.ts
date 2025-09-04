@@ -187,6 +187,7 @@ class PenjualanService {
             params.append("status_penjualan", filters.status_penjualan);
         if (filters.status_pembayaran)
             params.append("status_pembayaran", filters.status_pembayaran);
+        if (filters.search_key) params.append("search_key", filters.search_key)
         if (filters.customer_id) params.append("customer_id", filters.customer_id);
         if (filters.warehouse_id)
             params.append("warehouse_id", filters.warehouse_id.toString());
