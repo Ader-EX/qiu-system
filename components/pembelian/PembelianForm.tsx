@@ -208,10 +208,7 @@ export default function PembelianForm({
 
         setTotalPaid(Number(data.total_paid || 0));
         setTotalReturn(Number(data.total_return || 0));
-        setIsActive(
-          data.status_pembelian === "ACTIVE" ||
-            data.status_pembelian === "DRAFT"
-        );
+        setIsActive(data.status_pembelian === "ACTIVE");
         setExistingAttachments(data.attachments || []);
 
         setTimeout(() => form.reset(formData), 100);
@@ -1202,7 +1199,7 @@ export default function PembelianForm({
                   <div className="flex justify-between items-start">
                     <span className="mt-2">Additional Discount</span>
                     <div className="flex flex-col space-y-2">
-                      {/* Percentage input */}
+                      {/* Percentage input (controls amount) */}
                       <div className="flex items-center justify-end">
                         <span className="text-sm text-muted-foreground w-4">
                           %
@@ -1238,29 +1235,39 @@ export default function PembelianForm({
                         />
                       </div>
 
-                      {/* Amount input */}
+                      {/* Amount input (formatted) */}
                       <div className="flex items-center justify-end space-x-1">
                         <FormField
                           control={form.control}
                           name="additional_discount"
                           render={({ field }) => (
-                            <Input
-                              type="number"
+                            <NumericFormat
+                              customInput={Input}
+                              thousandSeparator="."
+                              decimalSeparator=","
+                              allowNegative={false}
+                              inputMode="decimal"
                               disabled={isViewMode}
                               className="w-[70%] text-right"
                               placeholder="0"
-                              min={0}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") e.preventDefault();
-                              }}
-                              value={field.value ?? 0}
-                              onChange={(e) => {
-                                const raw = Number(e.target.value) || 0;
+                              // Optional: show a currency prefix (uncomment if you want)
+                              // prefix="Rp "
+                              value={field.value ?? ""}
+                              onValueChange={(v) => {
+                                // v.floatValue is undefined when input is empty
+                                const raw = Number(v.floatValue ?? 0);
+                                // clamp to [0, baseForAdditionalDiscount]
                                 const clamped = Math.min(
                                   Math.max(raw, 0),
                                   baseForAdditionalDiscount
                                 );
                                 field.onChange(clamped);
+                              }}
+                              // Prevent Enter from submitting the whole form here
+                              onKeyDown={(
+                                e: React.KeyboardEvent<HTMLInputElement>
+                              ) => {
+                                if (e.key === "Enter") e.preventDefault();
                               }}
                             />
                           )}
