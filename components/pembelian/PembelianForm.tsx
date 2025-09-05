@@ -1019,27 +1019,54 @@ export default function PembelianForm({
                                 Number(
                                   form.watch(`items.${index}.price_before_tax`)
                                 ) || 0;
-                              const discount =
-                                Number(form.watch(`items.${index}.discount`)) ||
-                                0;
+                              const taxPercentage =
+                                Number(
+                                  form.watch(`items.${index}.tax_percentage`)
+                                ) || 0;
+                              const qty =
+                                Number(form.watch(`items.${index}.qty`)) || 0;
+
+                              // Unit price including tax = price before tax * (1 + tax%)
+
+                              const priceWithTax =
+                                priceBeforeTax *
+                                (1 + taxPercentage / 100) *
+                                qty;
+
+                              return formatMoney(
+                                priceWithTax,
+                                "IDR",
+                                "id-ID",
+                                "nosymbol"
+                              );
+                            })()}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm font-medium">
+                            {(() => {
+                              const qty =
+                                Number(form.watch(`items.${index}.qty`)) || 0;
+                              const priceBeforeTax =
+                                Number(
+                                  form.watch(`items.${index}.price_before_tax`)
+                                ) || 0;
                               const taxPercentage =
                                 Number(
                                   form.watch(`items.${index}.tax_percentage`)
                                 ) || 0;
 
-                              // Calculate tax on original price before discount
-                              const taxAmount =
-                                (priceBeforeTax * taxPercentage) / 100;
+                              // Unit price including tax
+                              const priceWithTax = priceBeforeTax;
 
-                              // Final price = original price + tax - discount
-                              const finalPrice =
-                                priceBeforeTax + taxAmount - discount;
+                              // Sub total = quantity × unit price including tax
+                              const subTotal = qty * priceWithTax;
 
                               return formatMoney(
-                                Math.max(0, finalPrice),
-                                "IDR", // Assuming you want to keep the default currency
-                                "id-ID", // Assuming you want to keep the default locale
-                                "nosymbol" // The mode you want to use
+                                subTotal,
+                                "IDR",
+                                "id-ID",
+                                "nosymbol"
                               );
                             })()}
                           </span>
@@ -1061,24 +1088,26 @@ export default function PembelianForm({
                                   form.watch(`items.${index}.tax_percentage`)
                                 ) || 0;
 
-                              const taxAmount =
-                                (priceBeforeTax * taxPercentage) / 100;
+                              // Unit price including tax
+                              const priceWithTax =
+                                priceBeforeTax * (1 + taxPercentage / 100);
 
-                              const finalPricePerUnit = Math.max(
-                                0,
-                                priceBeforeTax + taxAmount - discount
-                              );
+                              // Sub total = quantity × unit price including tax
+                              const subTotal = qty * priceWithTax;
 
-                              const subTotal = qty * finalPricePerUnit;
+                              // Grand total = sub total - (discount × quantity)
+                              const grandTotal = subTotal - discount;
+
                               return formatMoney(
-                                Math.max(0, subTotal),
-                                "IDR", // Assuming you want to keep the default currency
-                                "id-ID", // Assuming you want to keep the default locale
-                                "nosymbol" // The mode you want to use
+                                Math.max(0, grandTotal),
+                                "IDR",
+                                "id-ID",
+                                "nosymbol"
                               );
                             })()}
                           </span>
                         </TableCell>
+
                         <TableCell>
                           <Button
                             disabled={isViewMode}
@@ -1237,7 +1266,7 @@ export default function PembelianForm({
                   </div>
                   <div className="flex justify-between border-t pt-2 font-semibold">
                     <span>Remaining</span>
-                    <span>{formatMoney(remaining)}</span>
+                    <span>{formatMoney(Math.abs(remaining))}</span>
                   </div>
                 </div>
               </div>

@@ -169,7 +169,7 @@ export default function PembelianPage() {
         label: "Unpaid",
       },
       [StatusPembayaranEnum.HALF_PAID]: {
-        variant: "default" as const,
+        variant: "yellow" as const,
         label: "Half Paid",
       },
       [StatusPembayaranEnum.PAID]: {

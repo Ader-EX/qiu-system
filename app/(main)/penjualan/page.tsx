@@ -167,11 +167,11 @@ export default function PenjualanPage() {
         label: "Unpaid",
       },
       [StatusPembayaranEnum.HALF_PAID]: {
-        variant: "secondary" as const,
+        variant: "yellow" as const,
         label: "Half Paid",
       },
       [StatusPembayaranEnum.PAID]: {
-        variant: "default" as const,
+        variant: "okay" as const,
         label: "Completed",
       },
     };
