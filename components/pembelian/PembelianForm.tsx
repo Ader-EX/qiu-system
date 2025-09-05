@@ -219,60 +219,77 @@ export default function PembelianForm({
 
     loadPembelianData();
   }, [isEditMode, isViewMode, pembelianId]);
-
-  const watchedItems = form.watch("items");
+  // -----------------
+  // Row computations — tax AFTER row discount, aligned with backend
+  // -----------------
+  const watchedItems = form.watch("items") || [];
 
   const rows = watchedItems.map((it) => {
-    const qty = Number(it.qty || 0);
-    const unit = Number(it.unit_price || 0);
-    const taxPct = Number(it.tax_percentage || 0);
-    const discount = Number(it.discount || 0);
+    const qty = Number(it?.qty ?? 0);
+    const unit = Number(it?.unit_price ?? 0); // pre-tax unit price
+    const taxPct = Number(it?.tax_percentage ?? 0);
+    const discount = Number(it?.discount ?? 0); // nominal per-row discount
 
-    const taxPerUnit = (unit * taxPct) / 100;
-    const hargaTermasukPajakPerUnit = unit + taxPerUnit;
-
-    const rowSubTotal = unit * qty; // Harga Satuan x Qty
-    const rowTax = taxPerUnit * qty; // Pajak x Harga Satuan x Qty (discount does NOT reduce tax)
-    const rowGrandTotal = Math.max(
-      hargaTermasukPajakPerUnit * qty - discount,
-      0
-    );
+    const rowSubTotal = unit * qty; // before discount & tax
+    const taxableBase = Math.max(rowSubTotal - discount, 0);
+    const rowTax = (taxableBase * taxPct) / 100;
+    const rowTotal = taxableBase + rowTax;
 
     return {
       qty,
       unit,
       taxPct,
       discount,
-      taxPerUnit,
-      hargaTermasukPajakPerUnit,
-      rowSubTotal,
-      rowTax,
-      rowGrandTotal,
+      rowSubTotal, // shown as "Sub Total" per row
+      taxableBase, // base after row discount (for tax)
+      rowTax, // tax on taxableBase
+      rowTotal, // row grand total (after discount + tax)
     };
   });
-  const watchedAdditionalDiscount = Number(
-    form.watch("additional_discount") || 0
+
+  // Header fields
+  const additionalDiscountRaw = Number(form.watch("additional_discount") || 0);
+  const expenseRaw = Number(form.watch("expense") || 0);
+
+  // Clamp to sensible bounds (no negative header discount or expense)
+  const additionalDiscount = Math.max(additionalDiscountRaw, 0);
+  const expense = Math.max(expenseRaw, 0);
+
+  const subTotal = rows.reduce((s, r) => s + r.rowSubTotal, 0); // Σ pre-discount bases
+  const totalItemDiscounts = rows.reduce((s, r) => s + r.discount, 0); // Σ row discounts
+  const subtotalAfterItemDiscounts = Math.max(subTotal - totalItemDiscounts, 0);
+
+  // "Additional" (header) discount DOES NOT reduce the tax base in this policy
+  const maxAdditional = Math.min(
+    additionalDiscount,
+    subtotalAfterItemDiscounts
   );
-  const watchedExpense = Number(form.watch("expense") || 0);
+  const finalTotalBeforeTax = Math.max(
+    subtotalAfterItemDiscounts - maxAdditional,
+    0
+  );
 
-  const subTotal = rows.reduce((s, r) => s + r.rowSubTotal, 0); // Σ(Sub Total)
-  const totalItemDiscounts = rows.reduce((s, r) => s + r.discount, 0); // Σ(Discount row)
-  const total = Math.max(subTotal - totalItemDiscounts, 0); // Total = Sub Total - Discount
-  const totalTax = rows.reduce((s, r) => s + r.rowTax, 0); // Σ(Tax per row)
+  const totalTax = rows.reduce((s, r) => s + r.rowTax, 0);
 
-  // Grand Total = Σ(Grand Total row)  (optionally + expense)
-  const grandTotalItems = rows.reduce((s, r) => s + r.rowGrandTotal, 0);
-  const grandTotal = grandTotalItems + (Number(watchedExpense) || 0); // include Expense if you want
+  // IMPORTANT: do NOT sum rowTotal when using a separate header additional discount,
+  // because rowTotal doesn't include any share of that header discount.
+  const grandTotal = finalTotalBeforeTax + totalTax + expense;
 
-  const remaining = grandTotal - (totalPaid + totalReturn);
+  // (Optional) still expose this for UI inspection only:
+  // sum of row totals (no header additional discount, no expense)
+  const grandTotalItems = rows.reduce((s, r) => s + r.rowTotal, 0);
 
-  const totalBeforeDiscount = Math.max(subTotal - totalItemDiscounts, 0);
+  // Payments (assumed provided elsewhere)
+  const paid = Number(totalPaid || 0);
+  const ret = Number(totalReturn || 0);
+  const remaining = grandTotal - (paid + ret);
 
-  // 3) Header ("additional") discount — clamp to sensible bounds
-  const baseForAdditionalDiscount = totalBeforeDiscount;
+  // If you need this for UI/help text:
+  const totalBeforeDiscount = subtotalAfterItemDiscounts; // same value/name you had
+  const baseForAdditionalDiscount = subtotalAfterItemDiscounts; // what header discount applies to
 
   const clampedAdditionalDiscount = Math.min(
-    Math.max(watchedAdditionalDiscount, 0),
+    Math.max(additionalDiscount, 0),
     baseForAdditionalDiscount
   );
 
@@ -1282,7 +1299,7 @@ export default function PembelianForm({
                       type="text"
                       disabled={true}
                       className="w-[40%] text-right"
-                      value={formatMoney(total) || 0}
+                      value={formatMoney(grandTotal) || 0}
                     />
                   </div>
 

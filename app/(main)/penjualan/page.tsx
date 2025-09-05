@@ -147,9 +147,14 @@ export default function PenjualanPage() {
         label: "Draft",
       },
       [StatusPenjualanEnum.ACTIVE]: {
-        variant: "okay" as const,
+        variant: "yellow" as const,
         label: "Aktif",
       },
+      [StatusPenjualanEnum.PROCESSED]: {
+        variant: "okay" as const,
+        label: "Processed",
+      },
+
       [StatusPenjualanEnum.COMPLETED]: {
         variant: "okay" as const,
         label: "Selesai",
@@ -170,6 +175,7 @@ export default function PenjualanPage() {
         variant: "yellow" as const,
         label: "Half Paid",
       },
+
       [StatusPembayaranEnum.PAID]: {
         variant: "okay" as const,
         label: "Completed",

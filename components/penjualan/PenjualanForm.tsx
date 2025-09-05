@@ -66,7 +66,6 @@ import {
   PenjualanUpdate,
 } from "@/services/penjualanService";
 import { usePrintInvoice } from "@/hooks/usePrintInvoice";
-import { pembelianService } from "@/services/pembelianService";
 
 const FormSection = ({
   title,
@@ -83,7 +82,10 @@ const FormSection = ({
   </div>
 );
 
-// Unified Zod schema for both ADD and EDIT
+// =====================
+// Zod schema (mirror PembelianForm semantics)
+// unit_price = price BEFORE tax; tax_percentage applies to build price_after_tax
+// =====================
 const penjualanSchema = z.object({
   no_penjualan: z.string().optional(),
   warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
@@ -92,28 +94,19 @@ const penjualanSchema = z.object({
   sales_date: z.date({ required_error: "Sales Date harus diisi" }),
   sales_due_date: z.date({ required_error: "Sales Due Date harus diisi" }),
 
-  additional_discount: z
-    .number()
-    .min(0, "Additional discount tidak boleh negatif")
-    .default(0),
-  expense: z.number().min(0, "Expense tidak boleh negatif").default(0),
+  additional_discount: z.number().min(0).default(0),
+  expense: z.number().min(0).default(0),
   items: z
     .array(
       z.object({
-        item_id: z.number().min(1, "Item harus dipilih"),
-        qty: z.number().min(1, "Quantity harus lebih dari 0"),
-        unit_price: z.number().min(0, "Unit price tidak boleh negatif"),
-        tax_percentage: z
-          .number()
-          .min(0, "Tax percentage tidak boleh negatif")
-          .default(10),
-        price_before_tax: z
-          .number()
-          .min(0, "Price before tax tidak boleh negatif"),
-        discount: z.number().min(0, "Discount tidak boleh negatif").default(0),
+        item_id: z.number().min(1),
+        qty: z.number().min(1),
+        unit_price: z.number().min(0), // BEFORE tax (same as PembelianForm)
+        tax_percentage: z.number().min(0).max(100).default(10),
+        discount: z.number().min(0).default(0),
       })
     )
-    .min(1, "Minimal harus ada 1 item"),
+    .min(1),
   attachments: z.array(z.instanceof(File)).optional(),
   status_pembayaran: z.string().optional(),
   status_penjualan: z.string().optional(),
@@ -155,28 +148,33 @@ export default function PenjualanForm({
 
       additional_discount: 0,
       expense: 0,
-      items: [], // This will be populated in edit mode
+      items: [],
       attachments: [],
     },
     mode: "onChange",
   });
+
   useEffect(() => {
     if (isEditMode) {
-      const subscription = form.watch((value, { name, type }) => {
+      const subscription = form.watch((value, { name }) => {
         if (name?.includes("tax_percentage")) {
-          console.log(`[Form Watch] ${name} changed:`, value);
+          // debug watcher like PembelianForm
+          // console.log(`[Form Watch] ${name} changed:`, value);
         }
       });
       return () => subscription.unsubscribe();
     }
   }, [form.watch, isEditMode]);
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "items",
   });
-  const { simplePrint, previewInvoice, advancedPrint, isPrinting } =
-    usePrintInvoice();
+  const { isPrinting } = usePrintInvoice();
 
+  // -----------------
+  // Load existing for edit/view (mirror PembelianForm mapping)
+  // -----------------
   useEffect(() => {
     if ((mode !== "edit" && mode !== "view") || !penjualanId) return;
 
@@ -186,54 +184,46 @@ export default function PenjualanForm({
           Number(penjualanId)
         );
 
-        const formData = {
+        const formData: PenjualanFormData = {
           no_penjualan: data.no_penjualan,
           warehouse_id: Number(data.warehouse_id),
           customer_id: String(data.customer_id),
           top_id: Number(data.top_id),
           sales_date: new Date(data.sales_date),
           sales_due_date: new Date(data.sales_due_date),
-
           additional_discount: Number(data.additional_discount ?? 0),
-          expense: Number(data.expense),
+          expense: Number(data.expense ?? 0),
           status_pembayaran: data.status_pembayaran || "UNPAID",
-          status_penjualan: data.status_penjualan || "DRAFT/ACTIVE",
-          items: data.penjualan_items.map((item) => {
-            const up = Number(item.unit_price);
-            const tax = item.tax_percentage ?? 10;
-
-            return {
-              item_id: Number(item.item_id),
-              qty: Number(item.qty),
-              unit_price: up,
-              discount: Number(item.discount ?? 0),
-              tax_percentage: tax,
-              price_before_tax: up / (1 + tax / 100),
-            };
-          }),
+          status_penjualan: data.status_penjualan || "DRAFT",
+          items: data.penjualan_items.map((item: any) => ({
+            item_id: Number(item.item_id),
+            qty: Number(item.qty),
+            unit_price: Number(item.unit_price), // BEFORE tax (matches model)
+            discount: Number(item.discount ?? 0),
+            tax_percentage: Number(item.tax_percentage ?? 10),
+          })),
           attachments: [],
-        };
-        setTotalPaid(Number(data.total_paid || 0));
-        setTotalReturn(Number(data.total_return || 0));
-        setIsActive(
-          data.status_penjualan == "ACTIVE" || data.status_penjualan == "DRAFT"
-        );
+        } as any;
 
-        setTimeout(() => {
-          form.reset(formData);
-        }, 100);
-
+        // Select list visual data
         setSelectedItems(
-          data.penjualan_items.map((item) => ({
-            id: Number(item.item_id), // Make sure this matches the form item_id type
+          data.penjualan_items.map((item: any) => ({
+            id: Number(item.item_id),
             code: item.item_code ?? item.item_rel?.code ?? "",
             name: item.item_name ?? item.item_rel?.name ?? "",
-            price:
-              Number(item.unit_price) / (1 + (item.tax_percentage ?? 10) / 100),
+            price: Number(item.unit_price), // before tax
           }))
         );
 
+        setTotalPaid(Number(data.total_paid || 0));
+        setTotalReturn(Number(data.total_return || 0));
+        setIsActive(
+          data.status_penjualan === "ACTIVE" ||
+            data.status_penjualan === "DRAFT"
+        );
         setExistingAttachments(data.attachments || []);
+
+        setTimeout(() => form.reset(formData), 100);
       } catch (error: any) {
         toast.error(error.message || "Failed to load sales data");
       }
@@ -241,48 +231,71 @@ export default function PenjualanForm({
 
     loadPenjualanData();
   }, [isEditMode, isViewMode, penjualanId]);
-  const watchedItems = form.watch("items");
-  const watchedAdditionalDiscount = Number(
-    form.watch("additional_discount") || 0
-  );
-  const watchedExpense = Number(form.watch("expense") || 0);
 
-  // 1. Sub Total (before tax, before any discounts)
-  const subTotalBeforeTax = watchedItems.reduce(
-    (sum, item) =>
-      sum + Number(item.qty || 0) * Number(item.price_before_tax || 0),
+  // -----------------
+  // Row computations (identical semantics to PembelianForm)
+  // -----------------
+  const watchedItems = form.watch("items") || [];
+  const rows = watchedItems.map((it) => {
+    const qty = Number(it.qty || 0);
+    const unit = Number(it.unit_price || 0); // pre-tax unit price
+    const taxPct = Number(it.tax_percentage || 0);
+    const discount = Number(it.discount || 0); // per-row nominal discount
+
+    const rowSubTotal = unit * qty; // pre-discount, pre-tax
+    const taxableBase = Math.max(rowSubTotal - discount, 0);
+    const rowTax = (taxableBase * taxPct) / 100;
+    const rowTotal = taxableBase + rowTax;
+
+    return {
+      qty,
+      unit,
+      taxPct,
+      discount,
+      rowSubTotal,
+      taxableBase,
+      rowTax,
+      rowTotal,
+    };
+  });
+
+  const additionalDiscount = Number(form.watch("additional_discount") || 0);
+  const expense = Number(form.watch("expense") || 0);
+
+  const subTotal = rows.reduce((s, r) => s + r.rowSubTotal, 0);
+  const totalItemDiscounts = rows.reduce((s, r) => s + r.discount, 0);
+  const subtotalAfterItemDiscounts = Math.max(subTotal - totalItemDiscounts, 0);
+
+  // Additional discount does NOT reduce tax base in this policy
+  const finalTotalBeforeTax = Math.max(
+    subtotalAfterItemDiscounts - additionalDiscount,
     0
   );
 
-  // 2. Total Item Discounts
-  const totalItemDiscounts = watchedItems.reduce(
-    (sum, item) => sum + Number(item.qty || 0) * Number(item.discount || 0),
-    0
-  );
+  const totalTax = rows.reduce((s, r) => s + r.rowTax, 0);
+  const total = Math.max(subTotal - totalItemDiscounts, 0);
+  const grandTotal = finalTotalBeforeTax + totalTax + expense;
 
-  const total =
-    subTotalBeforeTax - totalItemDiscounts - watchedAdditionalDiscount;
+  const grandTotalItems = rows.reduce((s, r) => s + r.rowTotal, 0);
 
-  const totalTax = watchedItems.reduce((sum, item) => {
-    const priceBeforeTax = Number(item.price_before_tax || 0);
-    const taxPercentage = Number(item.tax_percentage || 0);
-    const qty = Number(item.qty || 0);
-
-    const taxPerUnit = (priceBeforeTax * taxPercentage) / 100;
-    const totalTaxForItem = taxPerUnit * qty;
-
-    return sum + totalTaxForItem;
-  }, 0);
-
-  const grandTotal = total + totalTax + watchedExpense;
   const remaining = grandTotal - (totalPaid + totalReturn);
 
-  const baseForAdditionalDiscount = subTotalBeforeTax - totalItemDiscounts;
-  const additionalDiscountPercentage = roundToPrecision(
-    baseForAdditionalDiscount > 0
-      ? (watchedAdditionalDiscount / baseForAdditionalDiscount) * 100
-      : 0
+  const totalBeforeDiscount = Math.max(subTotal - totalItemDiscounts, 0);
+  const baseForAdditionalDiscount = totalBeforeDiscount;
+  const clampedAdditionalDiscount = Math.min(
+    Math.max(additionalDiscount, 0),
+    baseForAdditionalDiscount
   );
+  const additionalDiscountPercentage =
+    baseForAdditionalDiscount > 0
+      ? roundToPrecision(
+          (clampedAdditionalDiscount / baseForAdditionalDiscount) * 100
+        )
+      : 0;
+
+  // -----------------
+  // Item add/remove handlers
+  // -----------------
   const handleAddItem = (pickedItem: Item) => {
     const existingItemIndex = fields.findIndex(
       (field) => field.item_id === pickedItem.id
@@ -292,19 +305,14 @@ export default function PenjualanForm({
       const currentQty = form.getValues(`items.${existingItemIndex}.qty`);
       form.setValue(`items.${existingItemIndex}.qty`, currentQty + 1);
     } else {
-      const priceBeforeTax = pickedItem.price;
-      const taxPercentage = 11;
-      const unitPriceWithTax = priceBeforeTax * (1 + taxPercentage / 100);
-
       setSelectedItems([...selectedItems, pickedItem]);
 
       append({
         item_id: pickedItem.id,
         qty: 1,
-        unit_price: unitPriceWithTax,
+        unit_price: pickedItem.price, // BEFORE tax
         discount: 0,
-        tax_percentage: taxPercentage,
-        price_before_tax: priceBeforeTax,
+        tax_percentage: 10,
       });
     }
   };
@@ -315,23 +323,12 @@ export default function PenjualanForm({
     newSelectedItems.splice(index, 1);
     setSelectedItems(newSelectedItems);
   };
-  const handlePriceBeforeTaxChange = (
-    index: number,
-    newPriceBeforeTax: number
-  ) => {
-    const taxPercentage = form.getValues(`items.${index}.tax_percentage`) || 0;
 
-    const newUnitPrice = roundToPrecision(
-      newPriceBeforeTax * (1 + taxPercentage / 100)
-    );
-
-    form.setValue(`items.${index}.price_before_tax`, newPriceBeforeTax);
-    form.setValue(`items.${index}.unit_price`, newUnitPrice);
-  };
-
+  // -----------------
+  // Attachments helpers
+  // -----------------
   const handleRemoveExistingAttachment = async (attachmentId: number) => {
     if (!penjualanId) return;
-
     try {
       await penjualanService.deleteAttachment(penjualanId, attachmentId);
       setExistingAttachments((prev) =>
@@ -343,15 +340,43 @@ export default function PenjualanForm({
     }
   };
 
-  const handleSubmit = async (
-    data: PenjualanFormData,
-    finalize: boolean = false
-  ) => {
-    setIsSubmitting(true);
+  const handleAttachmentUpload = async (attachments: any, parentId: number) => {
+    if (!attachments) return;
+    try {
+      let filesToUpload: File[] = [];
+      if (attachments instanceof File) filesToUpload = [attachments];
+      else if (attachments instanceof FileList)
+        filesToUpload = Array.from(attachments);
+      else if (Array.isArray(attachments))
+        filesToUpload = attachments.filter((f) => f instanceof File);
+      else return;
 
+      await Promise.allSettled(
+        filesToUpload.map(async (file) => {
+          const validationError = imageService.validateFile(file);
+          if (validationError)
+            throw new Error(`File "${file.name}": ${validationError}`);
+          return imageService.uploadImage({
+            file,
+            parent_type: ParentType.PENJUALANS,
+            parent_id: parentId,
+          });
+        })
+      );
+    } catch (error: any) {
+      toast.error(
+        `Attachment upload failed: ${error?.detail || error?.message}`
+      );
+    }
+  };
+
+  // -----------------
+  // Submit
+  // -----------------
+  const handleSubmit = async (data: PenjualanFormData, finalize = false) => {
+    setIsSubmitting(true);
     try {
       const isValid = await form.trigger();
-
       if (!isValid) {
         toast.error("Data Anda belum lengkap");
         return;
@@ -364,142 +389,49 @@ export default function PenjualanForm({
         top_id: Number(data.top_id),
         sales_date: formatDateForAPI(data.sales_date),
         sales_due_date: formatDateForAPI(data.sales_due_date),
-
         additional_discount: Number(data.additional_discount || 0),
         expense: Number(data.expense || 0),
-
         items: data.items.map((item) => ({
           item_id: Number(item.item_id),
-
           qty: Number(item.qty),
-          unit_price: Number(item.unit_price),
+          unit_price: Number(item.unit_price), // BEFORE tax
           tax_percentage: Number(item.tax_percentage),
           discount: Number(item.discount || 0),
         })),
       };
+
       let resultId: any;
 
       if ((isViewMode || isEditMode) && penjualanId) {
-        const updateResult = await penjualanService.updatePenjualan(
+        await penjualanService.updatePenjualan(
           penjualanId,
           apiPayload as PenjualanUpdate
         );
-
         resultId = penjualanId;
-
-        await handleAttachmentUpload(data.attachments, resultId);
-
+        await handleAttachmentUpload(data.attachments, Number(resultId));
         toast.success("Sales berhasil diperbarui");
-        if (finalize) {
-          await penjualanService.finalizePenjualan(resultId);
-        }
+        if (finalize) await penjualanService.finalizePenjualan(resultId);
         router.back();
       } else {
         const result = await penjualanService.createPenjualan(apiPayload);
-
-        console.log("Create result:", result);
         resultId = result.id;
         if (!resultId) throw new Error("Failed to get ID from response.");
-
-        // Handle attachment upload for CREATE mode
-        await handleAttachmentUpload(data.attachments, resultId);
-
-        if (finalize) {
-          await penjualanService.finalizePenjualan(resultId);
-        }
-
+        await handleAttachmentUpload(data.attachments, Number(resultId));
+        if (finalize) await penjualanService.finalizePenjualan(resultId);
         toast.success("Penjualan Berhasil dibuat");
         router.back();
       }
     } catch (e: any) {
       console.error("Submit error:", e);
-      toast.error(e.detail || e.message || "Something went wrong");
+      toast.error(e?.detail || e?.message || "Something went wrong");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleAttachmentUpload = async (attachments: any, parentId: number) => {
-    if (!attachments) {
-      console.log("No attachments to upload");
-      return;
-    }
-
-    try {
-      // Handle different attachment data structures
-      let filesToUpload: File[] = [];
-
-      if (attachments instanceof File) {
-        // Single file
-        filesToUpload = [attachments];
-      } else if (attachments instanceof FileList) {
-        // FileList from input
-        filesToUpload = Array.from(attachments);
-      } else if (Array.isArray(attachments)) {
-        // Array of files
-        filesToUpload = attachments.filter((file) => file instanceof File);
-      } else {
-        console.warn("Unsupported attachment format:", attachments);
-        return;
-      }
-
-      console.log("Files to upload:", filesToUpload);
-
-      // Upload each file
-      const uploadPromises = filesToUpload.map(async (file, index) => {
-        try {
-          console.log(`Uploading file ${index + 1}:`, file.name);
-
-          const validationError = imageService.validateFile(file);
-          if (validationError) {
-            throw new Error(`File "${file.name}": ${validationError}`);
-          }
-
-          const uploadResult = await imageService.uploadImage({
-            file: file,
-            parent_type: ParentType.PENJUALANS,
-            parent_id: parentId,
-          });
-
-          console.log(`Upload result for ${file.name}:`, uploadResult);
-          return uploadResult;
-        } catch (error: any) {
-          console.error(`Error uploading file ${file.name}:`, error);
-          // Instead of throwing, we'll collect the error
-          return { error: error.detail, fileName: file.name };
-        }
-      });
-
-      const uploadResults = await Promise.allSettled(uploadPromises);
-    } catch (error: any) {
-      console.error("Attachment upload error:", error);
-      toast.error(`Attachment upload failed: ${error.detail}`);
-    }
-  };
-
-  const handleExistingAttachments = async (penjualanId: string) => {
-    try {
-      console.log("Fetching existing attachments for penjualan:", penjualanId);
-      const existingAttachments = await imageService.getAttachmentsByParent(
-        ParentType.PENJUALANS,
-        penjualanId
-      );
-
-      console.log("Existing attachments:", existingAttachments);
-      return existingAttachments;
-    } catch (error) {
-      console.error("Error fetching existing attachments:", error);
-      return [];
-    }
-  };
-
   const onDraftClick = form.handleSubmit(
-    (data) => {
-      handleSubmit(data, false);
-    },
-    (errors) => {
-      toast.error("Silahkan penuhi data Anda terlebih dahulu");
-    }
+    (data) => handleSubmit(data, false),
+    () => toast.error("Silahkan penuhi data Anda terlebih dahulu")
   );
 
   return (
@@ -518,6 +450,7 @@ export default function PenjualanForm({
           />
         }
       />
+
       <Form {...form}>
         <form className="space-y-6">
           {/* Sales Information */}
@@ -646,22 +579,16 @@ export default function PenjualanForm({
                     placeholder="Pilih Customer"
                     value={field.value ?? undefined}
                     preloadValue={field.value}
-                    onChange={(value) => {
-                      field.onChange(value);
-                    }}
+                    onChange={(value) => field.onChange(value)}
                     disabled={isViewMode}
                     fetchData={async (search) => {
-                      try {
-                        const response = await customerService.getAllCustomers({
-                          page: 0,
-                          rowsPerPage: 10,
-                          is_active: true,
-                          search_key: search,
-                        });
-                        return response;
-                      } catch (error) {
-                        throw error;
-                      }
+                      const response = await customerService.getAllCustomers({
+                        page: 0,
+                        rowsPerPage: 10,
+                        is_active: true,
+                        search_key: search,
+                      });
+                      return response;
                     }}
                     renderLabel={(item: any) =>
                       `${item.code} - ${item.name} ${
@@ -686,25 +613,16 @@ export default function PenjualanForm({
                     placeholder="Pilih Warehouse"
                     value={field.value ?? undefined}
                     preloadValue={field.value}
-                    onChange={(value) => {
-                      console.log("[Warehouse] Selected value:", value);
-                      const numValue = Number(value);
-                      field.onChange(numValue);
-                    }}
+                    onChange={(value) => field.onChange(Number(value))}
                     disabled={isViewMode}
                     fetchData={async (search) => {
-                      try {
-                        const response =
-                          await warehouseService.getAllWarehouses({
-                            skip: 0,
-                            is_active: true,
-                            limit: 10, // Increase limit
-                            search: search,
-                          });
-                        return response;
-                      } catch (error) {
-                        throw error;
-                      }
+                      const response = await warehouseService.getAllWarehouses({
+                        skip: 0,
+                        is_active: true,
+                        limit: 10,
+                        search: search,
+                      });
+                      return response;
                     }}
                     renderLabel={(item: any) => item.name}
                   />
@@ -727,24 +645,16 @@ export default function PenjualanForm({
                     value={field.value ?? undefined}
                     preloadValue={field.value}
                     disabled={isViewMode}
-                    onChange={(value) => {
-                      console.log("[Payment] Selected value:", value);
-                      const numValue = Number(value);
-                      field.onChange(numValue);
-                    }}
+                    onChange={(value) => field.onChange(Number(value))}
                     fetchData={async (search) => {
-                      try {
-                        const response =
-                          await jenisPembayaranService.getAllMataUang({
-                            skip: 0,
-                            is_active: true,
-                            limit: 10, // Increase limit
-                            search: search,
-                          });
-                        return response;
-                      } catch (error) {
-                        throw error;
-                      }
+                      const response =
+                        await jenisPembayaranService.getAllMataUang({
+                          skip: 0,
+                          is_active: true,
+                          limit: 10,
+                          search: search,
+                        });
+                      return response;
                     }}
                     renderLabel={(item: any) => `${item.symbol} - ${item.name}`}
                   />
@@ -845,7 +755,6 @@ export default function PenjualanForm({
           </FormSection>
 
           {/* Item Details */}
-
           <div className="flex w-full justify-between items-center">
             <CardTitle className="text-lg">Detail Item</CardTitle>
             {!isViewMode && (
@@ -875,249 +784,170 @@ export default function PenjualanForm({
                     <TableHead>Harga Satuan</TableHead>
                     <TableHead>Pajak (%)</TableHead>
                     <TableHead>Discount</TableHead>
-                    <TableHead>Harga Termasuk Pajak</TableHead>
+                    <TableHead>Harga Termasuk Pajak (per unit)</TableHead>
                     <TableHead>Sub Total</TableHead>
                     <TableHead>Grand Total</TableHead>
-
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {fields.map((field, index) => {
-                    const item = watchedItems[index];
-                    const subTotal =
-                      (item?.qty || 0) * (item?.unit_price || 0) -
-                      (item?.discount || 0);
-
-                    return (
-                      <TableRow key={field.id}>
-                        <TableCell>
-                          {selectedItems[index]?.code || ""}
-                        </TableCell>
-                        <TableCell>
-                          {selectedItems[index]?.name || ""}
-                        </TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.qty`}
-                            render={({ field }) => (
-                              <Input
-                                disabled={isViewMode || false}
-                                type="number"
-                                className=""
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                {...field}
-                                onChange={(e) =>
-                                  field.onChange(Number(e.target.value))
-                                }
-                              />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.price_before_tax`}
-                            render={({ field }) => (
-                              <Input
-                                disabled={isViewMode || false}
-                                type="number"
-                                className=""
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                {...field}
-                                onChange={(e) =>
-                                  handlePriceBeforeTaxChange(
-                                    index,
-                                    Number(e.target.value)
-                                  )
-                                }
-                              />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.tax_percentage`}
-                            render={({ field }) => (
-                              <Input
-                                disabled={isViewMode || false}
-                                type="number"
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                className=""
-                                {...field}
-                                onChange={(e) => {
-                                  const newTaxPercentage =
-                                    Number(e.target.value) || 0;
-                                  field.onChange(newTaxPercentage);
-
-                                  // Get current price before tax
-                                  const priceBeforeTax =
-                                    form.getValues(
-                                      `items.${index}.price_before_tax`
-                                    ) || 0;
-
-                                  // Calculate new unit price with updated tax
-                                  const newUnitPrice =
-                                    priceBeforeTax *
-                                    (1 + newTaxPercentage / 100);
-
-                                  form.setValue(
-                                    `items.${index}.unit_price`,
-                                    newUnitPrice,
-                                    {
-                                      shouldDirty: true,
-                                      shouldValidate: true,
-                                    }
-                                  );
-                                }}
-                              />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.discount`}
-                            render={({ field }) => (
-                              <Input
-                                disabled={isViewMode || false}
-                                type="number"
-                                className=""
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                {...field}
-                                onChange={(e) =>
-                                  field.onChange(Number(e.target.value))
-                                }
-                              />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">
-                            {(() => {
-                              const priceBeforeTax =
-                                Number(
-                                  form.watch(`items.${index}.price_before_tax`)
-                                ) || 0;
-                              const taxPercentage =
-                                Number(
-                                  form.watch(`items.${index}.tax_percentage`)
-                                ) || 0;
-                              const qty =
-                                Number(form.watch(`items.${index}.qty`)) || 0;
-
-                              // Unit price including tax = price before tax * (1 + tax%)
-
-                              const priceWithTax =
-                                priceBeforeTax *
-                                (1 + taxPercentage / 100) *
-                                qty;
-
-                              return formatMoney(
-                                priceWithTax,
-                                "IDR",
-                                "id-ID",
-                                "nosymbol"
-                              );
-                            })()}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-medium">
-                            {(() => {
-                              const qty =
-                                Number(form.watch(`items.${index}.qty`)) || 0;
-                              const priceBeforeTax =
-                                Number(
-                                  form.watch(`items.${index}.price_before_tax`)
-                                ) || 0;
-                              const taxPercentage =
-                                Number(
-                                  form.watch(`items.${index}.tax_percentage`)
-                                ) || 0;
-
-                              // Unit price including tax
-                              const priceWithTax = priceBeforeTax;
-
-                              // Sub total = quantity × unit price including tax
-                              const subTotal = qty * priceWithTax;
-
-                              return formatMoney(
-                                subTotal,
-                                "IDR",
-                                "id-ID",
-                                "nosymbol"
-                              );
-                            })()}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-medium">
-                            {(() => {
-                              const qty =
-                                Number(form.watch(`items.${index}.qty`)) || 0;
-                              const priceBeforeTax =
-                                Number(
-                                  form.watch(`items.${index}.price_before_tax`)
-                                ) || 0;
-                              const discount =
-                                Number(form.watch(`items.${index}.discount`)) ||
-                                0;
-                              const taxPercentage =
-                                Number(
-                                  form.watch(`items.${index}.tax_percentage`)
-                                ) || 0;
-
-                              // Unit price including tax
-                              const priceWithTax =
-                                priceBeforeTax * (1 + taxPercentage / 100);
-
-                              // Sub total = quantity × unit price including tax
-                              const subTotal = qty * priceWithTax;
-
-                              // Grand total = sub total - (discount × quantity)
-                              const grandTotal = subTotal - discount;
-
-                              return formatMoney(
-                                Math.max(0, grandTotal),
-                                "IDR",
-                                "id-ID",
-                                "nosymbol"
-                              );
-                            })()}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            disabled={isViewMode}
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemoveItem(index)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {fields.map((field, index) => (
+                    <TableRow key={field.id}>
+                      <TableCell>{selectedItems[index]?.code || ""}</TableCell>
+                      <TableCell>{selectedItems[index]?.name || ""}</TableCell>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.qty`}
+                          render={({ field }) => (
+                            <Input
+                              disabled={isViewMode}
+                              type="number"
+                              onKeyDown={(e) =>
+                                e.key === "Enter" && e.preventDefault()
+                              }
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(Number(e.target.value))
+                              }
+                            />
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.unit_price`}
+                          render={({ field }) => (
+                            <Input
+                              disabled={isViewMode}
+                              type="number"
+                              onKeyDown={(e) =>
+                                e.key === "Enter" && e.preventDefault()
+                              }
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(Number(e.target.value))
+                              }
+                            />
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.tax_percentage`}
+                          render={({ field }) => (
+                            <Input
+                              disabled={isViewMode}
+                              type="number"
+                              onKeyDown={(e) =>
+                                e.key === "Enter" && e.preventDefault()
+                              }
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(Number(e.target.value))
+                              }
+                            />
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <FormField
+                          control={form.control}
+                          name={`items.${index}.discount`}
+                          render={({ field }) => (
+                            <Input
+                              disabled={isViewMode}
+                              type="number"
+                              onKeyDown={(e) =>
+                                e.key === "Enter" && e.preventDefault()
+                              }
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(Number(e.target.value))
+                              }
+                            />
+                          )}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <span>
+                          {(() => {
+                            const unit =
+                              Number(form.watch(`items.${index}.unit_price`)) ||
+                              0;
+                            const taxPct =
+                              Number(
+                                form.watch(`items.${index}.tax_percentage`)
+                              ) || 0;
+                            const priceAfterTaxPerUnit =
+                              unit * (1 + taxPct / 100);
+                            return formatMoney(
+                              priceAfterTaxPerUnit,
+                              "IDR",
+                              "id-ID",
+                              "nosymbol"
+                            );
+                          })()}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span>
+                          {(() => {
+                            const qty =
+                              Number(form.watch(`items.${index}.qty`)) || 0;
+                            const unit =
+                              Number(form.watch(`items.${index}.unit_price`)) ||
+                              0;
+                            return formatMoney(
+                              qty * unit,
+                              "IDR",
+                              "id-ID",
+                              "nosymbol"
+                            );
+                          })()}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span>
+                          {(() => {
+                            const unit =
+                              Number(form.watch(`items.${index}.unit_price`)) ||
+                              0;
+                            const qty =
+                              Number(form.watch(`items.${index}.qty`)) || 0;
+                            const taxPct =
+                              Number(
+                                form.watch(`items.${index}.tax_percentage`)
+                              ) || 0;
+                            const discount =
+                              Number(form.watch(`items.${index}.discount`)) ||
+                              0;
+                            const priceWithTax =
+                              unit * (1 + taxPct / 100) * qty;
+                            const grand = Math.max(priceWithTax - discount, 0);
+                            return formatMoney(
+                              grand,
+                              "IDR",
+                              "id-ID",
+                              "nosymbol"
+                            );
+                          })()}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          disabled={isViewMode}
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveItem(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
 
@@ -1129,24 +959,16 @@ export default function PenjualanForm({
                     <Input
                       type="text"
                       disabled={true}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                        }
-                      }}
+                      onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
                       className="w-[40%] text-right"
-                      value={formatMoney(subTotalBeforeTax) || 0}
+                      value={formatMoney(subTotal) || 0}
                     />
                   </div>
                   <div className="flex justify-between">
-                    <span className={"mr-4"}>Discount</span>{" "}
+                    <span className={"mr-4"}>Discount</span>
                     <Input
                       type="text"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                        }
-                      }}
+                      onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
                       disabled={true}
                       className="w-[40%] text-right"
                       value={formatMoney(totalItemDiscounts) || 0}
@@ -1156,33 +978,34 @@ export default function PenjualanForm({
                   <div className="flex justify-between items-start">
                     <span className="mt-2">Additional Discount</span>
                     <div className="flex flex-col space-y-2">
-                      {/* Percentage Input */}
-                      <div className="flex items-center justify-end ">
+                      {/* Percentage input controlling amount */}
+                      <div className="flex items-center justify-end">
                         <span className="text-sm text-muted-foreground w-4">
                           %
                         </span>
                         <Input
                           type="number"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                            }
-                          }}
                           disabled={isViewMode}
                           className="w-[70%] text-right"
                           placeholder="0"
-                          min="0"
-                          max="100"
-                          value={additionalDiscountPercentage.toString()}
+                          min={0}
+                          max={100}
+                          value={
+                            Number.isFinite(additionalDiscountPercentage)
+                              ? additionalDiscountPercentage
+                              : 0
+                          }
+                          onKeyDown={(e) =>
+                            e.key === "Enter" && e.preventDefault()
+                          }
                           onChange={(e) => {
-                            const percentage = Number(e.target.value) || 0;
-                            const baseForAdditionalDiscount =
-                              subTotalBeforeTax - totalItemDiscounts;
-
+                            const percentage = Math.max(
+                              0,
+                              Math.min(100, Number(e.target.value) || 0)
+                            );
                             const amount = roundToPrecision(
                               (baseForAdditionalDiscount * percentage) / 100
                             );
-
                             form.setValue("additional_discount", amount, {
                               shouldDirty: true,
                               shouldValidate: true,
@@ -1191,6 +1014,7 @@ export default function PenjualanForm({
                         />
                       </div>
 
+                      {/* Amount input */}
                       <div className="flex items-center justify-end space-x-1">
                         <FormField
                           control={form.control}
@@ -1201,16 +1025,19 @@ export default function PenjualanForm({
                               disabled={isViewMode}
                               className="w-[70%] text-right"
                               placeholder="0"
-                              min="0"
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                }
-                              }}
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(Number(e.target.value))
+                              min={0}
+                              onKeyDown={(e) =>
+                                e.key === "Enter" && e.preventDefault()
                               }
+                              {...field}
+                              onChange={(e) => {
+                                const raw = Number(e.target.value) || 0;
+                                const clamped = Math.min(
+                                  Math.max(raw, 0),
+                                  baseForAdditionalDiscount
+                                );
+                                field.onChange(clamped);
+                              }}
                             />
                           )}
                         />
@@ -1263,7 +1090,7 @@ export default function PenjualanForm({
                   </div>
                   <div className="flex justify-between border-t pt-2 font-semibold">
                     <span>Remaining</span>
-                    <span>{formatMoney(Math.abs(remaining))}</span>
+                    <span>{formatMoney(remaining)}</span>
                   </div>
                 </div>
               </div>
@@ -1275,9 +1102,7 @@ export default function PenjualanForm({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  router.back();
-                }}
+                onClick={() => router.back()}
               >
                 Batal
               </Button>
@@ -1293,9 +1118,7 @@ export default function PenjualanForm({
                 className="bg-orange-500 hover:bg-orange-600"
                 disabled={isSubmitting}
                 onClick={() => {
-                  form.handleSubmit((data) => {
-                    handleSubmit(data, true);
-                  })();
+                  form.handleSubmit((data) => handleSubmit(data, true))();
                 }}
               >
                 {isSubmitting

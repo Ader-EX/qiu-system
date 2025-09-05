@@ -145,12 +145,12 @@ export default function PembelianPage() {
         label: "Draft",
       },
       [StatusPembelianEnum.ACTIVE]: {
-        variant: "okay" as const,
-        label: "AKTIF",
+        variant: "yellow" as const,
+        label: "Aktif",
       },
       [StatusPembelianEnum.PROCESSED]: {
         variant: "okay" as const,
-        label: "PROCESSED",
+        label: "Processed",
       },
       [StatusPembelianEnum.COMPLETED]: {
         variant: "okay" as const,
@@ -174,7 +174,7 @@ export default function PembelianPage() {
       },
       [StatusPembayaranEnum.PAID]: {
         variant: "okay" as const,
-        label: "Completed",
+        label: "Selesai",
       },
     };
 
