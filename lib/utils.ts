@@ -26,18 +26,17 @@ export const formatMoney = (
   const options: Intl.NumberFormatOptions = {
     style: mode === "symbol" ? "currency" : "decimal",
     currency,
-    minimumFractionDigits: useZeroDecimals ? 0 : 2,
-    maximumFractionDigits: useZeroDecimals ? 0 : 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
   };
 
   return new Intl.NumberFormat(locale, options).format(numberAmount);
 };
 
-export const roundToPrecision = (num: any, precision = 2) => {
+export const roundToPrecision = (num: any, precision = 4) => {
   const multiplier = Math.pow(10, precision);
   return Math.round(num * multiplier) / multiplier;
 };
-
 /**
  * Converts a Date object to date-only string format (YYYY-MM-DD)
  * without timezone conversion issues
