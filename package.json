@@ -59,6 +59,7 @@
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.54.1",
     "react-hot-toast": "^2.5.2",
+    "react-number-format": "^5.4.4",
     "react-resizable-panels": "^2.1.7",
     "react-simply-carousel": "^9.1.11",
     "react-super-responsive-table": "^6.0.2",

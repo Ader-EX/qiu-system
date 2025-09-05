@@ -66,6 +66,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { vendorService } from "@/services/vendorService";
 import { usePrintInvoice } from "@/hooks/usePrintInvoice";
+import { NumericFormat } from "react-number-format";
 
 const FormSection = ({
   title,
@@ -81,8 +82,6 @@ const FormSection = ({
     </div>
   </div>
 );
-
-// Unified Zod schema for both ADD and EDIT
 const pembelianSchema = z.object({
   no_pembelian: z.string().optional(),
   warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
@@ -90,29 +89,19 @@ const pembelianSchema = z.object({
   top_id: z.number().min(1, "Jenis Pembayaran harus dipilih"),
   sales_date: z.date({ required_error: "Purchase Date harus diisi" }),
   sales_due_date: z.date({ required_error: "Purchase Due Date harus diisi" }),
-
-  additional_discount: z
-    .number()
-    .min(0, "Additional discount tidak boleh negatif")
-    .default(0),
-  expense: z.number().min(0, "Expense tidak boleh negatif").default(0),
+  additional_discount: z.number().min(0).default(0),
+  expense: z.number().min(0).default(0),
   items: z
     .array(
       z.object({
-        item_id: z.number().min(1, "Item harus dipilih"),
-        qty: z.number().min(1, "Quantity harus lebih dari 0"),
-        unit_price: z.number().min(0, "Unit price tidak boleh negatif"),
-        tax_percentage: z
-          .number()
-          .min(0, "Tax percentage tidak boleh negatif")
-          .default(10),
-        price_before_tax: z
-          .number()
-          .min(0, "Price before tax tidak boleh negatif"),
-        discount: z.number().min(0, "Discount tidak boleh negatif").default(0),
+        item_id: z.number().min(1),
+        qty: z.number().min(1),
+        unit_price: z.number().min(0),
+        tax_percentage: z.number().min(0).max(100).default(10),
+        discount: z.number().min(0).default(0),
       })
     )
-    .min(1, "Minimal harus ada 1 item"),
+    .min(1),
   attachments: z.array(z.instanceof(File)).optional(),
   status_pembayaran: z.string().optional(),
   status_pembelian: z.string().optional(),
@@ -154,7 +143,7 @@ export default function PembelianForm({
 
       additional_discount: 0,
       expense: 0,
-      items: [], // This will be populated in edit mode
+      items: [],
       attachments: [],
     },
     mode: "onChange",
@@ -192,47 +181,40 @@ export default function PembelianForm({
           top_id: Number(data.top_id),
           sales_date: new Date(data.sales_date),
           sales_due_date: new Date(data.sales_due_date),
-
           additional_discount: Number(data.additional_discount ?? 0),
-          expense: Number(data.expense),
+          expense: Number(data.expense ?? 0),
           status_pembayaran: data.status_pembayaran || "UNPAID",
-          status_pembelian: data.status_pembelian || "DRAFT/ACTIVE",
-          items: data.pembelian_items.map((item) => {
-            const up = Number(item.unit_price);
-            const tax = item.tax_percentage ?? 10;
+          status_pembelian: data.status_pembelian || "DRAFT",
 
-            return {
-              item_id: Number(item.item_id),
-              qty: Number(item.qty),
-              unit_price: up,
-              discount: Number(item.discount ?? 0),
-              tax_percentage: tax,
-              price_before_tax: up / (1 + tax / 100),
-            };
-          }),
+          items: data.pembelian_items.map((item) => ({
+            item_id: Number(item.item_id),
+            qty: Number(item.qty),
+            unit_price: Number(item.unit_price), // 4000 (before tax)
+            discount: Number(item.discount ?? 0), // 2000 (total discount for this item)
+            tax_percentage: Number(item.tax_percentage ?? 10),
+          })),
           attachments: [],
         };
-        setTotalPaid(Number(data.total_paid || 0));
-        setTotalReturn(Number(data.total_return || 0));
-        setIsActive(
-          data.status_pembelian == "ACTIVE" || data.status_pembelian == "DRAFT"
-        );
 
-        setTimeout(() => {
-          form.reset(formData);
-        }, 100);
-
+        // Map selected items
         setSelectedItems(
           data.pembelian_items.map((item) => ({
-            id: Number(item.item_id), // Make sure this matches the form item_id type
-            code: item.item_rel?.code ?? "",
-            name: item.item_name ?? item.item_rel?.name ?? "",
-            price:
-              Number(item.unit_price) / (1 + (item.tax_percentage ?? 10) / 100),
+            id: Number(item.item_id),
+            code: item.item?.code ?? "",
+            name: item.item?.name ?? "",
+            price: Number(item.unit_price), // unit_price is already before tax
           }))
         );
 
+        setTotalPaid(Number(data.total_paid || 0));
+        setTotalReturn(Number(data.total_return || 0));
+        setIsActive(
+          data.status_pembelian === "ACTIVE" ||
+            data.status_pembelian === "DRAFT"
+        );
         setExistingAttachments(data.attachments || []);
+
+        setTimeout(() => form.reset(formData), 100);
       } catch (error: any) {
         toast.error(error.message || "Failed to load purchase data");
       }
@@ -240,54 +222,83 @@ export default function PembelianForm({
 
     loadPembelianData();
   }, [isEditMode, isViewMode, pembelianId]);
+
   const watchedItems = form.watch("items");
+
+  const rows = watchedItems.map((it) => {
+    const qty = Number(it.qty || 0);
+    const unit = Number(it.unit_price || 0);
+    const taxPct = Number(it.tax_percentage || 0);
+    const discount = Number(it.discount || 0);
+
+    const taxPerUnit = (unit * taxPct) / 100;
+    const hargaTermasukPajakPerUnit = unit + taxPerUnit;
+
+    const rowSubTotal = unit * qty; // Harga Satuan x Qty
+    const rowTax = taxPerUnit * qty; // Pajak x Harga Satuan x Qty (discount does NOT reduce tax)
+    const rowGrandTotal = Math.max(
+      hargaTermasukPajakPerUnit * qty - discount,
+      0
+    );
+
+    return {
+      qty,
+      unit,
+      taxPct,
+      discount,
+      taxPerUnit,
+      hargaTermasukPajakPerUnit,
+      rowSubTotal,
+      rowTax,
+      rowGrandTotal,
+    };
+  });
   const watchedAdditionalDiscount = Number(
     form.watch("additional_discount") || 0
   );
   const watchedExpense = Number(form.watch("expense") || 0);
 
-  // 1. Sub Total (before tax, before any discounts)
-  const subTotalBeforeTax = watchedItems.reduce(
-    (sum, item) =>
-      sum + Number(item.qty || 0) * Number(item.price_before_tax || 0),
-    0
-  );
+  const subTotal = rows.reduce((s, r) => s + r.rowSubTotal, 0); // Σ(Sub Total)
+  const totalItemDiscounts = rows.reduce((s, r) => s + r.discount, 0); // Σ(Discount row)
+  const total = Math.max(subTotal - totalItemDiscounts, 0); // Total = Sub Total - Discount
+  const totalTax = rows.reduce((s, r) => s + r.rowTax, 0); // Σ(Tax per row)
 
-  // 2. Total Item Discounts
-  const totalItemDiscounts = watchedItems.reduce(
-    (sum, item) => sum + Number(item.qty || 0) * Number(item.discount || 0),
-    0
-  );
+  // Grand Total = Σ(Grand Total row)  (optionally + expense)
+  const grandTotalItems = rows.reduce((s, r) => s + r.rowGrandTotal, 0);
+  const grandTotal = grandTotalItems + (Number(watchedExpense) || 0); // include Expense if you want
 
-  // 3. Total (after item discounts, before additional discount, before tax)
-  // Total: Sum(sub total) - sum(discount) - Additional discount
-  const total =
-    subTotalBeforeTax - totalItemDiscounts - watchedAdditionalDiscount;
-
-  // 4. TAX CALCULATION - FIXED
-  // Tax: sum((Qty*Harga Satuan)*pajak%))
-  // But we need to apply tax to the discounted amount per item
-  const totalTax = watchedItems.reduce((sum, item) => {
-    const priceBeforeTax = Number(item.price_before_tax || 0);
-    const taxPercentage = Number(item.tax_percentage || 0);
-    const qty = Number(item.qty || 0);
-
-    // Tax calculated on original price, then multiplied by quantity
-    const taxPerUnit = (priceBeforeTax * taxPercentage) / 100;
-    const totalTaxForItem = taxPerUnit * qty;
-
-    return sum + totalTaxForItem;
-  }, 0);
-
-  const grandTotal = total + totalTax + watchedExpense;
   const remaining = grandTotal - (totalPaid + totalReturn);
 
-  const baseForAdditionalDiscount = subTotalBeforeTax - totalItemDiscounts;
-  const additionalDiscountPercentage = roundToPrecision(
-    baseForAdditionalDiscount > 0
-      ? (watchedAdditionalDiscount / baseForAdditionalDiscount) * 100
-      : 0
+  const totalBeforeDiscount = Math.max(subTotal - totalItemDiscounts, 0);
+
+  // 3) Header ("additional") discount — clamp to sensible bounds
+  const baseForAdditionalDiscount = totalBeforeDiscount;
+
+  const clampedAdditionalDiscount = Math.min(
+    Math.max(watchedAdditionalDiscount, 0),
+    baseForAdditionalDiscount
   );
+
+  // Expose this for your % input
+  const additionalDiscountPercentage =
+    baseForAdditionalDiscount > 0
+      ? roundToPrecision(
+          (clampedAdditionalDiscount / baseForAdditionalDiscount) * 100
+        )
+      : 0;
+
+  // Spread header discount proportionally across the tax base
+  const taxAfterAdditionalDiscount =
+    baseForAdditionalDiscount > 0
+      ? Math.max(
+          0,
+          roundToPrecision(
+            totalTax *
+              (1 - clampedAdditionalDiscount / baseForAdditionalDiscount)
+          )
+        )
+      : totalTax;
+
   const handleAddItem = (pickedItem: Item) => {
     const existingItemIndex = fields.findIndex(
       (field) => field.item_id === pickedItem.id
@@ -297,19 +308,14 @@ export default function PembelianForm({
       const currentQty = form.getValues(`items.${existingItemIndex}.qty`);
       form.setValue(`items.${existingItemIndex}.qty`, currentQty + 1);
     } else {
-      const priceBeforeTax = pickedItem.price;
-      const taxPercentage = 11;
-      const unitPriceWithTax = priceBeforeTax * (1 + taxPercentage / 100);
-
       setSelectedItems([...selectedItems, pickedItem]);
 
       append({
         item_id: pickedItem.id,
         qty: 1,
-        unit_price: unitPriceWithTax,
+        unit_price: pickedItem.price,
         discount: 0,
-        tax_percentage: taxPercentage,
-        price_before_tax: priceBeforeTax,
+        tax_percentage: 10,
       });
     }
   };
@@ -319,30 +325,6 @@ export default function PembelianForm({
     const newSelectedItems = [...selectedItems];
     newSelectedItems.splice(index, 1);
     setSelectedItems(newSelectedItems);
-  };
-  const handlePriceBeforeTaxChange = (
-    index: number,
-    newPriceBeforeTax: number
-  ) => {
-    const taxPercentage = form.getValues(`items.${index}.tax_percentage`) || 0;
-    const newUnitPrice = newPriceBeforeTax * (1 + taxPercentage / 100);
-
-    form.setValue(`items.${index}.price_before_tax`, newPriceBeforeTax);
-    form.setValue(`items.${index}.unit_price`, newUnitPrice);
-  };
-
-  const handleRemoveExistingAttachment = async (attachmentId: number) => {
-    if (!pembelianId) return;
-
-    try {
-      await pembelianService.deleteAttachment(pembelianId, attachmentId);
-      setExistingAttachments((prev) =>
-        prev.filter((att) => att.id !== attachmentId)
-      );
-      toast.success("Attachment berhasil dihapus");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to remove attachment");
-    }
   };
 
   const handleSubmit = async (
@@ -360,19 +342,15 @@ export default function PembelianForm({
       }
 
       const apiPayload = {
-        no_pembelian: data.no_pembelian || `-`,
         warehouse_id: Number(data.warehouse_id),
-        vendor_id: data.vendor_id,
+        vendor_id: String(data.vendor_id),
         top_id: Number(data.top_id),
         sales_date: formatDateForAPI(data.sales_date),
         sales_due_date: formatDateForAPI(data.sales_due_date),
-
         additional_discount: Number(data.additional_discount || 0),
         expense: Number(data.expense || 0),
-
         items: data.items.map((item) => ({
           item_id: Number(item.item_id),
-
           qty: Number(item.qty),
           unit_price: Number(item.unit_price),
           tax_percentage: Number(item.tax_percentage),
@@ -492,6 +470,20 @@ export default function PembelianForm({
     } catch (error) {
       console.error("Error fetching existing attachments:", error);
       return [];
+    }
+  };
+
+  const handleRemoveExistingAttachment = async (attachmentId: number) => {
+    if (!pembelianId) return;
+
+    try {
+      await pembelianService.deleteAttachment(pembelianId, attachmentId);
+      setExistingAttachments((prev) =>
+        prev.filter((att) => att.id !== attachmentId)
+      );
+      toast.success("Attachment berhasil dihapus");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to remove attachment");
     }
   };
 
@@ -644,36 +636,70 @@ export default function PembelianForm({
               name="vendor_id"
               render={({ field }) => (
                 <FormItem>
-                  <SearchableSelect
-                    label="Vendor"
-                    placeholder="Pilih Vendor"
-                    value={field.value ?? undefined}
-                    preloadValue={field.value}
-                    onChange={(value) => {
-                      field.onChange(value);
-                    }}
-                    disabled={isViewMode}
-                    fetchData={async (search) => {
-                      try {
-                        const response = await vendorService.getAllVendors({
-                          skip: 0,
-                          limit: 10,
-                          is_active: true,
-                          search_key: search,
-                        });
-                        return response;
-                      } catch (error) {
-                        throw error;
+                  {isViewMode ? (
+                    <SearchableSelect
+                      label="Vendor"
+                      placeholder="Pilih Vendor"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      onChange={(value) => {
+                        field.onChange(value);
+                      }}
+                      disabled={isViewMode}
+                      fetchData={async (search) => {
+                        try {
+                          const response = await vendorService.getAllVendors({
+                            skip: 0,
+                            limit: 10,
+                            contains_deleted: true,
+                            search_key: search,
+                          });
+                          return response;
+                        } catch (error) {
+                          throw error;
+                        }
+                      }}
+                      renderLabel={(item: any) =>
+                        `${item.id} - ${item.name} ${
+                          item?.curr_rel?.symbol
+                            ? `(${item.curr_rel.symbol})`
+                            : ""
+                        }`
                       }
-                    }}
-                    renderLabel={(item: any) =>
-                      `${item.id} - ${item.name} ${
-                        item?.curr_rel?.symbol
-                          ? `(${item.curr_rel.symbol})`
-                          : ""
-                      }`
-                    }
-                  />
+                    />
+                  ) : (
+                    <SearchableSelect
+                      label="Vendor"
+                      placeholder="Pilih Vendor"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      onChange={(value) => {
+                        field.onChange(value);
+                      }}
+                      disabled={isViewMode}
+                      fetchData={async (search) => {
+                        try {
+                          const response = await vendorService.getAllVendors({
+                            skip: 0,
+                            limit: 10,
+                            is_active: true,
+                            search_key: search,
+                          });
+                          return response;
+                        } catch (error) {
+                          throw error;
+                        }
+                      }}
+                      renderLabel={(item: any) =>
+                        `${item.id} - ${item.name} ${
+                          item?.curr_rel?.symbol
+                            ? `(${item.curr_rel.symbol})`
+                            : ""
+                        }`
+                      }
+                    />
+                  )}
+
                   <FormMessage />
                 </FormItem>
               )}
@@ -684,33 +710,64 @@ export default function PembelianForm({
               name="warehouse_id"
               render={({ field }) => (
                 <FormItem>
-                  <SearchableSelect
-                    label="Warehouse"
-                    placeholder="Pilih Warehouse"
-                    value={field.value ?? undefined}
-                    preloadValue={field.value}
-                    onChange={(value) => {
-                      console.log("[Warehouse] Selected value:", value);
-                      const numValue = Number(value);
-                      field.onChange(numValue);
-                    }}
-                    disabled={isViewMode}
-                    fetchData={async (search) => {
-                      try {
-                        const response =
-                          await warehouseService.getAllWarehouses({
-                            skip: 0,
-                            is_active: true,
-                            limit: 10,
-                            search: search,
-                          });
-                        return response;
-                      } catch (error) {
-                        throw error;
-                      }
-                    }}
-                    renderLabel={(item: any) => item.name}
-                  />
+                  {isViewMode ? (
+                    <SearchableSelect
+                      label="Warehouse"
+                      placeholder="Pilih Warehouse"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      onChange={(value) => {
+                        console.log("[Warehouse] Selected value:", value);
+                        const numValue = Number(value);
+                        field.onChange(numValue);
+                      }}
+                      disabled={isViewMode}
+                      fetchData={async (search) => {
+                        try {
+                          const response =
+                            await warehouseService.getAllWarehouses({
+                              skip: 0,
+                              contains_deleted: true,
+                              limit: 10,
+                              search: search,
+                            });
+                          return response;
+                        } catch (error) {
+                          throw error;
+                        }
+                      }}
+                      renderLabel={(item: any) => item.name}
+                    />
+                  ) : (
+                    <SearchableSelect
+                      label="Warehouse"
+                      placeholder="Pilih Warehouse"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      onChange={(value) => {
+                        console.log("[Warehouse] Selected value:", value);
+                        const numValue = Number(value);
+                        field.onChange(numValue);
+                      }}
+                      disabled={isViewMode}
+                      fetchData={async (search) => {
+                        try {
+                          const response =
+                            await warehouseService.getAllWarehouses({
+                              skip: 0,
+                              is_active: true,
+                              limit: 10,
+                              search: search,
+                            });
+                          return response;
+                        } catch (error) {
+                          throw error;
+                        }
+                      }}
+                      renderLabel={(item: any) => item.name}
+                    />
+                  )}
+
                   <FormMessage />
                 </FormItem>
               )}
@@ -724,33 +781,68 @@ export default function PembelianForm({
               name="top_id"
               render={({ field }) => (
                 <FormItem>
-                  <SearchableSelect
-                    label="Jenis Pembayaran"
-                    placeholder="Pilih Jenis Pembayaran"
-                    value={field.value ?? undefined}
-                    preloadValue={field.value}
-                    disabled={isViewMode}
-                    onChange={(value) => {
-                      console.log("[Payment] Selected value:", value);
-                      const numValue = Number(value);
-                      field.onChange(numValue);
-                    }}
-                    fetchData={async (search) => {
-                      try {
-                        const response =
-                          await jenisPembayaranService.getAllMataUang({
-                            skip: 0,
-                            limit: 10,
-                            is_active: true,
-                            search: search,
-                          });
-                        return response;
-                      } catch (error) {
-                        throw error;
+                  {isViewMode ? (
+                    <SearchableSelect
+                      label="Jenis Pembayaran"
+                      placeholder="Pilih Jenis Pembayaran"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      disabled={isViewMode}
+                      onChange={(value) => {
+                        console.log("[Payment] Selected value:", value);
+                        const numValue = Number(value);
+                        field.onChange(numValue);
+                      }}
+                      fetchData={async (search) => {
+                        try {
+                          const response =
+                            await jenisPembayaranService.getAllMataUang({
+                              skip: 0,
+                              limit: 10,
+                              contains_deleted: true,
+                              search: search,
+                            });
+                          return response;
+                        } catch (error) {
+                          throw error;
+                        }
+                      }}
+                      renderLabel={(item: any) =>
+                        `${item.symbol} - ${item.name}`
                       }
-                    }}
-                    renderLabel={(item: any) => `${item.symbol} - ${item.name}`}
-                  />
+                    />
+                  ) : (
+                    <SearchableSelect
+                      label="Jenis Pembayaran"
+                      placeholder="Pilih Jenis Pembayaran"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      disabled={isViewMode}
+                      onChange={(value) => {
+                        console.log("[Payment] Selected value:", value);
+                        const numValue = Number(value);
+                        field.onChange(numValue);
+                      }}
+                      fetchData={async (search) => {
+                        try {
+                          const response =
+                            await jenisPembayaranService.getAllMataUang({
+                              skip: 0,
+                              limit: 10,
+                              is_active: true,
+                              search: search,
+                            });
+                          return response;
+                        } catch (error) {
+                          throw error;
+                        }
+                      }}
+                      renderLabel={(item: any) =>
+                        `${item.symbol} - ${item.name}`
+                      }
+                    />
+                  )}
+
                   <FormMessage />
                 </FormItem>
               )}
@@ -879,7 +971,7 @@ export default function PembelianForm({
                     <TableHead>Harga Satuan</TableHead>
                     <TableHead>Pajak (%)</TableHead>
                     <TableHead>Discount</TableHead>
-                    <TableHead>Harga Termasuk Pajak</TableHead>
+                    <TableHead>Harga Termasuk Pajak (per unit)</TableHead>
                     <TableHead>Sub Total</TableHead>
                     <TableHead>Grand Total</TableHead>
                     <TableHead></TableHead>
@@ -888,9 +980,6 @@ export default function PembelianForm({
                 <TableBody>
                   {fields.map((field, index) => {
                     const item = watchedItems[index];
-                    const subTotal =
-                      (item?.qty || 0) * (item?.unit_price || 0) -
-                      (item?.discount || 0);
 
                     return (
                       <TableRow key={field.id}>
@@ -925,25 +1014,22 @@ export default function PembelianForm({
                         <TableCell>
                           <FormField
                             control={form.control}
-                            name={`items.${index}.price_before_tax`}
+                            name={`items.${index}.unit_price`}
                             render={({ field }) => (
-                              <Input
-                                disabled={isViewMode || false}
-                                type="number"
-                                className=""
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
+                              <>
+                                <NumericFormat
+                                  customInput={Input}
+                                  thousandSeparator="."
+                                  decimalSeparator=","
+                                  allowNegative={false}
+                                  inputMode="decimal"
+                                  disabled={isViewMode}
+                                  value={field.value ?? ""}
+                                  onValueChange={(e) =>
+                                    field.onChange(Number(e.floatValue ?? 0))
                                   }
-                                }}
-                                {...field}
-                                onChange={(e) =>
-                                  handlePriceBeforeTaxChange(
-                                    index,
-                                    Number(e.target.value)
-                                  )
-                                }
-                              />
+                                />
+                              </>
                             )}
                           />
                         </TableCell>
@@ -966,25 +1052,6 @@ export default function PembelianForm({
                                   const newTaxPercentage =
                                     Number(e.target.value) || 0;
                                   field.onChange(newTaxPercentage);
-
-                                  // Get current price before tax
-                                  const priceBeforeTax =
-                                    form.getValues(
-                                      `items.${index}.price_before_tax`
-                                    ) || 0;
-
-                                  const newUnitPrice =
-                                    priceBeforeTax *
-                                    (1 + newTaxPercentage / 100);
-
-                                  form.setValue(
-                                    `items.${index}.unit_price`,
-                                    newUnitPrice,
-                                    {
-                                      shouldDirty: true,
-                                      shouldValidate: true,
-                                    }
-                                  );
                                 }}
                               />
                             )}
@@ -995,46 +1062,38 @@ export default function PembelianForm({
                             control={form.control}
                             name={`items.${index}.discount`}
                             render={({ field }) => (
-                              <Input
+                              <NumericFormat
+                                customInput={Input}
+                                thousandSeparator="."
+                                decimalSeparator=","
+                                allowNegative={false}
+                                inputMode="decimal"
                                 disabled={isViewMode || false}
-                                type="number"
-                                className=""
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                {...field}
-                                onChange={(e) =>
-                                  field.onChange(Number(e.target.value))
+                                value={field.value ?? ""}
+                                onValueChange={(e) =>
+                                  field.onChange(Number(e.floatValue ?? 0))
                                 }
                               />
                             )}
                           />
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">
+                          <span>
                             {(() => {
-                              const priceBeforeTax =
+                              const unitPrice =
                                 Number(
-                                  form.watch(`items.${index}.price_before_tax`)
+                                  form.watch(`items.${index}.unit_price`)
                                 ) || 0;
+                              const qty =
+                                Number(form.watch(`items.${index}.qty`)) || 0;
                               const taxPercentage =
                                 Number(
                                   form.watch(`items.${index}.tax_percentage`)
                                 ) || 0;
-                              const qty =
-                                Number(form.watch(`items.${index}.qty`)) || 0;
-
-                              // Unit price including tax = price before tax * (1 + tax%)
-
-                              const priceWithTax =
-                                priceBeforeTax *
-                                (1 + taxPercentage / 100) *
-                                qty;
-
+                              const priceAfterTax =
+                                unitPrice * (1 + taxPercentage / 100);
                               return formatMoney(
-                                priceWithTax,
+                                priceAfterTax,
                                 "IDR",
                                 "id-ID",
                                 "nosymbol"
@@ -1043,27 +1102,16 @@ export default function PembelianForm({
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm font-medium">
+                          <span>
                             {(() => {
                               const qty =
                                 Number(form.watch(`items.${index}.qty`)) || 0;
-                              const priceBeforeTax =
+                              const unitPrice =
                                 Number(
-                                  form.watch(`items.${index}.price_before_tax`)
+                                  form.watch(`items.${index}.unit_price`)
                                 ) || 0;
-                              const taxPercentage =
-                                Number(
-                                  form.watch(`items.${index}.tax_percentage`)
-                                ) || 0;
-
-                              // Unit price including tax
-                              const priceWithTax = priceBeforeTax;
-
-                              // Sub total = quantity × unit price including tax
-                              const subTotal = qty * priceWithTax;
-
                               return formatMoney(
-                                subTotal,
+                                qty * unitPrice,
                                 "IDR",
                                 "id-ID",
                                 "nosymbol"
@@ -1072,34 +1120,29 @@ export default function PembelianForm({
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm font-medium">
+                          {/* Total Price - includes tax and discount */}
+                          <span>
                             {(() => {
+                              const unitPrice =
+                                Number(
+                                  form.watch(`items.${index}.unit_price`)
+                                ) || 0;
                               const qty =
                                 Number(form.watch(`items.${index}.qty`)) || 0;
-                              const priceBeforeTax =
+                              const taxPercentage =
                                 Number(
-                                  form.watch(`items.${index}.price_before_tax`)
+                                  form.watch(`items.${index}.tax_percentage`)
                                 ) || 0;
+                              const priceAfterTax =
+                                unitPrice * (1 + taxPercentage / 100) * qty;
+
                               const discount =
                                 Number(form.watch(`items.${index}.discount`)) ||
                                 0;
-                              const taxPercentage =
-                                Number(
-                                  form.watch(`items.${index}.tax_percentage`)
-                                ) || 0;
 
-                              // Unit price including tax
-                              const priceWithTax =
-                                priceBeforeTax * (1 + taxPercentage / 100);
-
-                              // Sub total = quantity × unit price including tax
-                              const subTotal = qty * priceWithTax;
-
-                              // Grand total = sub total - (discount × quantity)
-                              const grandTotal = subTotal - discount;
-
+                              const grandTotal = priceAfterTax - discount;
                               return formatMoney(
-                                Math.max(0, grandTotal),
+                                grandTotal,
                                 "IDR",
                                 "id-ID",
                                 "nosymbol"
@@ -1138,7 +1181,7 @@ export default function PembelianForm({
                         }
                       }}
                       className="w-[40%] text-right"
-                      value={formatMoney(subTotalBeforeTax) || 0}
+                      value={formatMoney(subTotal) || 0}
                     />
                   </div>
                   <div className="flex justify-between">
@@ -1159,33 +1202,34 @@ export default function PembelianForm({
                   <div className="flex justify-between items-start">
                     <span className="mt-2">Additional Discount</span>
                     <div className="flex flex-col space-y-2">
-                      {/* Percentage Input */}
-                      <div className="flex items-center justify-end ">
+                      {/* Percentage input */}
+                      <div className="flex items-center justify-end">
                         <span className="text-sm text-muted-foreground w-4">
                           %
                         </span>
                         <Input
                           type="number"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                            }
-                          }}
                           disabled={isViewMode}
                           className="w-[70%] text-right"
                           placeholder="0"
-                          min="0"
-                          max="100"
-                          value={additionalDiscountPercentage.toString()}
+                          min={0}
+                          max={100}
+                          value={
+                            Number.isFinite(additionalDiscountPercentage)
+                              ? additionalDiscountPercentage
+                              : 0
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") e.preventDefault();
+                          }}
                           onChange={(e) => {
-                            const percentage = Number(e.target.value) || 0;
-                            const baseForAdditionalDiscount =
-                              subTotalBeforeTax - totalItemDiscounts;
-
+                            const percentage = Math.max(
+                              0,
+                              Math.min(100, Number(e.target.value) || 0)
+                            );
                             const amount = roundToPrecision(
                               (baseForAdditionalDiscount * percentage) / 100
                             );
-
                             form.setValue("additional_discount", amount, {
                               shouldDirty: true,
                               shouldValidate: true,
@@ -1194,6 +1238,7 @@ export default function PembelianForm({
                         />
                       </div>
 
+                      {/* Amount input */}
                       <div className="flex items-center justify-end space-x-1">
                         <FormField
                           control={form.control}
@@ -1204,16 +1249,19 @@ export default function PembelianForm({
                               disabled={isViewMode}
                               className="w-[70%] text-right"
                               placeholder="0"
-                              min="0"
+                              min={0}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                }
+                                if (e.key === "Enter") e.preventDefault();
                               }}
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(Number(e.target.value))
-                              }
+                              value={field.value ?? 0}
+                              onChange={(e) => {
+                                const raw = Number(e.target.value) || 0;
+                                const clamped = Math.min(
+                                  Math.max(raw, 0),
+                                  baseForAdditionalDiscount
+                                );
+                                field.onChange(clamped);
+                              }}
                             />
                           )}
                         />
@@ -1247,13 +1295,17 @@ export default function PembelianForm({
                       control={form.control}
                       name="expense"
                       render={({ field }) => (
-                        <Input
-                          disabled={isViewMode}
-                          type="number"
+                        <NumericFormat
+                          customInput={Input}
+                          thousandSeparator="."
+                          decimalSeparator=","
                           className="w-[40%] text-right"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
+                          allowNegative={false}
+                          inputMode="decimal"
+                          disabled={isViewMode || false}
+                          value={field.value ?? ""}
+                          onValueChange={(e) =>
+                            field.onChange(Number(e.floatValue ?? 0))
                           }
                         />
                       )}
@@ -1266,7 +1318,7 @@ export default function PembelianForm({
                   </div>
                   <div className="flex justify-between border-t pt-2 font-semibold">
                     <span>Remaining</span>
-                    <span>{formatMoney(Math.abs(remaining))}</span>
+                    <span>{formatMoney(remaining)}</span>
                   </div>
                 </div>
               </div>

@@ -30,7 +30,6 @@ const data = {
   user: {
     name: "Admin QIU",
     email: "admin@qiu.com",
-    avatar: "/admin-avatar.png",
   },
   navMain: [
     {
