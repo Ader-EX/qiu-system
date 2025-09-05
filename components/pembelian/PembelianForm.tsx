@@ -881,6 +881,7 @@ export default function PembelianForm({
                     <TableHead>Discount</TableHead>
                     <TableHead>Harga Termasuk Pajak</TableHead>
                     <TableHead>Sub Total</TableHead>
+                    <TableHead>Grand Total</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
