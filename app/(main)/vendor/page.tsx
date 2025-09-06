@@ -91,7 +91,6 @@ export default function VendorPage() {
     is_active: true,
   });
 
-  // Memoize fetch functions to prevent recreating them on every render
   const fetchCurrencyData = useMemo(
     () => (search: string) => {
       return mataUangService.getAllMataUang({

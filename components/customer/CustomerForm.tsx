@@ -89,15 +89,6 @@ export default function CustomerForm({ mode, customerId }: CustomerFormProps) {
     },
   });
 
-  const handleCurrencySelect = useCallback((search: string) => {
-    return mataUangService.getAllMataUang({
-      skip: 0,
-      is_active: true,
-      limit: 5,
-      search,
-    });
-  }, []);
-
   useEffect(() => {
     if ((mode !== "edit" && mode !== "view") || !customerId) {
       setIsDataLoaded(true);
@@ -367,32 +358,80 @@ export default function CustomerForm({ mode, customerId }: CustomerFormProps) {
               name="currency_id"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <SearchableSelect<TOPUnit>
-                    key={`currency-${preloadCurrency?.id || "empty"}`} // Force re-render when preload changes
-                    label="Mata Uang *"
-                    placeholder="Pilih mata uang"
-                    value={field.value?.toString() || ""}
-                    preloadValue={preloadCurrency?.id}
-                    disabled={isViewMode}
-                    onChange={(val) => {
-                      console.log(
-                        "Selected currency value from SearchableSelect:",
-                        val
-                      );
-                      if (val === "" || val === "all" || !val) {
-                        field.onChange(undefined);
-                        return;
-                      }
-                      const numericValue = Number(val);
-                      field.onChange(numericValue);
-                      console.log(
-                        "Form currency_id after onChange:",
-                        numericValue
-                      );
-                    }}
-                    fetchData={handleCurrencySelect}
-                    renderLabel={(item) => `${item.symbol} - ${item.name}`}
-                  />
+                  {isViewMode ? (
+                    <SearchableSelect<TOPUnit>
+                      key={`currency-${preloadCurrency?.id || "empty"}`} // Force re-render when preload changes
+                      label="Mata Uang *"
+                      placeholder="Pilih mata uang"
+                      value={field.value?.toString() || ""}
+                      preloadValue={preloadCurrency?.id}
+                      disabled={isViewMode}
+                      onChange={(val) => {
+                        console.log(
+                          "Selected currency value from SearchableSelect:",
+                          val
+                        );
+                        if (val === "" || val === "all" || !val) {
+                          field.onChange(undefined);
+                          return;
+                        }
+                        const numericValue = Number(val);
+                        field.onChange(numericValue);
+                        console.log(
+                          "Form currency_id after onChange:",
+                          numericValue
+                        );
+                      }}
+                      fetchData={async (search) => {
+                        const response = mataUangService.getAllMataUang({
+                          skip: 0,
+                          contains_deleted: true,
+                          limit: 5,
+                          search,
+                        });
+
+                        return response;
+                      }}
+                      renderLabel={(item) => `${item.symbol} - ${item.name}`}
+                    />
+                  ) : (
+                    <SearchableSelect<TOPUnit>
+                      key={`currency-${preloadCurrency?.id || "empty"}`}
+                      label="Mata Uang *"
+                      placeholder="Pilih mata uang"
+                      value={field.value?.toString() || ""}
+                      preloadValue={preloadCurrency?.id}
+                      disabled={isViewMode}
+                      onChange={(val) => {
+                        console.log(
+                          "Selected currency value from SearchableSelect:",
+                          val
+                        );
+                        if (val === "" || val === "all" || !val) {
+                          field.onChange(undefined);
+                          return;
+                        }
+                        const numericValue = Number(val);
+                        field.onChange(numericValue);
+                        console.log(
+                          "Form currency_id after onChange:",
+                          numericValue
+                        );
+                      }}
+                      fetchData={async (search) => {
+                        const response = mataUangService.getAllMataUang({
+                          skip: 0,
+                          is_active: true,
+                          limit: 5,
+                          search,
+                        });
+
+                        return response;
+                      }}
+                      renderLabel={(item) => `${item.symbol} - ${item.name}`}
+                    />
+                  )}
+
                   <FormMessage />
                 </FormItem>
               )}

@@ -66,6 +66,7 @@ import {
   PenjualanUpdate,
 } from "@/services/penjualanService";
 import { usePrintInvoice } from "@/hooks/usePrintInvoice";
+import { NumericFormat } from "react-number-format";
 
 const FormSection = ({
   title,
@@ -82,10 +83,6 @@ const FormSection = ({
   </div>
 );
 
-// =====================
-// Zod schema (mirror PembelianForm semantics)
-// unit_price = price BEFORE tax; tax_percentage applies to build price_after_tax
-// =====================
 const penjualanSchema = z.object({
   no_penjualan: z.string().optional(),
   warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
@@ -101,7 +98,7 @@ const penjualanSchema = z.object({
       z.object({
         item_id: z.number().min(1),
         qty: z.number().min(1),
-        unit_price: z.number().min(0), // BEFORE tax (same as PembelianForm)
+        unit_price: z.number().min(0),
         tax_percentage: z.number().min(0).max(100).default(10),
         discount: z.number().min(0).default(0),
       })
@@ -172,9 +169,6 @@ export default function PenjualanForm({
   });
   const { isPrinting } = usePrintInvoice();
 
-  // -----------------
-  // Load existing for edit/view (mirror PembelianForm mapping)
-  // -----------------
   useEffect(() => {
     if ((mode !== "edit" && mode !== "view") || !penjualanId) return;
 
@@ -198,7 +192,7 @@ export default function PenjualanForm({
           items: data.penjualan_items.map((item: any) => ({
             item_id: Number(item.item_id),
             qty: Number(item.qty),
-            unit_price: Number(item.unit_price), // BEFORE tax (matches model)
+            unit_price: Number(item.unit_price),
             discount: Number(item.discount ?? 0),
             tax_percentage: Number(item.tax_percentage ?? 10),
           })),
@@ -266,7 +260,6 @@ export default function PenjualanForm({
   const totalItemDiscounts = rows.reduce((s, r) => s + r.discount, 0);
   const subtotalAfterItemDiscounts = Math.max(subTotal - totalItemDiscounts, 0);
 
-  // Additional discount does NOT reduce tax base in this policy
   const finalTotalBeforeTax = Math.max(
     subtotalAfterItemDiscounts - additionalDiscount,
     0
@@ -293,9 +286,6 @@ export default function PenjualanForm({
         )
       : 0;
 
-  // -----------------
-  // Item add/remove handlers
-  // -----------------
   const handleAddItem = (pickedItem: Item) => {
     const existingItemIndex = fields.findIndex(
       (field) => field.item_id === pickedItem.id
@@ -574,30 +564,58 @@ export default function PenjualanForm({
               name="customer_id"
               render={({ field }) => (
                 <FormItem>
-                  <SearchableSelect
-                    label="Customer"
-                    placeholder="Pilih Customer"
-                    value={field.value ?? undefined}
-                    preloadValue={field.value}
-                    onChange={(value) => field.onChange(value)}
-                    disabled={isViewMode}
-                    fetchData={async (search) => {
-                      const response = await customerService.getAllCustomers({
-                        page: 0,
-                        rowsPerPage: 10,
-                        is_active: true,
-                        search_key: search,
-                      });
-                      return response;
-                    }}
-                    renderLabel={(item: any) =>
-                      `${item.code} - ${item.name} ${
-                        item?.curr_rel?.symbol
-                          ? `(${item.curr_rel.symbol})`
-                          : ""
-                      }`
-                    }
-                  />
+                  {isViewMode ? (
+                    <SearchableSelect
+                      label="Customer"
+                      placeholder="Pilih Customer"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      onChange={(value) => field.onChange(value)}
+                      disabled={isViewMode}
+                      fetchData={async (search) => {
+                        const response = await customerService.getAllCustomers({
+                          page: 0,
+                          rowsPerPage: 10,
+                          contains_deleted: true,
+                          search_key: search,
+                        });
+                        return response;
+                      }}
+                      renderLabel={(item: any) =>
+                        `${item.code} - ${item.name} ${
+                          item?.curr_rel?.symbol
+                            ? `(${item.curr_rel.symbol})`
+                            : ""
+                        }`
+                      }
+                    />
+                  ) : (
+                    <SearchableSelect
+                      label="Customer"
+                      placeholder="Pilih Customer"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      onChange={(value) => field.onChange(value)}
+                      disabled={isViewMode}
+                      fetchData={async (search) => {
+                        const response = await customerService.getAllCustomers({
+                          page: 0,
+                          rowsPerPage: 10,
+                          is_active: true,
+                          search_key: search,
+                        });
+                        return response;
+                      }}
+                      renderLabel={(item: any) =>
+                        `${item.code} - ${item.name} ${
+                          item?.curr_rel?.symbol
+                            ? `(${item.curr_rel.symbol})`
+                            : ""
+                        }`
+                      }
+                    />
+                  )}
+
                   <FormMessage />
                 </FormItem>
               )}
@@ -608,24 +626,48 @@ export default function PenjualanForm({
               name="warehouse_id"
               render={({ field }) => (
                 <FormItem>
-                  <SearchableSelect
-                    label="Warehouse"
-                    placeholder="Pilih Warehouse"
-                    value={field.value ?? undefined}
-                    preloadValue={field.value}
-                    onChange={(value) => field.onChange(Number(value))}
-                    disabled={isViewMode}
-                    fetchData={async (search) => {
-                      const response = await warehouseService.getAllWarehouses({
-                        skip: 0,
-                        is_active: true,
-                        limit: 10,
-                        search: search,
-                      });
-                      return response;
-                    }}
-                    renderLabel={(item: any) => item.name}
-                  />
+                  {isViewMode ? (
+                    <SearchableSelect
+                      label="Warehouse"
+                      placeholder="Pilih Warehouse"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      onChange={(value) => field.onChange(Number(value))}
+                      disabled={isViewMode}
+                      fetchData={async (search) => {
+                        const response =
+                          await warehouseService.getAllWarehouses({
+                            skip: 0,
+                            contains_deleted: true,
+                            limit: 10,
+                            search: search,
+                          });
+                        return response;
+                      }}
+                      renderLabel={(item: any) => item.name}
+                    />
+                  ) : (
+                    <SearchableSelect
+                      label="Warehouse"
+                      placeholder="Pilih Warehouse"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      onChange={(value) => field.onChange(Number(value))}
+                      disabled={isViewMode}
+                      fetchData={async (search) => {
+                        const response =
+                          await warehouseService.getAllWarehouses({
+                            skip: 0,
+                            is_active: true,
+                            limit: 10,
+                            search: search,
+                          });
+                        return response;
+                      }}
+                      renderLabel={(item: any) => item.name}
+                    />
+                  )}
+
                   <FormMessage />
                 </FormItem>
               )}
@@ -639,25 +681,51 @@ export default function PenjualanForm({
               name="top_id"
               render={({ field }) => (
                 <FormItem>
-                  <SearchableSelect
-                    label="Jenis Pembayaran"
-                    placeholder="Pilih Jenis Pembayaran"
-                    value={field.value ?? undefined}
-                    preloadValue={field.value}
-                    disabled={isViewMode}
-                    onChange={(value) => field.onChange(Number(value))}
-                    fetchData={async (search) => {
-                      const response =
-                        await jenisPembayaranService.getAllMataUang({
-                          skip: 0,
-                          is_active: true,
-                          limit: 10,
-                          search: search,
-                        });
-                      return response;
-                    }}
-                    renderLabel={(item: any) => `${item.symbol} - ${item.name}`}
-                  />
+                  {isViewMode ? (
+                    <SearchableSelect
+                      label="Jenis Pembayaran"
+                      placeholder="Pilih Jenis Pembayaran"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      disabled={isViewMode}
+                      onChange={(value) => field.onChange(Number(value))}
+                      fetchData={async (search) => {
+                        const response =
+                          await jenisPembayaranService.getAllMataUang({
+                            skip: 0,
+                            contains_deleted: true,
+                            limit: 10,
+                            search: search,
+                          });
+                        return response;
+                      }}
+                      renderLabel={(item: any) =>
+                        `${item.symbol} - ${item.name}`
+                      }
+                    />
+                  ) : (
+                    <SearchableSelect
+                      label="Jenis Pembayaran"
+                      placeholder="Pilih Jenis Pembayaran"
+                      value={field.value ?? undefined}
+                      preloadValue={field.value}
+                      disabled={isViewMode}
+                      onChange={(value) => field.onChange(Number(value))}
+                      fetchData={async (search) => {
+                        const response =
+                          await jenisPembayaranService.getAllMataUang({
+                            skip: 0,
+                            is_active: true,
+                            limit: 10,
+                            search: search,
+                          });
+                        return response;
+                      }}
+                      renderLabel={(item: any) =>
+                        `${item.symbol} - ${item.name}`
+                      }
+                    />
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -819,15 +887,16 @@ export default function PenjualanForm({
                           control={form.control}
                           name={`items.${index}.unit_price`}
                           render={({ field }) => (
-                            <Input
+                            <NumericFormat
+                              customInput={Input}
+                              thousandSeparator="."
+                              decimalSeparator=","
+                              allowNegative={false}
+                              inputMode="decimal"
                               disabled={isViewMode}
-                              type="number"
-                              onKeyDown={(e) =>
-                                e.key === "Enter" && e.preventDefault()
-                              }
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(Number(e.target.value))
+                              value={field.value ?? ""}
+                              onValueChange={(e) =>
+                                field.onChange(Number(e.floatValue ?? 0))
                               }
                             />
                           )}
@@ -857,15 +926,16 @@ export default function PenjualanForm({
                           control={form.control}
                           name={`items.${index}.discount`}
                           render={({ field }) => (
-                            <Input
+                            <NumericFormat
+                              customInput={Input}
+                              thousandSeparator="."
+                              decimalSeparator=","
+                              allowNegative={false}
+                              inputMode="decimal"
                               disabled={isViewMode}
-                              type="number"
-                              onKeyDown={(e) =>
-                                e.key === "Enter" && e.preventDefault()
-                              }
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(Number(e.target.value))
+                              value={field.value ?? ""}
+                              onValueChange={(e) =>
+                                field.onChange(Number(e.floatValue ?? 0))
                               }
                             />
                           )}
@@ -1020,23 +1090,28 @@ export default function PenjualanForm({
                           control={form.control}
                           name="additional_discount"
                           render={({ field }) => (
-                            <Input
-                              type="number"
+                            <NumericFormat
+                              customInput={Input}
+                              thousandSeparator="."
+                              decimalSeparator=","
+                              allowNegative={false}
+                              inputMode="decimal"
                               disabled={isViewMode}
                               className="w-[70%] text-right"
                               placeholder="0"
-                              min={0}
-                              onKeyDown={(e) =>
-                                e.key === "Enter" && e.preventDefault()
-                              }
-                              {...field}
-                              onChange={(e) => {
-                                const raw = Number(e.target.value) || 0;
+                              value={field.value ?? ""}
+                              onValueChange={(v) => {
+                                const raw = Number(v.floatValue ?? 0);
                                 const clamped = Math.min(
                                   Math.max(raw, 0),
                                   baseForAdditionalDiscount
                                 );
                                 field.onChange(clamped);
+                              }}
+                              onKeyDown={(
+                                e: React.KeyboardEvent<HTMLInputElement>
+                              ) => {
+                                if (e.key === "Enter") e.preventDefault();
                               }}
                             />
                           )}
@@ -1071,13 +1146,17 @@ export default function PenjualanForm({
                       control={form.control}
                       name="expense"
                       render={({ field }) => (
-                        <Input
-                          disabled={isViewMode}
-                          type="number"
+                        <NumericFormat
+                          customInput={Input}
+                          thousandSeparator="."
+                          decimalSeparator=","
                           className="w-[40%] text-right"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
+                          allowNegative={false}
+                          inputMode="decimal"
+                          disabled={isViewMode || false}
+                          value={field.value ?? ""}
+                          onValueChange={(e) =>
+                            field.onChange(Number(e.floatValue ?? 0))
                           }
                         />
                       )}

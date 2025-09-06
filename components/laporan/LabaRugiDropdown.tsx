@@ -72,16 +72,36 @@ const LabaRugiReport = () => {
       : "";
 
   const handleDownload = () => {
-    // Implement download functionality here
+    if (!reportData) {
+      toast.error("Tidak ada data untuk didownload");
+      return;
+    }
+
+    // Create report content as text
     const reportContent = `
-Laba Rugi ${formatDate(dateFrom)} - ${formatDate(dateTo)}
+LAPORAN LABA RUGI
+Periode: ${formatDate(dateFrom)} - ${formatDate(dateTo)}
+Generated: ${new Date().toLocaleString("id-ID")}
+================================================================
 
-Penjualan: ${formatMoney(reportData?.total_penjualan)}
-Pembelian: ${formatMoney(reportData?.total_pembelian)}
-Profit/Loss: ${formatMoney(reportData?.profit_or_loss)}
-    `;
+RINGKASAN KEUANGAN:
+================================================================
 
-    const blob = new Blob([reportContent], { type: "text/plain" });
+Penjualan       : ${formatMoney(reportData.total_penjualan)}
+Pembelian       : ${formatMoney(reportData.total_pembelian)}
+Profit/Loss     : ${formatMoney(reportData.profit_or_loss)}
+
+================================================================
+${reportData.profit_or_loss > 0 ? "PROFIT" : "LOSS"}: ${formatMoney(
+      Math.abs(reportData.profit_or_loss)
+    )}
+================================================================
+    `.trim();
+
+    // Create and download the file
+    const blob = new Blob([reportContent], {
+      type: "text/plain;charset=utf-8",
+    });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -89,10 +109,13 @@ Profit/Loss: ${formatMoney(reportData?.profit_or_loss)}
       dateTo,
       "yyyy-MM-dd"
     )}.txt`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-  };
 
+    toast.success("Laporan berhasil didownload!");
+  };
   if (!showForm && reportData) {
     const isProfit = reportData.profit_or_loss > 0;
 

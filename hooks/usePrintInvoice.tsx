@@ -15,6 +15,7 @@ interface InvoiceService {
 
 export const usePrintInvoice = () => {
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const printInvoice = useCallback(
     async (
@@ -47,6 +48,7 @@ export const usePrintInvoice = () => {
           toast.error("Gagal membuka invoice. Pastikan popup tidak diblokir.");
           return;
         }
+
         const defaultStyles = `
     @media screen {
         body { 
@@ -77,7 +79,8 @@ export const usePrintInvoice = () => {
             padding: 20px;
         }
         .print-header {
-            display: flex;
+
+            display: hidden;
             justify-content: space-between;
             align-items: center;
             background: white;
@@ -146,6 +149,11 @@ export const usePrintInvoice = () => {
         * {
             box-sizing: border-box;
         }
+        /* Hide URL and date from print header/footer */
+        @page {
+            margin-top: 0;
+            margin-bottom: 0;
+        }
     }
 `;
 
@@ -162,18 +170,6 @@ export const usePrintInvoice = () => {
         </style>
     </head>
     <body>
-        <div class="print-header no-print">
-            <h1 class="invoice-title">Invoice</h1>
-            <div class="button-group">
-                <button class="print-button" onclick="window.print()">
-                    📥 Download
-                </button>
-                <button class="print-button close-button" onclick="window.close()">
-                    ✖️ Close
-                </button>
-            </div>
-        </div>
-        
         <div class="invoice-content">
             ${html}
         </div>
@@ -184,6 +180,9 @@ export const usePrintInvoice = () => {
             let printDelay = ${printDelay};
             
             window.addEventListener('load', function() {
+                // Set a proper document title
+                document.title = 'Invoice ${invoiceNumber}';
+                
                 if (autoPrint) {
                     setTimeout(function() {
                         window.print();
@@ -204,6 +203,11 @@ export const usePrintInvoice = () => {
                     }, 500);
                 }
             });
+            
+            // Additional print settings to hide headers/footers
+            window.addEventListener('beforeprint', function() {
+                document.title = '';
+            });
         </script>
     </body>
     </html>
@@ -218,6 +222,173 @@ export const usePrintInvoice = () => {
         toast.error("Gagal membuka invoice untuk dicetak.");
       } finally {
         setIsPrinting(false);
+      }
+    },
+    []
+  );
+
+  // NEW: Download invoice as PDF/HTML
+  const downloadInvoice = useCallback(
+    async (
+      invoiceService: InvoiceService,
+      invoiceId: number,
+      invoiceNumber: string,
+      format: "pdf" | "html" = "pdf"
+    ) => {
+      setIsDownloading(true);
+
+      try {
+        const html = await invoiceService.getInvoice(invoiceId);
+
+        if (!html || html.trim().length === 0) {
+          toast.error("Invoice data tidak ditemukan");
+          return;
+        }
+
+        if (format === "html") {
+          // Download as HTML file
+          const printStyles = `
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                line-height: 1.6;
+                color: #333;
+              }
+              table { 
+                border-collapse: collapse; 
+                width: 100%; 
+                margin: 15px 0;
+              }
+              th, td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left; 
+              }
+              th { 
+                background-color: #f2f2f2; 
+                font-weight: bold; 
+              }
+              @media print {
+                body { margin: 0; }
+                @page { 
+                  margin: 15mm; 
+                  size: A4 portrait;
+                }
+              }
+            </style>
+          `;
+
+          const fullHTML = `<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice ${invoiceNumber}</title>
+    ${printStyles}
+</head>
+<body>
+    ${html}
+</body>
+</html>`;
+
+          const blob = new Blob([fullHTML], { type: "text/html" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `invoice-${invoiceNumber}.html`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          toast.success("Invoice berhasil didownload sebagai HTML!");
+        } else {
+          // Open in new window with auto-print for PDF download
+          const printWindow = window.open("", "_blank", "width=800,height=600");
+
+          if (!printWindow) {
+            toast.error(
+              "Gagal membuka invoice. Pastikan popup tidak diblokir."
+            );
+            return;
+          }
+
+          const printStyles = `
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 0; 
+                line-height: 1.6;
+                color: #333;
+              }
+              table { 
+                border-collapse: collapse; 
+                width: 100%; 
+                margin: 15px 0;
+              }
+              th, td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left; 
+              }
+              th { 
+                background-color: #f2f2f2; 
+                font-weight: bold; 
+              }
+              @media print {
+                body { margin: 0; }
+                @page { 
+                  margin: 15mm; 
+                  size: A4 portrait;
+                }
+              }
+              .download-header {
+                background: #f8f9fa;
+                padding: 15px;
+                text-align: center;
+                border-bottom: 1px solid #ddd;
+                margin-bottom: 20px;
+              }
+              @media print {
+                .download-header { display: none; }
+              }
+            </style>
+          `;
+
+          const fullHTML = `<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice ${invoiceNumber}</title>
+    ${printStyles}
+</head>
+<body>
+    ${html}
+    <script>
+      // Set proper title and auto-trigger print dialog
+      document.title = 'Invoice ${invoiceNumber}';
+      
+      setTimeout(function() {
+        // Clear title before printing to avoid showing in header
+        document.title = '';
+        window.print();
+      }, 500);
+    </script>
+</body>
+</html>`;
+
+          printWindow.document.write(fullHTML);
+          printWindow.document.close();
+
+          toast.success("Invoice terbuka untuk download PDF!");
+        }
+      } catch (error) {
+        console.error("Failed to download invoice:", error);
+        toast.error("Gagal download invoice.");
+      } finally {
+        setIsDownloading(false);
       }
     },
     []
@@ -271,6 +442,8 @@ export const usePrintInvoice = () => {
     simplePrint,
     advancedPrint,
     previewInvoice,
+    downloadInvoice,
     isPrinting,
+    isDownloading,
   };
 };

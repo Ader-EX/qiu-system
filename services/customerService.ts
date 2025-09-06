@@ -31,6 +31,7 @@ export interface CustomerFilters {
   rowsPerPage?: number;
   is_active?: boolean;
   search_key?: string;
+  contains_deleted?: boolean;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -49,6 +50,8 @@ class CustomerService {
     if (filters.is_active !== undefined)
       params.append("is_active", filters.is_active.toString());
     if (filters.search_key) params.append("search_key", filters.search_key);
+    if (filters.contains_deleted)
+      params.append("contains_deleted", filters.contains_deleted.toString());
 
     const response = await fetch(`${this.baseUrl}?${params.toString()}`, {
       method: "GET",

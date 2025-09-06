@@ -64,8 +64,13 @@ export default function PembelianPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  const { simplePrint, previewInvoice, advancedPrint, isPrinting } =
-    usePrintInvoice();
+  const {
+    simplePrint,
+    previewInvoice,
+    advancedPrint,
+    isPrinting,
+    downloadInvoice,
+  } = usePrintInvoice();
 
   // Fetch data
   const fetchPembelians = async (filters: PembelianFilters = {}) => {
@@ -350,15 +355,16 @@ export default function PembelianPage() {
                             <DropdownMenuItem asChild>
                               <div
                                 onClick={() =>
-                                  previewInvoice(
+                                  downloadInvoice(
                                     pembelianService,
                                     Number(pembelian.id),
-                                    pembelian.no_pembelian
+                                    pembelian.no_pembelian,
+                                    "pdf"
                                   )
                                 }
                               >
                                 <File className="mr-2 h-4 w-4" />
-                                Lihat Invoice
+                                Download Invoice (PDF)
                               </div>
                             </DropdownMenuItem>
                           </>
