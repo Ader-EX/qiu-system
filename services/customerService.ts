@@ -4,7 +4,6 @@ import { Customer } from "@/types/types";
 import Cookies from "js-cookie";
 
 export interface CustomerCreate {
-  code: string;
   name: string;
   address: string;
   currency_id: number;

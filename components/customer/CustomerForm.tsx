@@ -49,7 +49,7 @@ const FormSection = ({
 
 // Customer schema with kode_lambung
 const customerSchema = z.object({
-  code: z.string().min(1, "ID Customer is required"),
+  code: z.string().optional(),
   name: z.string().min(1, "Name is required"),
   is_active: z.boolean().default(true),
   currency_id: z.number({
@@ -177,13 +177,11 @@ export default function CustomerForm({ mode, customerId }: CustomerFormProps) {
   const onSubmit = async (data: CustomerFormData) => {
     setIsSubmitting(true);
     try {
-      // Convert kode_lambung_items array to string
       const kodeLambungString = kodeLambungItems
         .filter((item) => item.trim() !== "")
         .join(", ");
 
       const submitData = {
-        code: data.code,
         name: data.name,
         is_active: data.is_active ?? true,
         currency_id: data.currency_id,
@@ -293,13 +291,9 @@ export default function CustomerForm({ mode, customerId }: CustomerFormProps) {
               name="code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Kode Customer *</FormLabel>
+                  <FormLabel>Kode Customer</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="CUS-001"
-                      disabled={isViewMode || isEditMode}
-                      {...field}
-                    />
+                    <Input placeholder="-" disabled {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

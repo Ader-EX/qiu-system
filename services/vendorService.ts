@@ -4,7 +4,6 @@ import { Vendor } from "@/types/types";
 import Cookies from "js-cookie";
 
 export interface VendorCreate {
-  id: string;
   name: string;
   address: string;
   currency_id: number;

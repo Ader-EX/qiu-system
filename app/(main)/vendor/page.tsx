@@ -90,41 +90,26 @@ export default function VendorPage() {
     top_id: "",
     is_active: true,
   });
+  const fetchCurrencyData = useCallback((search: string) => {
+    return mataUangService.getAllMataUang({
+      skip: 0,
+      limit: 50,
+      is_active: true,
+      search,
+    });
+  }, []);
 
-  const fetchCurrencyData = useMemo(
-    () => (search: string) => {
-      return mataUangService.getAllMataUang({
-        skip: 0,
-        limit: 50,
-        is_active: true,
-        search,
-      });
-    },
-    []
-  );
-
-  const fetchPaymentTypeData = useMemo(
-    () => (search: string) => {
-      return jenisPembayaranService.getAllMataUang({
-        skip: 0,
-        is_active: true,
-        limit: 50,
-        search,
-      });
-    },
-    []
-  );
-
-  // Load initial data
+  const fetchPaymentTypeData = useCallback((search: string) => {
+    return jenisPembayaranService.getAllMataUang({
+      skip: 0,
+      is_active: true,
+      limit: 50,
+      search,
+    });
+  }, []);
   useEffect(() => {
     loadVendors();
   }, [currentPage, rowsPerPage, filterStatus]);
-
-  const handleSearch = async () => {
-    console.log("Search clicked, searchTerm:", searchTerm);
-    setCurrentPage(1);
-    await loadVendors();
-  };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -137,7 +122,7 @@ export default function VendorPage() {
     setCurrentPage(1);
   };
 
-  const loadVendors = async () => {
+  const loadVendors = useCallback(async () => {
     try {
       setLoading(true);
       const filters = {
@@ -157,8 +142,7 @@ export default function VendorPage() {
     } finally {
       setLoading(false);
     }
-  };
-
+  }, [currentPage, rowsPerPage, filterStatus, searchTerm]);
   const resetForm = () => {
     setFormData({
       id: "",
@@ -170,16 +154,21 @@ export default function VendorPage() {
     });
   };
 
-  const generateVendorId = () => {
-    return `VEN-${Date.now()}-${Math.floor(Math.random() * 10)}`;
-  };
+  useEffect(() => {
+    loadVendors();
+  }, [loadVendors]);
 
-  const openAddDialog = () => {
+  const handleSearch = useCallback(async () => {
+    console.log("Search clicked, searchTerm:", searchTerm);
+    setCurrentPage(1);
+    await loadVendors();
+  }, [searchTerm, loadVendors]);
+
+  const openAddDialog = useCallback(() => {
     setDialogMode("add");
     resetForm();
-    setFormData((prev) => ({ ...prev, id: generateVendorId() }));
     setIsDialogOpen(true);
-  };
+  }, []);
 
   const openEditDialog = (vendor: Vendor) => {
     setDialogMode("edit");
@@ -229,7 +218,6 @@ export default function VendorPage() {
 
       if (dialogMode === "add") {
         const newVendorData: VendorCreate = {
-          id: formData.id,
           name: formData.name,
           address: formData.address,
           currency_id: parseInt(formData.currency_id),
@@ -457,8 +445,8 @@ export default function VendorPage() {
                   id="id"
                   value={formData.id}
                   onChange={(e) => handleInputChange("id", e.target.value)}
-                  placeholder="VEN-001"
-                  disabled={dialogMode === "edit"}
+                  placeholder="-"
+                  disabled
                   required
                 />
               </div>
