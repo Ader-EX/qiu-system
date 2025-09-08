@@ -280,7 +280,7 @@ export default function PengembalianPage() {
 
                 <div className="flex items-center space-x-2">
                     <Select value={pengembalianType} onValueChange={handleTypeChange}>
-                        <SelectTrigger className="w-40">
+                        <SelectTrigger className="">
                             <SelectValue placeholder="Tipe Pengembalian"/>
                         </SelectTrigger>
                         <SelectContent>
@@ -294,7 +294,7 @@ export default function PengembalianPage() {
                         value={statusPengembalian}
                         onValueChange={handleStatusChange}
                     >
-                        <SelectTrigger className="w-40">
+                        <SelectTrigger className="">
                             <SelectValue placeholder="Status Pengembalian"/>
                         </SelectTrigger>
                         <SelectContent>
