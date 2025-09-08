@@ -278,9 +278,9 @@ export default function PengembalianPage() {
                     </Button>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex   space-x-2">
                     <Select value={pengembalianType} onValueChange={handleTypeChange}>
-                        <SelectTrigger className="">
+                        <SelectTrigger className="w-70">
                             <SelectValue placeholder="Tipe Pengembalian"/>
                         </SelectTrigger>
                         <SelectContent>
@@ -294,8 +294,8 @@ export default function PengembalianPage() {
                         value={statusPengembalian}
                         onValueChange={handleStatusChange}
                     >
-                        <SelectTrigger className="">
-                            <SelectValue placeholder="Status Pengembalian"/>
+                        <SelectTrigger className="w-70">
+                            <SelectValue placeholder="Status"/>
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="ALL">Semua Status</SelectItem>

@@ -285,8 +285,8 @@ export default function PembayaranPage() {
                     </Select>
 
                     <Select value={statusPembayaran} onValueChange={setStatusPembayaran}>
-                        <SelectTrigger className="w-40">
-                            <SelectValue placeholder="Status Pembayaran"/>
+                        <SelectTrigger className="w-70">
+                            <SelectValue placeholder="Status"/>
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="ALL">Semua Status</SelectItem>
@@ -294,8 +294,6 @@ export default function PembayaranPage() {
                             <SelectItem value="ACTIVE">Aktif</SelectItem>
                         </SelectContent>
                     </Select>
-
-                  
                 </div>
             </div>
 
