@@ -40,7 +40,10 @@ import SearchableSelect from "@/components/SearchableSelect";
 
 import { Attachment } from "@/services/pembelianService";
 import { warehouseService } from "@/services/warehouseService";
-import { jenisPembayaranService } from "@/services/mataUangService";
+import {
+  jenisPembayaranService,
+  mataUangService,
+} from "@/services/mataUangService";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import {
@@ -825,13 +828,14 @@ export default function PengembalianForm({
                       }}
                       fetchData={async (search) => {
                         try {
-                          const response =
-                            await jenisPembayaranService.getAllMataUang({
+                          const response = await mataUangService.getAllMataUang(
+                            {
                               skip: 0,
                               limit: 10,
                               contains_deleted: true,
                               search: search,
-                            });
+                            }
+                          );
                           return response;
                         } catch (error) {
                           console.error("Error fetching currencies:", error);
@@ -858,13 +862,14 @@ export default function PengembalianForm({
                       }}
                       fetchData={async (search) => {
                         try {
-                          const response =
-                            await jenisPembayaranService.getAllMataUang({
+                          const response = await mataUangService.getAllMataUang(
+                            {
                               skip: 0,
                               limit: 10,
                               is_active: true,
                               search: search,
-                            });
+                            }
+                          );
                           return response;
                         } catch (error) {
                           console.error("Error fetching currencies:", error);
