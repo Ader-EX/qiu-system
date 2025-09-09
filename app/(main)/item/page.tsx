@@ -45,6 +45,7 @@ import { satuanService } from "@/services/mataUangService";
 import { vendorService } from "@/services/vendorService";
 import { kategoriService } from "@/services/kategoriService";
 import SearchableSelect from "@/components/SearchableSelect";
+import CSVImportDialog from "@/components/Product/CSVImportDialog";
 
 export interface TOPUnit {
   id: string;
@@ -76,6 +77,8 @@ const ProdukPage = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const [state, setState] = useState<ProdukPageState>({
     items: [],
@@ -376,14 +379,25 @@ const ProdukPage = () => {
   };
 
   const triggerFileUpload = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-      fileInputRef.current.click();
-    }
+    setIsDialogOpen(!isDialogOpen);
   };
 
   return (
     <div className="space-y-6">
+      <CSVImportDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onFileUpload={async (file: any) => {
+          try {
+            await itemService.uploadItem(file);
+
+            toast.success("File berhasil diunggah");
+          } catch (error: any) {
+            toast.error(error.message);
+          }
+          fetchItems();
+        }}
+      />
       <SidebarHeaderBar
         title="Items"
         rightContent={

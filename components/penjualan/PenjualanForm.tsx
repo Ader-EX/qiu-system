@@ -424,6 +424,16 @@ export default function PenjualanForm({
     () => toast.error("Silahkan penuhi data Anda terlebih dahulu")
   );
 
+  const handleTaxPercentageChange = (index: number, newValue: number) => {
+    form.setValue(`items.${index}.tax_percentage`, newValue);
+
+    const currentItems = form.getValues("items");
+    currentItems.forEach((_, itemIndex) => {
+      if (itemIndex !== index) {
+        form.setValue(`items.${itemIndex}.tax_percentage`, newValue);
+      }
+    });
+  };
   return (
     <div className="space-y-6">
       <SidebarHeaderBar
@@ -850,174 +860,240 @@ export default function PenjualanForm({
                     <TableHead>Nama Item</TableHead>
                     <TableHead>Qty</TableHead>
                     <TableHead>Harga Satuan</TableHead>
-                    <TableHead>Pajak (%)</TableHead>
-                    <TableHead>Discount</TableHead>
-                    <TableHead>Harga Termasuk Pajak (per unit)</TableHead>
                     <TableHead>Sub Total</TableHead>
+                    <TableHead>Discount</TableHead>
+                    <TableHead>DPP</TableHead>
+                    <TableHead>Pajak (%)</TableHead>
+                    <TableHead>
+                      Harga pajak (
+                      {Number(form.watch(`items.0.tax_percentage`)) || 0}%)
+                    </TableHead>
                     <TableHead>Grand Total</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {fields.map((field, index) => (
-                    <TableRow key={field.id}>
-                      <TableCell>{selectedItems[index]?.code || ""}</TableCell>
-                      <TableCell>{selectedItems[index]?.name || ""}</TableCell>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`items.${index}.qty`}
-                          render={({ field }) => (
-                            <Input
-                              disabled={isViewMode}
-                              type="number"
-                              onKeyDown={(e) =>
-                                e.key === "Enter" && e.preventDefault()
-                              }
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(Number(e.target.value))
-                              }
-                            />
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`items.${index}.unit_price`}
-                          render={({ field }) => (
-                            <NumericFormat
-                              customInput={Input}
-                              thousandSeparator="."
-                              decimalSeparator=","
-                              allowNegative={false}
-                              inputMode="decimal"
-                              disabled={isViewMode}
-                              value={field.value ?? ""}
-                              onValueChange={(e) =>
-                                field.onChange(Number(e.floatValue ?? 0))
-                              }
-                            />
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`items.${index}.tax_percentage`}
-                          render={({ field }) => (
-                            <Input
-                              disabled={isViewMode}
-                              type="number"
-                              onKeyDown={(e) =>
-                                e.key === "Enter" && e.preventDefault()
-                              }
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(Number(e.target.value))
-                              }
-                            />
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`items.${index}.discount`}
-                          render={({ field }) => (
-                            <NumericFormat
-                              customInput={Input}
-                              thousandSeparator="."
-                              decimalSeparator=","
-                              allowNegative={false}
-                              inputMode="decimal"
-                              disabled={isViewMode}
-                              value={field.value ?? ""}
-                              onValueChange={(e) =>
-                                field.onChange(Number(e.floatValue ?? 0))
-                              }
-                            />
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <span>
-                          {(() => {
-                            const unit =
-                              Number(form.watch(`items.${index}.unit_price`)) ||
-                              0;
-                            const taxPct =
-                              Number(
-                                form.watch(`items.${index}.tax_percentage`)
-                              ) || 0;
-                            const priceAfterTaxPerUnit =
-                              unit * (1 + taxPct / 100);
-                            return formatMoney(
-                              priceAfterTaxPerUnit,
-                              "IDR",
-                              "id-ID",
-                              "nosymbol"
-                            );
-                          })()}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span>
-                          {(() => {
-                            const qty =
-                              Number(form.watch(`items.${index}.qty`)) || 0;
-                            const unit =
-                              Number(form.watch(`items.${index}.unit_price`)) ||
-                              0;
-                            return formatMoney(
-                              qty * unit,
-                              "IDR",
-                              "id-ID",
-                              "nosymbol"
-                            );
-                          })()}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span>
-                          {(() => {
-                            const unit =
-                              Number(form.watch(`items.${index}.unit_price`)) ||
-                              0;
-                            const qty =
-                              Number(form.watch(`items.${index}.qty`)) || 0;
-                            const taxPct =
-                              Number(
-                                form.watch(`items.${index}.tax_percentage`)
-                              ) || 0;
-                            const discount =
-                              Number(form.watch(`items.${index}.discount`)) ||
-                              0;
-                            const priceWithTax =
-                              unit * (1 + taxPct / 100) * qty;
-                            const grand = Math.max(priceWithTax - discount, 0);
-                            return formatMoney(
-                              grand,
-                              "IDR",
-                              "id-ID",
-                              "nosymbol"
-                            );
-                          })()}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          disabled={isViewMode}
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveItem(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {fields.map((field, index) => {
+                    const item = watchedItems[index];
+
+                    return (
+                      <TableRow key={field.id}>
+                        <TableCell>
+                          {selectedItems[index]?.code || ""}
+                        </TableCell>
+                        <TableCell>
+                          {selectedItems[index]?.name || ""}
+                        </TableCell>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.qty`}
+                            render={({ field }) => (
+                              <Input
+                                disabled={isViewMode || false}
+                                type="number"
+                                className="w-10"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(Number(e.target.value))
+                                }
+                              />
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.unit_price`}
+                            render={({ field }) => (
+                              <>
+                                <NumericFormat
+                                  customInput={Input}
+                                  thousandSeparator="."
+                                  decimalSeparator=","
+                                  allowNegative={false}
+                                  inputMode="decimal"
+                                  disabled={isViewMode}
+                                  className="w-20"
+                                  value={field.value ?? ""}
+                                  onValueChange={(e) =>
+                                    field.onChange(Number(e.floatValue ?? 0))
+                                  }
+                                />
+                              </>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <span>
+                            {(() => {
+                              const qty =
+                                Number(form.watch(`items.${index}.qty`)) || 0;
+                              const unitPrice =
+                                Number(
+                                  form.watch(`items.${index}.unit_price`)
+                                ) || 0;
+                              return formatMoney(
+                                qty * unitPrice,
+                                "IDR",
+                                "id-ID",
+                                "nosymbol"
+                              );
+                            })()}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.discount`}
+                            render={({ field }) => (
+                              <NumericFormat
+                                customInput={Input}
+                                thousandSeparator="."
+                                className="w-20"
+                                decimalSeparator=","
+                                allowNegative={false}
+                                inputMode="decimal"
+                                disabled={isViewMode || false}
+                                value={field.value ?? ""}
+                                onValueChange={(e) =>
+                                  field.onChange(Number(e.floatValue ?? 0))
+                                }
+                              />
+                            )}
+                          />
+                        </TableCell>
+
+                        <TableCell>
+                          <span>
+                            {(() => {
+                              const qty =
+                                Number(form.watch(`items.${index}.qty`)) || 0;
+                              const discount =
+                                Number(form.watch(`items.${index}.discount`)) ||
+                                0;
+                              const unitPrice =
+                                Number(
+                                  form.watch(`items.${index}.unit_price`)
+                                ) || 0;
+                              return formatMoney(
+                                qty * unitPrice - discount,
+                                "IDR",
+                                "id-ID",
+                                "nosymbol"
+                              );
+                            })()}
+                          </span>
+                        </TableCell>
+
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.tax_percentage`}
+                            render={({ field }) => (
+                              <Input
+                                disabled={isViewMode || false}
+                                type="number"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                className="w-12"
+                                {...field}
+                                onChange={(e) => {
+                                  const newTaxPercentage =
+                                    Number(e.target.value) || 0;
+                                  handleTaxPercentageChange(
+                                    index,
+                                    newTaxPercentage
+                                  );
+                                }}
+                              />
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <span>
+                            {(() => {
+                              const unitPrice =
+                                Number(
+                                  form.watch(`items.${index}.unit_price`)
+                                ) || 0;
+                              const qty =
+                                Number(form.watch(`items.${index}.qty`)) || 0;
+                              const discount =
+                                Number(form.watch(`items.${index}.discount`)) ||
+                                0;
+                              const taxPercentage =
+                                Number(
+                                  form.watch(`items.${index}.tax_percentage`)
+                                ) || 0;
+
+                              const subtotalAfterDiscount =
+                                unitPrice * qty - discount;
+                              const taxAmount =
+                                subtotalAfterDiscount * (taxPercentage / 100);
+
+                              return formatMoney(
+                                taxAmount,
+                                "IDR",
+                                "id-ID",
+                                "nosymbol"
+                              );
+                            })()}
+                          </span>
+                        </TableCell>
+
+                        <TableCell>
+                          {/* Total Price - includes tax and discount */}
+                          <span>
+                            {(() => {
+                              const unitPrice =
+                                Number(
+                                  form.watch(`items.${index}.unit_price`)
+                                ) || 0;
+                              const qty =
+                                Number(form.watch(`items.${index}.qty`)) || 0;
+                              const taxPercentage =
+                                Number(
+                                  form.watch(`items.${index}.tax_percentage`)
+                                ) || 0;
+                              const discount =
+                                Number(form.watch(`items.${index}.discount`)) ||
+                                0;
+                              const priceBeforeTax = unitPrice * qty - discount;
+
+                              const grandTotal =
+                                priceBeforeTax * (1 + taxPercentage / 100);
+                              return formatMoney(
+                                grandTotal,
+                                "IDR",
+                                "id-ID",
+                                "nosymbol"
+                              );
+                            })()}
+                          </span>
+                        </TableCell>
+
+                        <TableCell>
+                          <Button
+                            disabled={isViewMode}
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveItem(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
 
@@ -1045,10 +1121,10 @@ export default function PenjualanForm({
                     />
                   </div>
 
-                  <div className="flex justify-between items-start">
+                  {/* <div className="flex justify-between items-start">
                     <span className="mt-2">Additional Discount</span>
                     <div className="flex flex-col space-y-2">
-                      {/* Percentage input controlling amount */}
+                  
                       <div className="flex items-center justify-end">
                         <span className="text-sm text-muted-foreground w-4">
                           %
@@ -1084,7 +1160,7 @@ export default function PenjualanForm({
                         />
                       </div>
 
-                      {/* Amount input */}
+                
                       <div className="flex items-center justify-end space-x-1">
                         <FormField
                           control={form.control}
@@ -1118,7 +1194,7 @@ export default function PenjualanForm({
                         />
                       </div>
                     </div>
-                  </div>
+                  </div> */}
 
                   <div className="flex justify-between ">
                     <span className={"mr-4"}>Total</span>
