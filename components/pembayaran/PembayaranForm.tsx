@@ -92,7 +92,7 @@ const pembayaranSchema = z
     customer_name: z.string().optional(),
     currency_name: z.string().optional(),
     attachments: z.array(z.instanceof(File)).optional(),
-    customer_id: z.string().optional(),
+    customer_id: z.union([z.string(), z.number()]).optional().transform(String),
     vendor_id: z.string().optional(),
     status: z.string().optional(),
   })
