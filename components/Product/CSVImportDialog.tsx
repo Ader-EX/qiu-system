@@ -69,7 +69,7 @@ const CSVImportDialog = ({
 
   const handleDownloadTemplate = async () => {
     try {
-      const response = await fetch("/titem.csv");
+      const response = await fetch("/titem_new.csv");
       if (!response.ok) throw new Error("Failed to fetch template file");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -93,14 +93,6 @@ const CSVImportDialog = ({
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>CSV Import Data</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-6 w-6 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </DialogHeader>
 

@@ -393,7 +393,8 @@ const ProdukPage = () => {
 
             toast.success("File berhasil diunggah");
           } catch (error: any) {
-            toast.error(error.message);
+            const fixedErrormsg = error.message.split(":");
+            toast.error(fixedErrormsg[1]);
           }
           fetchItems();
         }}

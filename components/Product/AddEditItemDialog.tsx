@@ -34,6 +34,7 @@ import { ItemTypeEnum } from "@/services/itemService";
 import SearchableSelect from "../SearchableSelect";
 
 import { NumericFormat } from "react-number-format";
+import toast from "react-hot-toast";
 
 const itemSchema = z.object({
   is_active: z.boolean().default(true),
@@ -156,13 +157,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
     }
 
     // Validate file types
-    const validTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-    ];
+    const validTypes = ["image/jpeg", "image/jpg", "image/png"];
     const invalidFiles = files.filter(
       (file) => !validTypes.includes(file.type)
     );
@@ -177,7 +172,9 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
     const oversizedFiles = files.filter((file) => file.size > maxSize);
 
     if (oversizedFiles.length > 0) {
-      alert("Some files are larger than 2MB. Please choose smaller files.");
+      toast.error(
+        "Some files are larger than 2MB. Please choose smaller files."
+      );
       return;
     }
 
@@ -193,15 +190,11 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
   };
 
   const onSubmit = async (data: ItemFormData) => {
-    console.log("Form submitted with data:", data); // Debug log
-
     setIsSubmitting(true); // Start loading
 
     try {
-      // Create FormData for multipart/form-data submission
       const submitFormData = new FormData();
 
-      // Add form fields - match backend field names exactly
       submitFormData.append("type", data.type);
       submitFormData.append("name", data.name);
       submitFormData.append("sku", data.sku);
@@ -214,8 +207,6 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         submitFormData.append("category_one", data.category_one.toString());
       if (data.category_two !== undefined)
         submitFormData.append("category_two", data.category_two.toString());
-
-      // Add images - backend expects 'images' field name
       data.images.forEach((file) => {
         submitFormData.append("images", file);
       });
@@ -225,8 +216,6 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
       onClose();
     } catch (error) {
       console.error("Error submitting form:", error);
-      // Handle error here - you might want to show a toast or error message
-      // The error will be thrown to the parent component
     } finally {
       setIsSubmitting(false); // Stop loading
     }
@@ -349,27 +338,6 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="total_item"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Jumlah Unit *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="1"
-                        min="1"
-                        disabled={isSubmitting}
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="price"
                 render={({ field }) => (
                   <FormItem>
@@ -386,6 +354,26 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                           form.setValue("price", v.floatValue ?? 0)
                         }
                         disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="total_item"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Jumlah Unit *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        min="1"
+                        disabled={isSubmitting}
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
@@ -517,8 +505,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Wajib upload 1-3 gambar. Maks ukuran file 2 MB. Format JPG,
-                    PNG, GIF, WebP.
+                    Upload 1-3 gambar. Maks ukuran file 2 MB. Format JPG, PNG.
                   </p>
                   {watchedImages.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
