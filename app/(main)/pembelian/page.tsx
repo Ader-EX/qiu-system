@@ -360,12 +360,12 @@ export default function PembelianPage() {
                                                                         pembelianService,
                                                                         Number(pembelian.id),
                                                                         pembelian.no_pembelian,
-                                                                        "pdf"
+                                                                        "html2canvas"
                                                                     )
                                                                 }
                                                             >
                                                                 <File className="mr-2 h-4 w-4"/>
-                                                                Download Invoice (PDF)
+                                                                Download Invoice
                                                             </div>
                                                         </DropdownMenuItem>
                                                     </>
