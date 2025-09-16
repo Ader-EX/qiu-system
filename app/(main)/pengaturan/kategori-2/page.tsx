@@ -80,7 +80,7 @@ export default function Kategori2Page() {
 
     const loadCategories = async (page: number, searchTerm: string, limit: number) => {
         try {
-            console.log('Loading categories with:', {page, searchTerm, limit}); // Debug log
+            console.log('Loading jenis barang with:', {page, searchTerm, limit}); // Debug log
             setLoading(true);
             const response = await kategoriService.getAllCategories({
                 skip: (page - 1) * limit,
@@ -92,8 +92,8 @@ export default function Kategori2Page() {
             setCategories(response.data || []);
             setTotal(response.total || 0)
         } catch (error) {
-            console.error("Error loading categories:", error);
-            toast.error("Gagal memuat data kategori");
+            console.error("Error loading jenis barang:", error);
+            toast.error("Gagal memuat data jenis barang");
         } finally {
             setLoading(false);
         }
@@ -129,7 +129,7 @@ export default function Kategori2Page() {
                     }
                     await loadCategories(page, searchTerm, rowsPerPage);
                 }
-                toast.success("Kategori berhasil diperbarui!");
+                toast.success("jenis barang berhasil diperbarui!");
             } else {
                 const newCategory = await kategoriService.createCategory({
                     name: data.name,
@@ -139,7 +139,7 @@ export default function Kategori2Page() {
 
                 // Reload data to get fresh results from server
                 await loadCategories(page, searchTerm, rowsPerPage);
-                toast.success("Kategori berhasil ditambahkan!");
+                toast.success("jenis barang berhasil ditambahkan!");
             }
 
             setIsDialogOpen(false);
@@ -148,7 +148,7 @@ export default function Kategori2Page() {
 
         } catch (error) {
             console.error("Error submitting form:", error);
-            toast.error(editingCategory ? "Gagal memperbarui kategori" : "Gagal menambahkan kategori");
+            toast.error(editingCategory ? "Gagal memperbarui jenis barang" : "Gagal menambahkan jenis barang");
         } finally {
             setLoading(false);
         }
@@ -170,10 +170,10 @@ export default function Kategori2Page() {
 
             // Reload data to get fresh results from server
             await loadCategories(page, searchTerm, rowsPerPage);
-            toast.success("Kategori berhasil dihapus!");
+            toast.success("jenis barang berhasil dihapus!");
         } catch (error) {
             console.error("Error deleting category:", error);
-            toast.error("Gagal menghapus kategori");
+            toast.error("Gagal menghapus jenis barang");
         } finally {
             setLoading(false);
         }
@@ -204,7 +204,7 @@ export default function Kategori2Page() {
                 title=""
                 leftContent={
                     <CustomBreadcrumb
-                        listData={["Pengaturan", "Master Data", "Kategori 2"]}
+                        listData={["Pengaturan", "Master Data", "Jenis Barang"]}
                         linkData={["pengaturan", "kategori-2", "kategori-2"]}
                     />
                 }
@@ -212,7 +212,7 @@ export default function Kategori2Page() {
                     <HeaderActions.ActionGroup>
                         <Button size="sm" onClick={openAddDialog} disabled={loading}>
                             <Plus className="h-4 w-4 mr-2"/>
-                            Tambah Kategori
+                            Tambah Jenis Barang
                         </Button>
                     </HeaderActions.ActionGroup>
                 }
@@ -222,12 +222,12 @@ export default function Kategori2Page() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {editingCategory ? "Edit Kategori" : "Tambah Kategori Baru"}
+                            {editingCategory ? "Edit Jenis Barang" : "Tambah Jenis Baru"}
                         </DialogTitle>
                         <DialogDescription>
                             {editingCategory
-                                ? "Perbarui informasi kategori di bawah ini."
-                                : "Masukkan informasi kategori baru di bawah ini."}
+                                ? "Perbarui informasi jenis barang di bawah ini."
+                                : "Masukkan informasi jenis barang baru di bawah ini."}
                         </DialogDescription>
                     </DialogHeader>
                     <KategoriForm
@@ -244,7 +244,7 @@ export default function Kategori2Page() {
                     <Search
                         className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                     <Input
-                        placeholder="Cari kategori..."
+                        placeholder="Cari jenis barang..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={handleSearchKeyDown}
@@ -275,7 +275,7 @@ export default function Kategori2Page() {
                         {categories.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                                    {searchTerm ? "Tidak ada kategori yang ditemukan" : "Belum ada data kategori"}
+                                    {searchTerm ? "Tidak ada jenis barang yang ditemukan" : "Belum ada data jenis barang"}
                                 </TableCell>
                             </TableRow>
                         ) : (

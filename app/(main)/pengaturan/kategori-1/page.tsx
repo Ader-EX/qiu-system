@@ -127,7 +127,7 @@ export default function Kategori1Page() {
                     // Reload data to get fresh results from server
                     await loadCategories(page, searchTerm, rowsPerPage);
                 }
-                toast.success("Kategori berhasil diperbarui!");
+                toast.success("Brand berhasil diperbarui!");
             } else {
                 const newCategory = await kategoriService.createCategory({
                     name: data.name,
@@ -137,7 +137,7 @@ export default function Kategori1Page() {
 
                 // Reload data to get fresh results from server
                 await loadCategories(page, searchTerm, rowsPerPage);
-                toast.success("Kategori berhasil ditambahkan!");
+                toast.success("Brand berhasil ditambahkan!");
             }
 
             setIsDialogOpen(false);
@@ -146,7 +146,7 @@ export default function Kategori1Page() {
 
         } catch (error) {
             console.error("Error submitting form:", error);
-            toast.error(editingCategory ? "Gagal memperbarui kategori" : "Gagal menambahkan kategori");
+            toast.error(editingCategory ? "Gagal memperbarui brand" : "Gagal menambahkan brand");
         } finally {
             setLoading(false);
         }
@@ -168,10 +168,10 @@ export default function Kategori1Page() {
 
             // Reload data to get fresh results from server
             await loadCategories(page, searchTerm, rowsPerPage);
-            toast.success("Kategori berhasil dihapus!");
+            toast.success("Brand berhasil dihapus!");
         } catch (error) {
             console.error("Error deleting category:", error);
-            toast.error("Gagal menghapus kategori");
+            toast.error("Gagal menghapus Brand");
         } finally {
             setLoading(false);
         }
@@ -202,7 +202,7 @@ export default function Kategori1Page() {
                 title=""
                 leftContent={
                     <CustomBreadcrumb
-                        listData={["Pengaturan", "Master Data", "Kategori 1"]}
+                        listData={["Pengaturan", "Master Data", "Brand"]}
                         linkData={["pengaturan", "kategori-1", "kategori-1"]}
                     />
                 }
@@ -210,7 +210,7 @@ export default function Kategori1Page() {
                     <HeaderActions.ActionGroup>
                         <Button size="sm" onClick={openAddDialog} disabled={loading}>
                             <Plus className="h-4 w-4 mr-2"/>
-                            Tambah Kategori
+                            Tambah Brand
                         </Button>
                     </HeaderActions.ActionGroup>
                 }
@@ -220,12 +220,12 @@ export default function Kategori1Page() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {editingCategory ? "Edit Kategori" : "Tambah Kategori Baru"}
+                            {editingCategory ? "Edit Brand" : "Tambah Brand Baru"}
                         </DialogTitle>
                         <DialogDescription>
                             {editingCategory
-                                ? "Perbarui informasi kategori di bawah ini."
-                                : "Masukkan informasi kategori baru di bawah ini."}
+                                ? "Perbarui informasi Brand di bawah ini."
+                                : "Masukkan informasi Brand baru di bawah ini."}
                         </DialogDescription>
                     </DialogHeader>
                     <KategoriForm
@@ -242,7 +242,7 @@ export default function Kategori1Page() {
                     <Search
                         className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                     <Input
-                        placeholder="Cari kategori..."
+                        placeholder="Cari Brand..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={handleSearchKeyDown}
@@ -273,7 +273,7 @@ export default function Kategori1Page() {
                         {categories.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                                    {searchTerm ? "Tidak ada kategori yang ditemukan" : "Belum ada data kategori"}
+                                    {searchTerm ? "Tidak ada brand yang ditemukan" : "Belum ada data brand"}
                                 </TableCell>
                             </TableRow>
                         ) : (

@@ -80,7 +80,7 @@ export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
                             <p className="mt-1">{product.code}</p>
 
                             <p className="text-sm font-medium text-gray-500 mt-4">
-                                Kategori 1
+                                Brand
                             </p>
                             <p className="mt-1">{product.category_one_rel?.name || "-"}</p>
 
@@ -109,7 +109,7 @@ export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
                             <p className="mt-1">{product.name}</p>
 
                             <p className="text-sm font-medium text-gray-500 mt-4">
-                                Kategori 2
+                                Jenis Barang
                             </p>
                             <p className="mt-1">{product.category_two_rel?.name || "-"}</p>
 

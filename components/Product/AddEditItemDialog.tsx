@@ -419,8 +419,8 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                 render={({field}) => (
                                     <FormItem>
                                         <SearchableSelect<TOPUnit>
-                                            label="Kategori 1"
-                                            placeholder="Pilih kategori 1"
+                                            label="Brand"
+                                            placeholder="Pilih Brand"
                                             value={field.value?.toString()}
                                             onChange={(value) => field.onChange(parseInt(value))}
                                             fetchData={(search: string) =>
@@ -446,8 +446,8 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                 render={({field}) => (
                                     <FormItem>
                                         <SearchableSelect<TOPUnit>
-                                            label="Kategori 2"
-                                            placeholder="Pilih kategori 2"
+                                            label="Jenis Barang"
+                                            placeholder="Pilih Jenis Barang"
                                             value={field.value?.toString()}
                                             onChange={(value) => field.onChange(parseInt(value))}
                                             fetchData={(search: string) =>

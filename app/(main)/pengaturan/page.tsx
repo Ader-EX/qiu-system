@@ -25,16 +25,16 @@ import UsersPage from "@/components/user/UsersPage";
 
 const settingsItems = [
     {
-        title: "Kategori 1",
-        description: "Kelola kategori utama untuk klasifikasi produk.",
+        title: "Brand",
+        description: "Kelola brand untuk klasifikasi produk.",
         icon: Package,
         href: "/pengaturan/kategori-1",
         color: "text-blue-600",
         bgColor: "bg-blue-50",
     },
     {
-        title: "Kategori 2",
-        description: "Atur subkategori untuk detail pengelompokan produk.",
+        title: "Jenis Barang",
+        description: "Atur jenis barang untuk detail pengelompokan produk.",
         icon: Package,
         href: "/pengaturan/kategori-2",
         color: "text-green-600",
