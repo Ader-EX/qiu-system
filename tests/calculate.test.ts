@@ -1,19 +1,7 @@
+import {calcRowTotalData} from "@/services/pembelianService";
+
 export function sum(a: number, b: number) {
     return a + b
-}
-
-
-export const calcRowTotalData = (qty: number, unit: number, taxPct: number, discount: number) => {
-    const subTotal = unit * qty;
-    const taxableBase = Math.max(subTotal - discount, 0)
-    const tax = (taxableBase * taxPct) / 100;
-    const total = taxableBase + tax;
-    return {
-        subTotal,
-        taxableBase,
-        tax,
-        total,
-    }
 }
 
 

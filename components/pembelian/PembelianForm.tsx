@@ -55,7 +55,7 @@ import {FileUploadButton} from "@/components/ImageUpload";
 import {
     pembelianService,
     PembelianUpdate,
-    Attachment,
+    Attachment, calcRowTotalData,
 } from "@/services/pembelianService";
 import {warehouseService} from "@/services/warehouseService";
 import {jenisPembayaranService} from "@/services/mataUangService";
@@ -67,7 +67,7 @@ import {useRouter} from "next/navigation";
 import {vendorService} from "@/services/vendorService";
 import {usePrintInvoice} from "@/hooks/usePrintInvoice";
 import {NumericFormat} from "react-number-format";
-import {calcRowTotalData} from "@/tests/calculate.test";
+
 
 const FormSection = ({
                          title,

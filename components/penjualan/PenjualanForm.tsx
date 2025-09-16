@@ -67,7 +67,8 @@ import {
 } from "@/services/penjualanService";
 import {usePrintInvoice} from "@/hooks/usePrintInvoice";
 import {NumericFormat} from "react-number-format";
-import {calcRowTotalData} from "@/tests/calculate.test";
+import {calcRowTotalData} from "@/services/pembelianService";
+
 
 const FormSection = ({
                          title,
