@@ -59,6 +59,7 @@ export interface Pembelian {
     total_return?: number;
 
     warehouse_id?: number;
+    sumberdana_id?: number;
     vendor_id?: string;
     top_id?: number;
 
@@ -92,6 +93,7 @@ export interface PembelianListResponse {
 
 export interface PembelianCreate {
     warehouse_id?: number;
+    sumberdana_id?: number;
     vendor_id?: string;
     top_id?: number;
     sales_date: string;
@@ -111,6 +113,7 @@ export interface PembelianCreate {
 export interface PembelianUpdate {
     no_pembelian?: string;
     warehouse_id?: number;
+    sumberdana_id?: number;
     vendor_id?: string;
     top_id?: number;
     sales_date?: string;
@@ -226,7 +229,7 @@ class PembelianService {
         return response.json();
     }
 
-    async getPembelianById(id: number): Promise<Pembelian> {
+    async getById(id: number): Promise<Pembelian> {
         const response = await fetch(`${this.baseUrl}/${id}`, {
             headers: this.getAuthHeaders(),
         });

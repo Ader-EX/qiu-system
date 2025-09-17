@@ -40,30 +40,31 @@ import {
     HeaderActions,
     SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
-import {TOPUnit} from "@/types/types";
+import {Sumberdana} from "@/types/types";
 
-import {satuanService} from "@/services/mataUangService";
 
 import CurrencyForm from "@/components/currency/CurrencyForm";
 import GlobalPaginationFunction from "@/components/pagination-global";
 import {Spinner} from "@/components/ui/spinner";
+import {sumberdanaService} from "@/services/sumberdanaservice";
+import KategoriForm from "@/components/kategori/KategoriForm";
 
-export default function SatuanPage() {
-    const [units, setUnits] = useState<TOPUnit[]>([]);
+export default function SumberdanaPage() {
+    const [units, setunits] = useState<Sumberdana[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [searchTerm, setSearchTerm] = useState("");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingsatuan, setEditingsatuan] = useState<TOPUnit | null>(null);
+    const [editingSumberDana, setEditingSumberDana] = useState<Sumberdana | null>(null);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<{
         name: string;
-        symbol: string;
+
         is_active: boolean;
     }>({
         name: "",
-        symbol: "",
+
         is_active: true,
     });
 
@@ -71,22 +72,22 @@ export default function SatuanPage() {
 
     // Load units on component mount and when page/rowsPerPage changes
     useEffect(() => {
-        loadUnits(page, "", rowsPerPage);
-    }, [page, rowsPerPage]);
+        loadUnits(page, searchTerm, rowsPerPage);
+    }, [page, rowsPerPage, searchTerm]);
 
     const loadUnits = async (page: number, searchTerm: string, limit: number) => {
         try {
             setLoading(true);
-            const response = await satuanService.getAllMataUang({
+            const response = await sumberdanaService.getAllSumberdanas({
                 skip: (page - 1) * limit,
                 limit: limit,
                 search: searchTerm,
             });
 
-            setUnits(response.data || []);
+            setunits(response.data || []);
             setTotal(response.total || 0);
         } catch (error) {
-            toast.error("Gagal memuat data satuan");
+            toast.error("Gagal memuat data sumber dana");
         } finally {
             setLoading(false);
         }
@@ -95,68 +96,67 @@ export default function SatuanPage() {
     const handleRowsPerPageChange = (value: number) => {
         setRowsPerPage(value);
         setPage(1);
+        loadUnits(1, searchTerm, value);
     };
 
     const handlePageChange = (newPage: number) => {
         if (newPage >= 1 && newPage <= totalPages) {
             setPage(newPage);
+            loadUnits(newPage, searchTerm, rowsPerPage);
         }
     };
 
     const handleSubmit = async (data: {
         name: string;
-        symbol: string;
+
         is_active: boolean;
     }) => {
         try {
             setLoading(true);
 
-            if (editingsatuan) {
-                if (editingsatuan.id) {
-                    const updatedsatuan = await satuanService.updateMataUang(
-                        editingsatuan.id,
+            if (editingSumberDana) {
+                if (editingSumberDana.id) {
+                    const updatedsatuan = await sumberdanaService.updateSumberdana(
+                        editingSumberDana.id,
                         {
                             name: data.name,
-                            symbol: data.symbol,
-                            is_active: data.is_active,
+
+                            isActive: data.is_active,
                         }
                     );
 
                     // Reload data to get fresh results from server
                     await loadUnits(page, searchTerm, rowsPerPage);
                 }
-                toast.success("Satuan berhasil diperbarui!");
+                toast.success("Sumber dana berhasil diperbarui!");
             } else {
-                const newsatuan = await satuanService.createMataUang({
+                const newsatuan = await sumberdanaService.createSumberdana({
                     name: data.name,
-                    symbol: data.symbol,
                     is_active: data.is_active,
                 });
 
                 await loadUnits(page, searchTerm, rowsPerPage);
-                toast.success("Satuan berhasil ditambahkan!");
+                toast.success("Sumber dana berhasil ditambahkan!");
             }
 
             setIsDialogOpen(false);
-            setEditingsatuan(null);
-            setFormData({name: "", symbol: "", is_active: true});
+            setEditingSumberDana(null);
+            setFormData({name: "", is_active: true});
         } catch (error) {
             console.error("Error submitting form:", error);
             toast.error(
-                editingsatuan ? "Gagal memperbarui satuan" : "Gagal menambahkan satuan"
+                editingSumberDana ? "Gagal memperbarui Sumber dana" : "Gagal menambahkan Sumber dana"
             );
         } finally {
             setLoading(false);
         }
     };
 
-    const handleEdit = (unit: TOPUnit) => {
-        setEditingsatuan(unit);
-
-        if (unit.symbol) {
+    const handleEdit = (unit: Sumberdana) => {
+        setEditingSumberDana(unit);
+        if (unit.name) {
             setFormData({
                 name: unit.name,
-                symbol: unit.symbol,
                 is_active: unit.is_active,
             });
             setIsDialogOpen(true);
@@ -166,27 +166,25 @@ export default function SatuanPage() {
     const handleDelete = async (id: number) => {
         try {
             setLoading(true);
-            await satuanService.deleteMataUang(id);
-
-            // Reload data to get fresh results from server
+            await sumberdanaService.deleteSumberdana(id);
             await loadUnits(page, searchTerm, rowsPerPage);
-            toast.success("Satuan berhasil dihapus!");
+            toast.success("Sumber dana berhasil dihapus!");
         } catch (error) {
             console.error("Error deleting category:", error);
-            toast.error("Gagal menghapus satuan");
+            toast.error("Gagal menghapus Sumber dana");
         } finally {
             setLoading(false);
         }
     };
 
     const openAddDialog = () => {
-        setEditingsatuan(null);
-        setFormData({name: "", symbol: "", is_active: true});
+        setEditingSumberDana(null);
+        setFormData({name: "", is_active: true});
         setIsDialogOpen(true);
     };
 
     const handleSearch = async () => {
-        console.log("Search clicked, searchTerm:", searchTerm); // Debug log
+
         setPage(1); // Reset to first page
         await loadUnits(1, searchTerm, rowsPerPage); // Direct API call
     };
@@ -203,15 +201,15 @@ export default function SatuanPage() {
                 title=""
                 leftContent={
                     <CustomBreadcrumb
-                        listData={["Pengaturan", "Master Data", "Satuan"]}
-                        linkData={["pengaturan", "satuan", "satuan"]}
+                        listData={["Pengaturan", "Master Data", "Sumber Dana"]}
+                        linkData={["pengaturan", "sumberdana", "sumberdana"]}
                     />
                 }
                 rightContent={
                     <HeaderActions.ActionGroup>
                         <Button size="sm" onClick={openAddDialog} disabled={loading}>
                             <Plus className="h-4 w-4 mr-2"/>
-                            Tambah satuan
+                            Tambah Sumber Dana
                         </Button>
                     </HeaderActions.ActionGroup>
                 }
@@ -221,17 +219,17 @@ export default function SatuanPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {editingsatuan ? "Edit satuan" : "Tambah satuan Baru"}
+                            {editingSumberDana ? "Edit Sumber Dana" : "Tambah Sumber Dana Baru"}
                         </DialogTitle>
                         <DialogDescription>
-                            {editingsatuan
-                                ? "Perbarui informasi satuan di bawah ini."
-                                : "Masukkan informasi satuan baru di bawah ini."}
+                            {editingSumberDana
+                                ? "Perbarui informasi Sumber Dana di bawah ini."
+                                : "Masukkan informasi Sumber Dana baru di bawah ini."}
                         </DialogDescription>
                     </DialogHeader>
-                    <CurrencyForm
-                        initialdata={editingsatuan ? formData : undefined}
-                        editing={!!editingsatuan}
+                    <KategoriForm
+                        initialdata={editingSumberDana ? formData : undefined}
+                        editing={!!editingSumberDana}
                         onSubmit={handleSubmit}
                         // loading={loading}
                     />
@@ -243,7 +241,7 @@ export default function SatuanPage() {
                     <Search
                         className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                     <Input
-                        placeholder="Cari satuan..."
+                        placeholder="Cari Sumber Dana..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={handleSearchKeyDown}
@@ -267,7 +265,6 @@ export default function SatuanPage() {
                             <TableRow>
                                 <TableHead className="w-[10%]">ID</TableHead>
                                 <TableHead className="w-[60%]">Nama</TableHead>
-                                <TableHead className="w-[60%]">Symbol</TableHead>
                                 <TableHead className="w-[20%]">Status</TableHead>
                                 <TableHead className="w-[10%] text-right">Aksi</TableHead>
                             </TableRow>
@@ -280,8 +277,8 @@ export default function SatuanPage() {
                                         className="text-center py-8 text-muted-foreground"
                                     >
                                         {searchTerm
-                                            ? "Tidak ada satuan yang ditemukan"
-                                            : "Belum ada data satuan"}
+                                            ? "Tidak ada sumber dana yang ditemukan"
+                                            : "Belum ada data sumber dana"}
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -291,9 +288,7 @@ export default function SatuanPage() {
                                         <TableCell className="font-medium">
                                             {category.name}
                                         </TableCell>
-                                        <TableCell className="font-medium">
-                                            {category.symbol}
-                                        </TableCell>
+
                                         <TableCell>
                                             <Badge
                                                 variant={category.is_active ? "okay" : "secondary"}

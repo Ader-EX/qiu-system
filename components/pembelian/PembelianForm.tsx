@@ -67,6 +67,7 @@ import {useRouter} from "next/navigation";
 import {vendorService} from "@/services/vendorService";
 import {usePrintInvoice} from "@/hooks/usePrintInvoice";
 import {NumericFormat} from "react-number-format";
+import {sumberdanaService} from "@/services/sumberdanaservice";
 
 
 const FormSection = ({
@@ -88,6 +89,7 @@ const pembelianSchema = z.object({
     warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
     vendor_id: z.string().min(1, "Vendor harus dipilih"),
     top_id: z.number().min(1, "Jenis Pembayaran harus dipilih"),
+    sumberdana_id: z.number().min(1, "Sumber Dana harus dipilih"),
     sales_date: z.date({required_error: "Purchase Date harus diisi"}),
     sales_due_date: z.date({required_error: "Purchase Due Date harus diisi"}),
     additional_discount: z.number().min(0).default(0),
@@ -140,6 +142,7 @@ export default function PembelianForm({
             no_pembelian: isEditMode ? "" : `-`,
             warehouse_id: undefined,
             vendor_id: "",
+            sumberdana_id: undefined,
             top_id: undefined,
 
             additional_discount: 0,
@@ -171,15 +174,17 @@ export default function PembelianForm({
 
         const loadPembelianData = async () => {
             try {
-                const data = await pembelianService.getPembelianById(
+                const data = await pembelianService.getById(
                     Number(pembelianId)
                 );
 
                 const formData = {
                     no_pembelian: data.no_pembelian,
                     warehouse_id: Number(data.warehouse_id),
+
                     vendor_id: String(data.vendor_id),
                     top_id: Number(data.top_id),
+                    sumberdana_id: Number(data.sumberdana_id),
                     sales_date: new Date(data.sales_date),
                     sales_due_date: new Date(data.sales_due_date),
                     additional_discount: Number(data.additional_discount ?? 0),
@@ -360,6 +365,7 @@ export default function PembelianForm({
                 warehouse_id: Number(data.warehouse_id),
                 vendor_id: String(data.vendor_id),
                 top_id: Number(data.top_id),
+                sumberdana_id: Number(data.sumberdana_id),
                 sales_date: formatDateForAPI(data.sales_date),
                 sales_due_date: formatDateForAPI(data.sales_due_date),
                 additional_discount: Number(data.additional_discount || 0),
@@ -790,6 +796,80 @@ export default function PembelianForm({
                                                 }
                                             }}
                                             renderLabel={(item: any) => item.name}
+                                        />
+                                    )}
+
+                                    <FormMessage/>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="sumberdana_id"
+                            render={({field}) => (
+                                <FormItem>
+                                    {isViewMode ? (
+                                        <SearchableSelect
+                                            label="Sumber Dana"
+                                            placeholder="Pilih Sumber Dana"
+                                            value={field.value ?? undefined}
+                                            fetchById={async (id) => {
+                                                try {
+                                                    const sumberDanaType = await sumberdanaService.getById(Number(id));
+                                                    return sumberDanaType;
+                                                } catch (error) {
+                                                    console.error('Failed to fetch payment type by ID:', error);
+                                                    throw error;
+                                                }
+                                            }}
+                                            preloadValue={field.value}
+                                            onChange={(value) => {
+                                                field.onChange(Number(value));
+                                            }}
+                                            disabled={isViewMode}
+                                            fetchData={async (search) => {
+                                                try {
+                                                    const response = await sumberdanaService.getAllSumberdanas({
+                                                        skip: 0,
+                                                        limit: 10,
+                                                        contains_deleted: true,
+                                                        search: search,
+                                                    });
+                                                    return response;
+                                                } catch (error) {
+                                                    throw error;
+                                                }
+                                            }}
+                                            renderLabel={(item: any) =>
+                                                `${item.id} - ${item.name} `
+                                            }
+                                        />
+                                    ) : (
+                                        <SearchableSelect
+                                            label="Sumber Dana"
+                                            placeholder="Pilih Sumber Dana"
+                                            value={field.value ?? undefined}
+                                            preloadValue={field.value}
+                                            onChange={(value) => {
+                                                field.onChange(Number(value));
+                                            }}
+                                            disabled={isViewMode}
+                                            fetchData={async (search) => {
+                                                try {
+                                                    const response = await sumberdanaService.getAllSumberdanas({
+                                                        skip: 0,
+                                                        limit: 10,
+                                                        is_active: true,
+                                                        search: search,
+                                                    });
+                                                    return response;
+                                                } catch (error) {
+                                                    throw error;
+                                                }
+                                            }}
+                                            renderLabel={(item: any) =>
+                                                `${item.id} - ${item.name}`
+                                            }
                                         />
                                     )}
 

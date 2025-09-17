@@ -18,6 +18,8 @@ interface SearchableSelectProps<T extends { id: number | string }> {
     renderLabel: (item: T) => string;
     preloadValue?: string | number;
     disabled?: boolean;
+    // Add this new prop for fetching specific item by ID
+    fetchById?: (id: string | number) => Promise<T>;
 }
 
 const INTERNAL_ALL_VALUE = "__all__";
@@ -31,6 +33,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
                                                                                 renderLabel,
                                                                                 preloadValue,
                                                                                 disabled = false,
+                                                                                fetchById,
                                                                             }: SearchableSelectProps<T>) {
     const [options, setOptions] = useState<T[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -55,32 +58,55 @@ export default function SearchableSelect<T extends { id: number | string }>({
         }
     };
 
+    // Preload specific item by ID
+    const preloadSpecificItem = async (itemId: string | number) => {
+        if (!fetchById) return null;
+
+        try {
+            const item = await fetchById(itemId);
+            return item;
+        } catch (error) {
+            console.error("Failed to preload specific item:", error);
+            return null;
+        }
+    };
+
     // Initialize component
     useEffect(() => {
         let isMounted = true;
 
         const initialize = async () => {
-            // First load with empty search to get initial data
+            // First, try to preload the specific item if we have preloadValue and fetchById
+            let preloadedItem: T | null = null;
+            if (preloadValue && preloadValue !== "all" && fetchById) {
+                preloadedItem = await preloadSpecificItem(preloadValue);
+            }
+
+            // Then load initial data with empty search
             await fetchOptions("");
 
-            // If we have a preload value and it's not in the current options, try to load it
-            if (preloadValue && preloadValue !== "all") {
-                try {
-                    const response = await fetchData("");
-                    const foundItem = response.data?.find(
-                        (item) => item.id.toString() === preloadValue.toString()
+            // If we have a preloaded item and it's not in the current options, add it
+            if (preloadedItem && isMounted) {
+                setOptions((prev) => {
+                    const exists = prev.some(
+                        (opt) => opt.id.toString() === preloadValue?.toString()
                     );
+                    return exists ? prev : [preloadedItem, ...prev];
+                });
+            } else if (preloadValue && preloadValue !== "all") {
+                // Fallback: try to find in the fetched data
+                const response = await fetchData("");
+                const foundItem = response.data?.find(
+                    (item) => item.id.toString() === preloadValue.toString()
+                );
 
-                    if (foundItem && isMounted) {
-                        setOptions((prev) => {
-                            const exists = prev.some(
-                                (opt) => opt.id.toString() === preloadValue.toString()
-                            );
-                            return exists ? prev : [foundItem, ...prev];
-                        });
-                    }
-                } catch (error) {
-                    console.error("Failed to preload item:", error);
+                if (foundItem && isMounted) {
+                    setOptions((prev) => {
+                        const exists = prev.some(
+                            (opt) => opt.id.toString() === preloadValue.toString()
+                        );
+                        return exists ? prev : [foundItem, ...prev];
+                    });
                 }
             }
 
@@ -94,7 +120,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
         return () => {
             isMounted = false;
         };
-    }, []); // Only run once on mount
+    }, [preloadValue, fetchById]); // Include dependencies
 
     // Handle search input changes
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {

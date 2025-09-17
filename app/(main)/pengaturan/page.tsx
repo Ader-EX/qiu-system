@@ -7,6 +7,7 @@ import {
     CreditCard,
     Warehouse,
     Ruler,
+    Banknote
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -71,6 +72,14 @@ const settingsItems = [
         href: "/pengaturan/warehouse",
         color: "text-indigo-600",
         bgColor: "bg-indigo-50",
+    },
+    {
+        title: "Sumber Dana",
+        description: "Kelola data sumber dana.",
+        icon: Banknote,
+        href: "/pengaturan/sumberdana",
+        color: "text-green-600",
+        bgColor: "bg-green-50",
     },
 ];
 export default function PengaturanPage() {

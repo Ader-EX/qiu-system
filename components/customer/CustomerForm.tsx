@@ -98,7 +98,7 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
         const loadCustomerData = async () => {
             try {
                 setIsDataLoaded(false);
-                const data = await customerService.getCustomerById(customerId);
+                const data = await customerService.getById(customerId);
                 console.log("Customer data from API:", data);
 
                 let kodeLambungArray = [""];

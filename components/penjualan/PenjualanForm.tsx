@@ -176,7 +176,7 @@ export default function PenjualanForm({
 
         const loadPenjualanData = async () => {
             try {
-                const data = await penjualanService.getPenjualanById(
+                const data = await penjualanService.getById(
                     Number(penjualanId)
                 );
 

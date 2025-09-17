@@ -111,7 +111,7 @@ class ItemService {
         }
     }
 
-    async getItemById(id: string): Promise<Item> {
+    async getById(id: string): Promise<Item> {
         const response = await fetch(`${this.baseUrl}/${id}`, {
             method: "GET",
             headers: this.getAuthHeaders(),

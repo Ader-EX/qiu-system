@@ -73,7 +73,7 @@ class CategoryService {
         }
     }
 
-    async getCategory(id: string): Promise<Unit> {
+    async getById(id: string): Promise<Unit> {
         try {
             const response = await fetch(`${this.baseUrl}/${id}`, {
                 method: "GET",
