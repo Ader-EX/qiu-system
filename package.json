@@ -68,6 +68,7 @@
     "react-simply-carousel": "^9.1.11",
     "react-super-responsive-table": "^6.0.2",
     "recharts": "2.15.0",
+    "sharp": "^0.34.4",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
