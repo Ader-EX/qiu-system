@@ -18,7 +18,6 @@ interface SearchableSelectProps<T extends { id: number | string }> {
     renderLabel: (item: T) => string;
     preloadValue?: string | number;
     disabled?: boolean;
-    // Add this new prop for fetching specific item by ID
     fetchById?: (id: string | number) => Promise<T>;
 }
 
@@ -39,9 +38,11 @@ export default function SearchableSelect<T extends { id: number | string }>({
     const [searchTerm, setSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [initialized, setInitialized] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
 
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const currentSearchRef = useRef("");
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     // Simple data fetching function
     const fetchOptions = async (search: string) => {
@@ -85,7 +86,6 @@ export default function SearchableSelect<T extends { id: number | string }>({
             // Then load initial data with empty search
             await fetchOptions("");
 
-            // If we have a preloaded item and it's not in the current options, add it
             if (preloadedItem && isMounted) {
                 setOptions((prev) => {
                     const exists = prev.some(
@@ -94,7 +94,6 @@ export default function SearchableSelect<T extends { id: number | string }>({
                     return exists ? prev : [preloadedItem, ...prev];
                 });
             } else if (preloadValue && preloadValue !== "all") {
-                // Fallback: try to find in the fetched data
                 const response = await fetchData("");
                 const foundItem = response.data?.find(
                     (item) => item.id.toString() === preloadValue.toString()
@@ -120,7 +119,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
         return () => {
             isMounted = false;
         };
-    }, [preloadValue, fetchById]); // Include dependencies
+    }, [preloadValue, fetchById]);
 
     // Handle search input changes
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,16 +145,43 @@ export default function SearchableSelect<T extends { id: number | string }>({
 
     const handleInternalChange = (val: string) => {
         onChange(val === INTERNAL_ALL_VALUE ? "all" : val);
+        setIsOpen(false); // Close dropdown after selection
     };
 
     // Handle dropdown open/close
     const handleOpenChange = (open: boolean) => {
-        if (!open && searchTerm) {
-            setSearchTerm("");
-            // Reset to initial options if we were searching
-            if (currentSearchRef.current !== "") {
-                fetchOptions("");
+        setIsOpen(open);
+
+        if (open) {
+            // When opening, focus the search input after a short delay
+            setTimeout(() => {
+                searchInputRef.current?.focus();
+            }, 100);
+        } else {
+            // When closing, reset search
+            if (searchTerm) {
+                setSearchTerm("");
+                // Reset to initial options if we were searching
+                if (currentSearchRef.current !== "") {
+                    fetchOptions("");
+                }
             }
+        }
+    };
+
+    // Prevent input events from bubbling up and closing the dropdown
+    const handleInputMouseDown = (e: React.MouseEvent) => {
+        e.stopPropagation();
+    };
+
+    const handleInputKeyDown = (e: React.KeyboardEvent) => {
+        // Prevent certain keys from bubbling up to the Select component
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.stopPropagation();
+        }
+        // Allow Escape to close the dropdown
+        if (e.key === 'Escape') {
+            setIsOpen(false);
         }
     };
 
@@ -175,24 +201,43 @@ export default function SearchableSelect<T extends { id: number | string }>({
                 value={internalValue}
                 onValueChange={handleInternalChange}
                 disabled={disabled}
+                open={isOpen}
                 onOpenChange={handleOpenChange}
             >
                 <SelectTrigger>
                     <SelectValue placeholder={placeholder}/>
                 </SelectTrigger>
-                <SelectContent>
-                    <div className="p-2">
+                <SelectContent
+                    className="max-h-[300px] overflow-y-auto"
+                    onCloseAutoFocus={(e) => e.preventDefault()}
+                >
+                    <div
+                        className="p-2 sticky top-0 bg-background border-b z-10"
+                        onMouseDown={handleInputMouseDown}
+                    >
                         <Input
+                            ref={searchInputRef}
                             placeholder={`Cari ${label.toLowerCase()}...`}
                             value={searchTerm}
                             onChange={handleSearchChange}
+                            onKeyDown={handleInputKeyDown}
+                            onMouseDown={handleInputMouseDown}
+                            onFocus={(e) => e.stopPropagation()}
                             className="w-full"
-                            onClick={(e) => e.stopPropagation()}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
                         />
                     </div>
 
-                    <SelectItem disabled className={"opacity-50"}
-                                value={INTERNAL_ALL_VALUE}>{placeholder}</SelectItem>
+                    <SelectItem
+                        disabled
+                        className="opacity-50"
+                        value={INTERNAL_ALL_VALUE}
+                    >
+                        {placeholder}
+                    </SelectItem>
 
                     {!initialized || isLoading ? (
                         <div className="px-4 py-2 text-sm text-muted-foreground">
