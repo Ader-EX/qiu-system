@@ -7,12 +7,14 @@ export interface TOPUnit {
     name: string;
     symbol?: string;
     is_active: boolean;
+    created_at: Date;
 }
 
 export interface Sumberdana {
     id: number;
     name: string;
     is_active: boolean;
+    created_at: Date
 }
 
 export interface CategoryOut extends TOPUnit {
@@ -119,6 +121,17 @@ export interface Customer {
     kode_lambung?: string;
 }
 
+export interface SearchableSelectResponse<TId extends string | number> {
+    id: TId
+    name: string
+}
+
+export interface SearchableSelectResponseVendor extends SearchableSelectResponse<string> {
+    curr_rel: {
+        symbol: string
+    }
+}
+
 export interface Vendor {
     id: string;
     name: string;
@@ -141,4 +154,5 @@ export interface Unit {
     name: string;
     is_active: boolean;
     category_type: number;
+    created_at: Date;
 }

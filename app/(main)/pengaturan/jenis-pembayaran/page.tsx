@@ -8,6 +8,8 @@ import {
     Edit,
     Trash2,
     Search as SearchIcon,
+    Calendar,
+    X,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -33,6 +35,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import {Calendar as CalendarComponent} from "@/components/ui/calendar";
 import {Badge} from "@/components/ui/badge";
 import toast from "react-hot-toast";
 import CustomBreadcrumb from "@/components/custom-breadcrumb";
@@ -41,20 +49,27 @@ import {
     SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
 import {TOPUnit} from "@/types/types";
+import {format} from "date-fns";
+import {cn} from "@/lib/utils";
 
 import {jenisPembayaranService} from "@/services/mataUangService";
 import Cookies from "js-cookie";
 import GlobalPaginationFunction from "@/components/pagination-global";
 import CurrencyForm from "@/components/currency/CurrencyForm";
+import {Spinner} from "@/components/ui/spinner";
 
 export default function JenisPembayaranPage() {
     const [units, setUnits] = useState<TOPUnit[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
+
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [searchTerm, setSearchTerm] = useState("");
+    const [fromDate, setFromDate] = useState<Date | undefined>();
+    const [toDate, setToDate] = useState<Date | undefined>();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCurrency, setEditingCurrency] = useState<TOPUnit | null>(null);
+
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<{
         name: string;
@@ -69,19 +84,34 @@ export default function JenisPembayaranPage() {
     const totalPages = Math.ceil(total / rowsPerPage);
 
     useEffect(() => {
-        loadUnits(page, "", rowsPerPage);
-    }, [page, rowsPerPage]);
-
-    const loadUnits = async (page: number, searchTerm: string, limit: number) => {
+        loadUnits(page, searchTerm, rowsPerPage, fromDate, toDate);
+    }, [page, rowsPerPage, fromDate, toDate, searchTerm]);
+    const loadUnits = async (
+        page: number,
+        searchTerm: string,
+        limit: number,
+        fromDate?: Date,
+        toDate?: Date
+    ) => {
         try {
-            console.log("Loading units with:", {page, searchTerm, limit}); // Debug log
+            console.log("Loading units with:", {page, searchTerm, limit, fromDate, toDate});
             setLoading(true);
-            const response = await jenisPembayaranService.getAllMataUang({
+            const params: any = {
                 skip: (page - 1) * limit,
                 limit: 1000,
                 is_active: false,
                 search: searchTerm,
-            });
+            };
+
+            // Add date filters if they exist
+            if (fromDate) {
+                params.from_date = format(fromDate, "yyyy-MM-dd");
+            }
+            if (toDate) {
+                params.to_date = format(toDate, "yyyy-MM-dd");
+            }
+
+            const response = await jenisPembayaranService.getAllMataUang(params);
 
             setUnits(response.data || []);
             setTotal(response.total || 0);
@@ -125,7 +155,7 @@ export default function JenisPembayaranPage() {
                     );
 
                     // Reload data to get fresh results from server
-                    await loadUnits(page, searchTerm, rowsPerPage);
+                    await loadUnits(page, searchTerm, rowsPerPage, fromDate, toDate);
                 }
                 toast.success("Jenis Pembayaran berhasil diperbarui!");
             } else {
@@ -135,7 +165,7 @@ export default function JenisPembayaranPage() {
                     is_active: data.is_active,
                 });
 
-                await loadUnits(page, searchTerm, rowsPerPage);
+                await loadUnits(page, searchTerm, rowsPerPage, fromDate, toDate);
                 toast.success("Jenis Pembayaran berhasil ditambahkan!");
             }
 
@@ -171,7 +201,7 @@ export default function JenisPembayaranPage() {
             setLoading(true);
             await jenisPembayaranService.deleteMataUang(id);
 
-            await loadUnits(page, searchTerm, rowsPerPage);
+            await loadUnits(page, searchTerm, rowsPerPage, fromDate, toDate);
             toast.success("Jenis Pembayaran berhasil dihapus!");
         } catch (error) {
             console.error("Error deleting category:", error);
@@ -188,9 +218,7 @@ export default function JenisPembayaranPage() {
     };
 
     const handleSearch = async () => {
-        console.log("Search clicked, searchTerm:", searchTerm); // Debug log
         setPage(1); // Reset to first page
-        await loadUnits(1, searchTerm, rowsPerPage); // Direct API call
     };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -198,6 +226,13 @@ export default function JenisPembayaranPage() {
             handleSearch();
         }
     };
+
+    const clearDateFilters = () => {
+        setFromDate(undefined);
+        setToDate(undefined);
+    };
+
+    const hasActiveFilters = searchTerm || fromDate || toDate;
 
     return (
         <div className="space-y-6">
@@ -242,8 +277,10 @@ export default function JenisPembayaranPage() {
                 </DialogContent>
             </Dialog>
 
-            <div className="flex w-full justify-between space-x-2">
-                <div className="relative max-w-sm">
+            {/* Search and Filter Section */}
+            <div className="flex flex-col lg:flex-row gap-4">
+                {/* Search Input */}
+                <div className="relative flex-1 max-w-sm">
                     <Search
                         className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                     <Input
@@ -255,23 +292,76 @@ export default function JenisPembayaranPage() {
                     />
                 </div>
 
+                {/* Date Range Filters */}
+                <div className="flex gap-2">
+                    {/* From Date */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "w-[140px] justify-start text-left font-normal",
+                                    !fromDate && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-6"/>
+                                {fromDate ? format(fromDate, "dd/MM/yyyy") : "Tgl Mulai"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                                mode="single"
+                                selected={fromDate}
+                                onSelect={setFromDate}
+
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <span className="self-center">-</span>
+                    {/* To Date */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "w-[140px] justify-start text-left font-normal",
+                                    !toDate && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-4"/>
+                                {toDate ? format(toDate, "dd/MM/yyyy") : "Tgl Selesai"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                                mode="single"
+                                selected={toDate}
+                                onSelect={setToDate}
+
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
+                {/* Action Buttons */}
                 <Button onClick={handleSearch} disabled={loading}>
-                    <SearchIcon className="mr-2 h-4 w-4"/> Cari
+                    <SearchIcon className="mr-2 h-4 w-4"/>
+                    Cari
                 </Button>
             </div>
-
             {loading ? (
-                <div className="flex justify-center py-8">
-                    <div className="text-muted-foreground">Memuat data...</div>
-                </div>
+                <Spinner/>
             ) : (
                 <>
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-[10%]">ID</TableHead>
-                                <TableHead className="w-[60%]">Nama</TableHead>
-                                <TableHead className="w-[60%]">Symbol</TableHead>
+                                <TableHead className="w-[20%]">Nama</TableHead>
+                                <TableHead className="w-[20%]">Symbol</TableHead>
+                                <TableHead className="w-[40%]">Created At</TableHead>
                                 <TableHead className="w-[20%]">Status</TableHead>
                                 <TableHead className="w-[10%] text-right">Aksi</TableHead>
                             </TableRow>
@@ -280,11 +370,11 @@ export default function JenisPembayaranPage() {
                             {units.length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={4}
+                                        colSpan={6}
                                         className="text-center py-8 text-muted-foreground"
                                     >
-                                        {searchTerm
-                                            ? "Tidak ada Jenis Pembayaran yang ditemukan"
+                                        {hasActiveFilters
+                                            ? "Tidak ada Jenis Pembayaran yang ditemukan dengan filter yang diterapkan"
                                             : "Belum ada data Jenis Pembayaran"}
                                     </TableCell>
                                 </TableRow>
@@ -297,6 +387,9 @@ export default function JenisPembayaranPage() {
                                         </TableCell>
                                         <TableCell className="font-medium">
                                             {category.symbol}
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            {new Date(category.created_at).toLocaleDateString()}
                                         </TableCell>
                                         <TableCell>
                                             <Badge

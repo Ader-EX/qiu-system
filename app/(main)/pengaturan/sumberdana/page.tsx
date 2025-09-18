@@ -7,7 +7,7 @@ import {
     MoreHorizontal,
     Edit,
     Trash2,
-    Search as SearchIcon,
+    Search as SearchIcon, Calendar,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -48,6 +48,10 @@ import GlobalPaginationFunction from "@/components/pagination-global";
 import {Spinner} from "@/components/ui/spinner";
 import {sumberdanaService} from "@/services/sumberdanaservice";
 import KategoriForm from "@/components/kategori/KategoriForm";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {cn} from "@/lib/utils";
+import {format} from "date-fns";
+import {Calendar as CalendarComponent} from "@/components/ui/calendar";
 
 export default function SumberdanaPage() {
     const [units, setunits] = useState<Sumberdana[]>([]);
@@ -55,6 +59,8 @@ export default function SumberdanaPage() {
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [searchTerm, setSearchTerm] = useState("");
+    const [fromDate, setFromDate] = useState<Date | undefined>();
+    const [toDate, setToDate] = useState<Date | undefined>();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingSumberDana, setEditingSumberDana] = useState<Sumberdana | null>(null);
     const [loading, setLoading] = useState(false);
@@ -75,14 +81,26 @@ export default function SumberdanaPage() {
         loadUnits(page, searchTerm, rowsPerPage);
     }, [page, rowsPerPage, searchTerm]);
 
-    const loadUnits = async (page: number, searchTerm: string, limit: number) => {
+    const loadUnits = async (page: number, searchTerm: string, limit: number, fromDate?: Date,
+                             toDate?: Date) => {
         try {
             setLoading(true);
-            const response = await sumberdanaService.getAllSumberdanas({
+
+            const requestParams: any = {
                 skip: (page - 1) * limit,
                 limit: limit,
                 search: searchTerm,
-            });
+            };
+
+            if (fromDate) {
+                requestParams.from_date = format(fromDate, "yyyy-MM-dd");
+            }
+
+            if (toDate) {
+                requestParams.to_date = format(toDate, "yyyy-MM-dd");
+            }
+
+            const response = await sumberdanaService.getAllSumberdanas(requestParams);
 
             setunits(response.data || []);
             setTotal(response.total || 0);
@@ -96,13 +114,13 @@ export default function SumberdanaPage() {
     const handleRowsPerPageChange = (value: number) => {
         setRowsPerPage(value);
         setPage(1);
-        loadUnits(1, searchTerm, value);
+        loadUnits(1, searchTerm, value, fromDate, toDate);
     };
 
     const handlePageChange = (newPage: number) => {
         if (newPage >= 1 && newPage <= totalPages) {
             setPage(newPage);
-            loadUnits(newPage, searchTerm, rowsPerPage);
+            loadUnits(newPage, searchTerm, rowsPerPage, fromDate, toDate);
         }
     };
 
@@ -126,7 +144,7 @@ export default function SumberdanaPage() {
                     );
 
                     // Reload data to get fresh results from server
-                    await loadUnits(page, searchTerm, rowsPerPage);
+                    await loadUnits(page, searchTerm, rowsPerPage, fromDate, toDate);
                 }
                 toast.success("Sumber dana berhasil diperbarui!");
             } else {
@@ -135,7 +153,7 @@ export default function SumberdanaPage() {
                     is_active: data.is_active,
                 });
 
-                await loadUnits(page, searchTerm, rowsPerPage);
+                await loadUnits(page, searchTerm, rowsPerPage, fromDate, toDate);
                 toast.success("Sumber dana berhasil ditambahkan!");
             }
 
@@ -167,7 +185,7 @@ export default function SumberdanaPage() {
         try {
             setLoading(true);
             await sumberdanaService.deleteSumberdana(id);
-            await loadUnits(page, searchTerm, rowsPerPage);
+            await loadUnits(page, searchTerm, rowsPerPage, fromDate, toDate);
             toast.success("Sumber dana berhasil dihapus!");
         } catch (error) {
             console.error("Error deleting category:", error);
@@ -186,7 +204,7 @@ export default function SumberdanaPage() {
     const handleSearch = async () => {
 
         setPage(1); // Reset to first page
-        await loadUnits(1, searchTerm, rowsPerPage); // Direct API call
+        await loadUnits(1, searchTerm, rowsPerPage, fromDate, toDate); // Direct API call
     };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -236,7 +254,7 @@ export default function SumberdanaPage() {
                 </DialogContent>
             </Dialog>
 
-            <div className="flex w-full justify-between space-x-2">
+            <div className="flex flex-col lg:flex-row gap-4">
                 <div className="relative max-w-sm">
                     <Search
                         className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
@@ -248,6 +266,58 @@ export default function SumberdanaPage() {
                         className="pl-7 w-full"
                     />
                 </div>
+                <div className="flex gap-2">
+                    {/* From Date */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "w-[140px] justify-start text-left font-normal",
+                                    !fromDate && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-6"/>
+                                {fromDate ? format(fromDate, "dd/MM/yyyy") : "Tgl Mulai"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                                mode="single"
+                                selected={fromDate}
+                                onSelect={setFromDate}
+
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <span className="self-center">-</span>
+                    {/* To Date */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "w-[140px] justify-start text-left font-normal",
+                                    !toDate && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-4"/>
+                                {toDate ? format(toDate, "dd/MM/yyyy") : "Tgl Selesai"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                                mode="single"
+                                selected={toDate}
+                                onSelect={setToDate}
+
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
 
                 <Button onClick={handleSearch} disabled={loading}>
                     <SearchIcon className="mr-2 h-4 w-4"/> Cari
@@ -264,7 +334,8 @@ export default function SumberdanaPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-[10%]">ID</TableHead>
-                                <TableHead className="w-[60%]">Nama</TableHead>
+                                <TableHead className="w-[30%]">Nama</TableHead>
+                                <TableHead className="w-[20%]">Created At</TableHead>
                                 <TableHead className="w-[20%]">Status</TableHead>
                                 <TableHead className="w-[10%] text-right">Aksi</TableHead>
                             </TableRow>
@@ -288,6 +359,10 @@ export default function SumberdanaPage() {
                                         <TableCell className="font-medium">
                                             {category.name}
                                         </TableCell>
+                                        <TableCell className="font-medium">
+                                            {new Date(category.created_at).toLocaleDateString()}
+                                        </TableCell>
+
 
                                         <TableCell>
                                             <Badge

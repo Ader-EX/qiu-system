@@ -6,7 +6,7 @@ import {
     Search,
     MoreHorizontal,
     Edit,
-    Trash2, Search as SearchIcon,
+    Trash2, Search as SearchIcon, Calendar,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -48,6 +48,10 @@ import KategoriForm from "@/components/kategori/KategoriForm";
 import {kategoriService} from "@/services/kategoriService";
 import Cookies from "js-cookie";
 import GlobalPaginationFunction from "@/components/pagination-global";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {cn} from "@/lib/utils";
+import {format} from "date-fns";
+import {Calendar as CalendarComponent} from "@/components/ui/calendar";
 
 export default function Kategori1Page() {
     const [categories, setCategories] = useState<Unit[]>([]);
@@ -55,6 +59,8 @@ export default function Kategori1Page() {
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [searchTerm, setSearchTerm] = useState("");
+    const [fromDate, setFromDate] = useState<Date | undefined>();
+    const [toDate, setToDate] = useState<Date | undefined>();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Unit | null>(null);
     const [loading, setLoading] = useState(false);
@@ -69,24 +75,39 @@ export default function Kategori1Page() {
     const totalPages = Math.ceil(total / rowsPerPage);
 
     useEffect(() => {
-        loadCategories(page, "", rowsPerPage);
-    }, [page, rowsPerPage]);
+        loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
+    }, [page, rowsPerPage, fromDate, toDate, searchTerm]);
 
 
-    const loadCategories = async (page: number, searchTerm: string, limit: number) => {
+    const loadCategories = async (
+        page: number,
+        searchTerm: string,
+        limit: number,
+        fromDate?: Date,
+        toDate?: Date
+    ) => {
         try {
-            console.log('Loading categories with:', {page, searchTerm, limit}); // Debug log
             setLoading(true);
-            const response = await kategoriService.getAllCategories({
+
+            const params: any = {
                 skip: (page - 1) * limit,
                 limit: limit,
                 search: searchTerm,
                 type: 1
-            });
+            };
 
-            console.log('API response:', response); // Debug log
+            if (fromDate) {
+                params.from_date = format(fromDate, "yyyy-MM-dd");
+            }
+            if (toDate) {
+                params.to_date = format(toDate, "yyyy-MM-dd");
+            }
+
+            const response = await kategoriService.getAllCategories(params);
+
+
             setCategories(response.data || []);
-            setTotal(response.total || 0)
+            setTotal(response.total || 0);
         } catch (error) {
             console.error("Error loading categories:", error);
             toast.error("Gagal memuat data kategori");
@@ -106,7 +127,6 @@ export default function Kategori1Page() {
             setPage(newPage);
         }
     };
-
     const handleSubmit = async (data: { name: string; is_active: boolean }) => {
         try {
             setLoading(true);
@@ -124,8 +144,8 @@ export default function Kategori1Page() {
                         );
                     }
 
-                    // Reload data to get fresh results from server
-                    await loadCategories(page, searchTerm, rowsPerPage);
+                    // Reload data with current filters
+                    await loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
                 }
                 toast.success("Brand berhasil diperbarui!");
             } else {
@@ -135,8 +155,8 @@ export default function Kategori1Page() {
                     category_type: 1
                 });
 
-                // Reload data to get fresh results from server
-                await loadCategories(page, searchTerm, rowsPerPage);
+                // Reload data with current filters
+                await loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
                 toast.success("Brand berhasil ditambahkan!");
             }
 
@@ -160,14 +180,13 @@ export default function Kategori1Page() {
         });
         setIsDialogOpen(true);
     };
-
     const handleDelete = async (id: number) => {
         try {
             setLoading(true);
             await kategoriService.deleteCategory(id);
 
-            // Reload data to get fresh results from server
-            await loadCategories(page, searchTerm, rowsPerPage);
+
+            await loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
             toast.success("Brand berhasil dihapus!");
         } catch (error) {
             console.error("Error deleting category:", error);
@@ -186,7 +205,6 @@ export default function Kategori1Page() {
     const handleSearch = async () => {
         console.log('Search clicked, searchTerm:', searchTerm); // Debug log
         setPage(1); // Reset to first page
-        await loadCategories(1, searchTerm, rowsPerPage); // Direct API call
     };
 
     // Handle Enter key in search input
@@ -237,7 +255,7 @@ export default function Kategori1Page() {
                 </DialogContent>
             </Dialog>
 
-            <div className="flex w-full justify-between space-x-2">
+            <div className="flex flex-col lg:flex-row gap-4">
                 <div className="relative max-w-sm">
                     <Search
                         className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
@@ -249,6 +267,59 @@ export default function Kategori1Page() {
                         className="pl-7 w-full"
                     />
                 </div>
+
+                <div className="flex gap-2">
+                    {/* From Date */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "w-[140px] justify-start text-left font-normal",
+                                    !fromDate && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-6"/>
+                                {fromDate ? format(fromDate, "dd/MM/yyyy") : "Tgl Mulai"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                                mode="single"
+                                selected={fromDate}
+                                onSelect={setFromDate}
+
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <span className="self-center">-</span>
+                    {/* To Date */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "w-[140px] justify-start text-left font-normal",
+                                    !toDate && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-4"/>
+                                {toDate ? format(toDate, "dd/MM/yyyy") : "Tgl Selesai"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                                mode="single"
+                                selected={toDate}
+                                onSelect={setToDate}
+
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
 
                 <Button onClick={handleSearch} disabled={loading}>
                     <SearchIcon className="mr-2 h-4 w-4"/> Cari
@@ -264,7 +335,8 @@ export default function Kategori1Page() {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-[10%]">ID</TableHead>
-                            <TableHead className="w-[60%]">Nama</TableHead>
+                            <TableHead className="w-[20%]">Nama</TableHead>
+                            <TableHead className="w-[20%]">Created At</TableHead>
                             <TableHead className="w-[20%]">Status</TableHead>
                             <TableHead className="w-[10%] text-right">Aksi</TableHead>
                         </TableRow>
@@ -282,6 +354,9 @@ export default function Kategori1Page() {
                                     <TableCell>{category.id}</TableCell>
                                     <TableCell className="font-medium">
                                         {category.name}
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                        {new Date(category.created_at).toLocaleDateString()}
                                     </TableCell>
                                     <TableCell>
                                         <Badge

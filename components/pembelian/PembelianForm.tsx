@@ -140,10 +140,10 @@ export default function PembelianForm({
         resolver: zodResolver(pembelianSchema),
         defaultValues: {
             no_pembelian: isEditMode ? "" : `-`,
-            warehouse_id: undefined,
+            warehouse_id: 0,
             vendor_id: "",
-            sumberdana_id: undefined,
-            top_id: undefined,
+            sumberdana_id: 0,
+            top_id: 0,
 
             additional_discount: 0,
             expense: 0,
@@ -174,33 +174,36 @@ export default function PembelianForm({
 
         const loadPembelianData = async () => {
             try {
-                const data = await pembelianService.getById(
-                    Number(pembelianId)
-                );
+                const data = await pembelianService.getById(Number(pembelianId));
+
+                console.log("=== RAW API DATA ===");
+                console.log("warehouse_id from API:", data.warehouse_id, typeof data.warehouse_id);
+                console.log("vendor_id from API:", data.vendor_id, typeof data.vendor_id);
+                console.log("sumberdana_id from API:", data.sumberdana_id, typeof data.sumberdana_id);
+                console.log("top_id from API:", data.top_id, typeof data.top_id);
 
                 const formData = {
                     no_pembelian: data.no_pembelian,
-                    warehouse_id: Number(data.warehouse_id),
-
-                    vendor_id: String(data.vendor_id),
-                    top_id: Number(data.top_id),
-                    sumberdana_id: Number(data.sumberdana_id),
+                    warehouse_id: data.warehouse_id ? Number(data.warehouse_id) : 0,
+                    vendor_id: data.vendor_id ? String(data.vendor_id) : "",
+                    top_id: data.top_id ? Number(data.top_id) : 0,
+                    sumberdana_id: data.sumberdana_id ? Number(data.sumberdana_id) : 0,
                     sales_date: new Date(data.sales_date),
                     sales_due_date: new Date(data.sales_due_date),
                     additional_discount: Number(data.additional_discount ?? 0),
                     expense: Number(data.expense ?? 0),
                     status_pembayaran: data.status_pembayaran || "UNPAID",
                     status_pembelian: data.status_pembelian || "DRAFT",
-
                     items: data.pembelian_items.map((item) => ({
                         item_id: Number(item.item_id),
                         qty: Number(item.qty),
-                        unit_price: Number(item.unit_price), // 4000 (before tax)
-                        discount: Number(item.discount ?? 0), // 2000 (total discount for this item)
+                        unit_price: Number(item.unit_price),
+                        discount: Number(item.discount ?? 0),
                         tax_percentage: Number(item.tax_percentage ?? 10),
                     })),
                     attachments: [],
                 };
+
 
                 // Map selected items
                 setSelectedItems(
@@ -208,7 +211,7 @@ export default function PembelianForm({
                         id: Number(item.item_id),
                         code: item.item?.code ?? "",
                         name: item.item?.name ?? "",
-                        price: Number(item.unit_price), // unit_price is already before tax
+                        price: Number(item.unit_price),
                     }))
                 );
 
@@ -217,14 +220,51 @@ export default function PembelianForm({
                 setIsActive(data.status_pembelian === "ACTIVE");
                 setExistingAttachments(data.attachments || []);
 
-                setTimeout(() => form.reset(formData), 100);
+                // Reset the form with the prepared data
+                form.reset(formData);
+
+                // Wait a bit longer and check multiple times
+                setTimeout(() => {
+
+                    const currentValues = form.getValues();
+
+
+                    if (currentValues.warehouse_id !== formData.warehouse_id && typeof formData.warehouse_id === 'number') {
+
+                        form.setValue("warehouse_id", formData.warehouse_id, {
+                            shouldValidate: true,
+                            shouldDirty: false
+                        });
+                    }
+                    if (currentValues.vendor_id !== formData.vendor_id) {
+                        form.setValue("vendor_id", formData.vendor_id, {
+                            shouldValidate: true,
+                            shouldDirty: false
+                        });
+                    }
+                    if (currentValues.sumberdana_id !== formData.sumberdana_id && typeof formData.sumberdana_id === 'number') {
+                        form.setValue("sumberdana_id", formData.sumberdana_id, {
+                            shouldValidate: true,
+                            shouldDirty: false
+                        });
+                    }
+                    if (currentValues.top_id !== formData.top_id && typeof formData.top_id === 'number') {
+                        form.setValue("top_id", formData.top_id, {
+                            shouldValidate: true,
+                            shouldDirty: false
+                        });
+                    }
+
+                }, 500);
+
             } catch (error: any) {
+                console.error("Error loading pembelian data:", error);
                 toast.error(error.message || "Failed to load purchase data");
             }
         };
 
         loadPembelianData();
-    }, [isEditMode, isViewMode, pembelianId]);
+    }, [isEditMode, isViewMode, pembelianId, form]);
 
     const watchedItems = form.watch("items") || [];
 
@@ -677,6 +717,13 @@ export default function PembelianForm({
                                                 field.onChange(value);
                                             }}
                                             disabled={isViewMode}
+                                            fetchById={async (id) => {
+                                                const response = await vendorService.getForSearchable(id);
+                                                return {
+                                                    id: response.id,
+                                                    name: response.name
+                                                }
+                                            }}
                                             fetchData={async (search) => {
                                                 try {
                                                     const response = await vendorService.getAllVendors({
@@ -708,6 +755,13 @@ export default function PembelianForm({
                                                 field.onChange(value);
                                             }}
                                             disabled={isViewMode}
+                                            fetchById={async (id) => {
+                                                const response = await vendorService.getForSearchable(id);
+                                                return {
+                                                    id: response.id,
+                                                    name: response.name
+                                                }
+                                            }}
                                             fetchData={async (search) => {
                                                 try {
                                                     const response = await vendorService.getAllVendors({
@@ -748,18 +802,25 @@ export default function PembelianForm({
                                             value={field.value ?? undefined}
                                             preloadValue={field.value}
                                             onChange={(value) => {
-                                                console.log("[Warehouse] Selected value:", value);
+
                                                 const numValue = Number(value);
                                                 field.onChange(numValue);
                                             }}
                                             disabled={isViewMode}
+                                            fetchById={async (id) => {
+                                                const response = await warehouseService.getForSearchable(id);
+                                                return {
+                                                    id: response.id,
+                                                    name: response.name
+                                                }
+                                            }}
                                             fetchData={async (search) => {
                                                 try {
                                                     const response =
                                                         await warehouseService.getAllWarehouses({
                                                             skip: 0,
                                                             contains_deleted: true,
-                                                            limit: 10,
+                                                            limit: 2,
                                                             search: search,
                                                         });
                                                     return response;
@@ -776,9 +837,16 @@ export default function PembelianForm({
                                             value={field.value ?? undefined}
                                             preloadValue={field.value}
                                             onChange={(value) => {
-                                                console.log("[Warehouse] Selected value:", value);
+
                                                 const numValue = Number(value);
                                                 field.onChange(numValue);
+                                            }}
+                                            fetchById={async (id) => {
+                                                const response = await warehouseService.getForSearchable(id);
+                                                return {
+                                                    id: response.id,
+                                                    name: response.name
+                                                }
                                             }}
                                             disabled={isViewMode}
                                             fetchData={async (search) => {
@@ -787,7 +855,7 @@ export default function PembelianForm({
                                                         await warehouseService.getAllWarehouses({
                                                             skip: 0,
                                                             is_active: true,
-                                                            limit: 10,
+                                                            limit: 2,
                                                             search: search,
                                                         });
                                                     return response;
@@ -803,6 +871,8 @@ export default function PembelianForm({
                                 </FormItem>
                             )}
                         />
+
+
                         <FormField
                             control={form.control}
                             name="sumberdana_id"
@@ -813,12 +883,14 @@ export default function PembelianForm({
                                             label="Sumber Dana"
                                             placeholder="Pilih Sumber Dana"
                                             value={field.value ?? undefined}
+
                                             fetchById={async (id) => {
                                                 try {
                                                     const sumberDanaType = await sumberdanaService.getById(Number(id));
+                                                    console.log("SumberdanaType :  " + sumberDanaType)
                                                     return sumberDanaType;
                                                 } catch (error) {
-                                                    console.error('Failed to fetch payment type by ID:', error);
+                                                    console.error('Failed to fetch sumber dana by ID:', error);
                                                     throw error;
                                                 }
                                             }}
@@ -872,7 +944,6 @@ export default function PembelianForm({
                                             }
                                         />
                                     )}
-
                                     <FormMessage/>
                                 </FormItem>
                             )}
@@ -1106,7 +1177,7 @@ export default function PembelianForm({
                                                             <Input
                                                                 disabled={isViewMode || false}
                                                                 type="number"
-                                                                className="w-10"
+                                                                className="w-20"
                                                                 onKeyDown={(e) => {
                                                                     if (e.key === "Enter") {
                                                                         e.preventDefault();
@@ -1218,7 +1289,7 @@ export default function PembelianForm({
                                                                         e.preventDefault();
                                                                     }
                                                                 }}
-                                                                className="w-12"
+                                                                className="w-[130%]"
                                                                 {...field}
                                                                 onChange={(e) => {
                                                                     const newTaxPercentage =

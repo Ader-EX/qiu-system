@@ -1,34 +1,38 @@
 import type React from "react";
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import type {Metadata} from "next";
+import {Inter} from "next/font/google";
 import "./globals.css";
-import { AppLayout } from "@/components/app-layout";
+import {AppLayout} from "@/components/app-layout";
 import logo from "@/public/logo.png";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({subsets: ["latin"]});
 
-import { Toaster } from "react-hot-toast";
+import {Toaster} from "react-hot-toast";
+import {ClientAuthSetup} from "@/components/ClientAuthSetup";
+
 export const metadata: Metadata = {
-  title: "QIU System - Inventory Management",
-  description: "Sistem manajemen inventory yang powerful dan mudah digunakan",
-  generator: "v0.dev",
+    title: "QIU System - Inventory Management",
+    description: "Sistem manajemen inventory yang powerful dan mudah digunakan",
+    generator: "v0.dev",
 };
 
 export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
+                                       children,
+                                   }: {
+    children: React.ReactNode;
 }) {
-  return (
-    <html lang="id">
-      <head>
-        <link rel="icon" href="/logo.png" sizes="any" />
-      </head>
-      <body className={inter.className}>
+
+    return (
+        <html lang="id">
+        <head>
+            <link rel="icon" href="/logo.png" sizes="any"/>
+        </head>
+        <body className={inter.className}>
+        <ClientAuthSetup/>
         {/* <AppLayout>{children}</AppLayout> */}
-        <Toaster />
+        <Toaster/>
         {children}
-      </body>
-    </html>
-  );
+        </body>
+        </html>
+    );
 }

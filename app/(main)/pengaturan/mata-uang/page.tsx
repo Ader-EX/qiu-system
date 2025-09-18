@@ -47,6 +47,7 @@ import Cookies from "js-cookie";
 import GlobalPaginationFunction from "@/components/pagination-global";
 import CurrencyForm from "@/components/currency/CurrencyForm";
 import {Spinner} from "@/components/ui/spinner";
+import {format} from "date-fns";
 
 export default function CurrencyPage() {
     const [units, setUnits] = useState<TOPUnit[]>([]);
@@ -54,6 +55,8 @@ export default function CurrencyPage() {
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [searchTerm, setSearchTerm] = useState("");
+    const [fromDate, setFromDate] = useState<Date | undefined>();
+    const [toDate, setToDate] = useState<Date | undefined>();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCurrency, setEditingCurrency] = useState<TOPUnit | null>(null);
     const [loading, setLoading] = useState(false);
@@ -77,11 +80,20 @@ export default function CurrencyPage() {
     const loadUnits = async (page: number, searchTerm: string, limit: number) => {
         try {
             setLoading(true);
-            const response = await mataUangService.getAllMataUang({
+            const requestParams: any = {
                 skip: (page - 1) * limit,
-                limit: 1000,
+                limit: limit,
                 search: searchTerm,
-            });
+            }
+
+            if (fromDate) {
+                requestParams.from_date = format(fromDate, "yyyy-MM-dd");
+            }
+
+            if (toDate) {
+                requestParams.to_date = format(toDate, "yyyy-MM-dd");
+            }
+            const response = await mataUangService.getAllMataUang(requestParams);
 
             setUnits(response.data || []);
             setTotal(response.total || 0);
@@ -186,7 +198,7 @@ export default function CurrencyPage() {
     };
 
     const handleSearch = async () => {
-        console.log("Search clicked, searchTerm:", searchTerm); // Debug log
+
         setPage(1); // Reset to first page
         await loadUnits(1, searchTerm, rowsPerPage); // Direct API call
     };
@@ -266,8 +278,9 @@ export default function CurrencyPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-[10%]">ID</TableHead>
-                                <TableHead className="w-[60%]">Nama</TableHead>
-                                <TableHead className="w-[60%]">Symbol</TableHead>
+                                <TableHead className="w-[20%]">Nama</TableHead>
+                                <TableHead className="w-[20%]">Symbol</TableHead>
+                                <TableHead className="w-[20%]">Created At</TableHead>
                                 <TableHead className="w-[20%]">Status</TableHead>
                                 <TableHead className="w-[10%] text-right">Aksi</TableHead>
                             </TableRow>
@@ -293,6 +306,9 @@ export default function CurrencyPage() {
                                         </TableCell>
                                         <TableCell className="font-medium">
                                             {category.symbol}
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            {new Date(category.created_at).toLocaleDateString()}
                                         </TableCell>
                                         <TableCell>
                                             <Badge

@@ -604,6 +604,7 @@ class PembelianService {
             warehouse_id: this.toNum(raw.warehouse_id),
             vendor_id: String(raw.vendor_id ?? ""),
             top_id: this.toNum(raw.top_id),
+            sumberdana_id: this.toNum(raw.sumberdana_id),
 
             warehouse_name: raw.warehouse_name,
             vendor_name: raw.vendor_name,
