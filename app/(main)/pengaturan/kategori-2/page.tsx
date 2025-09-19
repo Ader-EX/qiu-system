@@ -110,7 +110,7 @@ export default function Kategori1Page() {
         skip: (page - 1) * limit,
         limit: limit,
         search: searchTerm,
-        type: 1,
+        type: 2,
       };
 
       if (fromDate) {
