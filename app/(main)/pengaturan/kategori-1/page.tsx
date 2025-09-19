@@ -148,7 +148,7 @@ export default function Kategori1Page() {
                             {
                                 name: data.name,
                                 is_active: data.is_active,
-                                category_type: 1
+                                category_type: 2
                             }
                         );
                     }
@@ -161,7 +161,7 @@ export default function Kategori1Page() {
                 const newCategory = await kategoriService.createCategory({
                     name: data.name,
                     is_active: data.is_active,
-                    category_type: 1
+                    category_type: 2
                 });
 
                 // Reload data with current applied filters
