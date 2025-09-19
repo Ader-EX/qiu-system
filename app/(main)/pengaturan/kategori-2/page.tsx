@@ -52,15 +52,23 @@ import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {cn} from "@/lib/utils";
 import {format} from "date-fns";
 import {Calendar as CalendarComponent} from "@/components/ui/calendar";
+import {Spinner} from "@/components/ui/spinner";
 
-export default function Kategori2Page() {
+export default function Kategori1Page() {
     const [categories, setCategories] = useState<Unit[]>([]);
     const [total, setTotal] = useState(0)
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
+
+    // Separate state for input values and applied filters
     const [searchTerm, setSearchTerm] = useState("");
     const [fromDate, setFromDate] = useState<Date | undefined>();
     const [toDate, setToDate] = useState<Date | undefined>();
+
+    // Applied filter states (only used when button is clicked)
+    const [appliedSearchTerm, setAppliedSearchTerm] = useState("");
+    const [appliedFromDate, setAppliedFromDate] = useState<Date | undefined>();
+    const [appliedToDate, setAppliedToDate] = useState<Date | undefined>();
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Unit | null>(null);
@@ -74,19 +82,28 @@ export default function Kategori2Page() {
     });
 
     const totalPages = Math.ceil(total / rowsPerPage);
-    useEffect(() => {
-        loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
-    }, [page, rowsPerPage, fromDate, toDate, searchTerm]);
 
-    const loadCategories = async (page: number, searchTerm: string, limit: number, fromDate?: Date, toDate?: Date) => {
+    // Only trigger on page, rowsPerPage changes, or when applied filters change
+    useEffect(() => {
+        loadCategories(page, appliedSearchTerm, rowsPerPage, appliedFromDate, appliedToDate);
+    }, [page, rowsPerPage, appliedSearchTerm, appliedFromDate, appliedToDate]);
+
+    const loadCategories = async (
+        page: number,
+        searchTerm: string,
+        limit: number,
+        fromDate?: Date,
+        toDate?: Date
+    ) => {
         try {
             setLoading(true);
+
             const params: any = {
                 skip: (page - 1) * limit,
                 limit: limit,
                 search: searchTerm,
-                type: 2
-            }
+                type: 1
+            };
 
             if (fromDate) {
                 params.from_date = format(fromDate, "yyyy-MM-dd");
@@ -94,13 +111,14 @@ export default function Kategori2Page() {
             if (toDate) {
                 params.to_date = format(toDate, "yyyy-MM-dd");
             }
+
             const response = await kategoriService.getAllCategories(params);
 
             setCategories(response.data || []);
-            setTotal(response.total || 0)
+            setTotal(response.total || 0);
         } catch (error) {
-            console.error("Error loading jenis barang:", error);
-            toast.error("Gagal memuat data jenis barang");
+            console.error("Error loading categories:", error);
+            toast.error("Gagal memuat data kategori");
         } finally {
             setLoading(false);
         }
@@ -111,7 +129,7 @@ export default function Kategori2Page() {
         setPage(1);
     };
 
-
+    // Handle page change
     const handlePageChange = (newPage: number) => {
         if (newPage >= 1 && newPage <= totalPages) {
             setPage(newPage);
@@ -124,9 +142,9 @@ export default function Kategori2Page() {
 
             if (editingCategory) {
                 if (editingCategory.id) {
-                    if (typeof editingCategory.id === "number") {
+                    if (typeof editingCategory?.id === "number") {
                         const updatedCategory = await kategoriService.updateCategory(
-                            editingCategory.id,
+                            editingCategory?.id,
                             {
                                 name: data.name,
                                 is_active: data.is_active,
@@ -134,9 +152,11 @@ export default function Kategori2Page() {
                             }
                         );
                     }
-                    await loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
+
+                    // Reload data with current applied filters
+                    await loadCategories(page, appliedSearchTerm, rowsPerPage, appliedFromDate, appliedToDate);
                 }
-                toast.success("jenis barang berhasil diperbarui!");
+                toast.success("Jenis Barang berhasil diperbarui!");
             } else {
                 const newCategory = await kategoriService.createCategory({
                     name: data.name,
@@ -144,9 +164,9 @@ export default function Kategori2Page() {
                     category_type: 2
                 });
 
-                // Reload data to get fresh results from server
-                await loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
-                toast.success("jenis barang berhasil ditambahkan!");
+                // Reload data with current applied filters
+                await loadCategories(page, appliedSearchTerm, rowsPerPage, appliedFromDate, appliedToDate);
+                toast.success("Jenis Barang berhasil ditambahkan!");
             }
 
             setIsDialogOpen(false);
@@ -155,7 +175,7 @@ export default function Kategori2Page() {
 
         } catch (error) {
             console.error("Error submitting form:", error);
-            toast.error(editingCategory ? "Gagal memperbarui jenis barang" : "Gagal menambahkan jenis barang");
+            toast.error(editingCategory ? "Gagal memperbarui Jenis Barang" : "Gagal menambahkan Jenis Barang");
         } finally {
             setLoading(false);
         }
@@ -175,12 +195,11 @@ export default function Kategori2Page() {
             setLoading(true);
             await kategoriService.deleteCategory(id);
 
-            // Reload data to get fresh results from server
-            await loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
-            toast.success("jenis barang berhasil dihapus!");
+            await loadCategories(page, appliedSearchTerm, rowsPerPage, appliedFromDate, appliedToDate);
+            toast.success("Jenis Barang berhasil dihapus!");
         } catch (error) {
             console.error("Error deleting category:", error);
-            toast.error("Gagal menghapus jenis barang");
+            toast.error("Gagal menghapus Jenis Barang");
         } finally {
             setLoading(false);
         }
@@ -192,10 +211,17 @@ export default function Kategori2Page() {
         setIsDialogOpen(true);
     };
 
+    // Apply filters only when search button is clicked
     const handleSearch = async () => {
-        console.log('Search clicked, searchTerm:', searchTerm); // Debug log
-        setPage(1); // Reset to first page
-        await loadCategories(1, searchTerm, rowsPerPage); // Direct API call
+        console.log('Search clicked, searchTerm:', searchTerm);
+
+        // Apply the current input values to the filter states
+        setAppliedSearchTerm(searchTerm);
+        setAppliedFromDate(fromDate);
+        setAppliedToDate(toDate);
+
+        // Reset to first page when applying new filters
+        setPage(1);
     };
 
     // Handle Enter key in search input
@@ -203,6 +229,17 @@ export default function Kategori2Page() {
         if (e.key === "Enter") {
             handleSearch();
         }
+    };
+
+    // Clear filters function
+    const handleClearFilters = () => {
+        setSearchTerm("");
+        setFromDate(undefined);
+        setToDate(undefined);
+        setAppliedSearchTerm("");
+        setAppliedFromDate(undefined);
+        setAppliedToDate(undefined);
+        setPage(1);
     };
 
     return (
@@ -229,12 +266,12 @@ export default function Kategori2Page() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {editingCategory ? "Edit Jenis Barang" : "Tambah Jenis Baru"}
+                            {editingCategory ? "Edit Jenis Barang" : "Tambah Jenis Barang Baru"}
                         </DialogTitle>
                         <DialogDescription>
                             {editingCategory
-                                ? "Perbarui informasi jenis barang di bawah ini."
-                                : "Masukkan informasi jenis barang baru di bawah ini."}
+                                ? "Perbarui informasi Jenis Barang di bawah ini."
+                                : "Masukkan informasi Jenis Barang baru di bawah ini."}
                         </DialogDescription>
                     </DialogHeader>
                     <KategoriForm
@@ -246,12 +283,12 @@ export default function Kategori2Page() {
                 </DialogContent>
             </Dialog>
 
-            <div className="flex w-full justify-between space-x-2">
+            <div className="flex flex-col lg:flex-row gap-4">
                 <div className="relative max-w-sm">
                     <Search
                         className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                     <Input
-                        placeholder="Cari jenis barang..."
+                        placeholder="Cari Jenis Barang..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={handleSearchKeyDown}
@@ -279,7 +316,6 @@ export default function Kategori2Page() {
                                 mode="single"
                                 selected={fromDate}
                                 onSelect={setFromDate}
-
                                 initialFocus
                             />
                         </PopoverContent>
@@ -304,29 +340,28 @@ export default function Kategori2Page() {
                                 mode="single"
                                 selected={toDate}
                                 onSelect={setToDate}
-
                                 initialFocus
                             />
                         </PopoverContent>
                     </Popover>
                 </div>
 
-
-                <Button onClick={handleSearch} disabled={loading}>
-                    <SearchIcon className="mr-2 h-4 w-4"/> Cari
-                </Button>
+                <div className="flex gap-2">
+                    <Button onClick={handleSearch} disabled={loading}>
+                        <SearchIcon className="mr-2 h-4 w-4"/> Cari
+                    </Button>
+                </div>
             </div>
 
+
             {loading ? (
-                <div className="flex justify-center py-8">
-                    <div className="text-muted-foreground">Memuat data...</div>
-                </div>
+                <Spinner/>
             ) : (
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-[10%]">ID</TableHead>
-                            <TableHead className="w-[30%]">Nama</TableHead>
+                            <TableHead className="w-[20%]">Nama</TableHead>
                             <TableHead className="w-[20%]">Created At</TableHead>
                             <TableHead className="w-[20%]">Status</TableHead>
                             <TableHead className="w-[10%] text-right">Aksi</TableHead>
@@ -335,8 +370,8 @@ export default function Kategori2Page() {
                     <TableBody>
                         {categories.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                                    {searchTerm ? "Tidak ada jenis barang yang ditemukan" : "Belum ada data jenis barang"}
+                                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                    {appliedSearchTerm ? "Tidak ada Jenis Barang yang ditemukan" : "Belum ada data Jenis Barang"}
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -374,9 +409,9 @@ export default function Kategori2Page() {
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     onClick={() => {
-                                                        if (category?.id) {
-                                                            if (typeof category?.id === "number") {
-                                                                handleDelete(category?.id)
+                                                        if (category.id) {
+                                                            if (typeof category.id === "number") {
+                                                                handleDelete(category.id)
                                                             }
                                                         }
                                                     }

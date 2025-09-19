@@ -19,6 +19,8 @@ import {
     formatMoney,
     roundToPrecision,
 } from "@/lib/utils";
+import {useMemo} from 'react';
+import {debounce} from 'lodash';
 
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -68,6 +70,7 @@ import {vendorService} from "@/services/vendorService";
 import {usePrintInvoice} from "@/hooks/usePrintInvoice";
 import {NumericFormat} from "react-number-format";
 import {sumberdanaService} from "@/services/sumberdanaservice";
+import {QuickFormSearchableField} from "@/components/form/FormSearchableField";
 
 
 const FormSection = ({
@@ -94,12 +97,14 @@ const pembelianSchema = z.object({
     sales_due_date: z.date({required_error: "Purchase Due Date harus diisi"}),
     additional_discount: z.number().min(0).default(0),
     expense: z.number().min(0).default(0),
+    currency_amount: z.number({required_error: "Currency harus diisi"}).min(0.01).default(1),
     items: z
         .array(
             z.object({
                 item_id: z.number().min(1),
                 qty: z.number().min(1),
                 unit_price: z.number().min(0),
+                unit_price_rmb: z.number().min(0),
                 tax_percentage: z.number().min(0).max(100).default(10),
                 discount: z.number().min(0).default(0),
             })
@@ -136,6 +141,7 @@ export default function PembelianForm({
     const isEditMode = mode === "edit";
     const isViewMode = mode === "view";
 
+
     const form = useForm<PembelianFormData>({
         resolver: zodResolver(pembelianSchema),
         defaultValues: {
@@ -144,6 +150,7 @@ export default function PembelianForm({
             vendor_id: "",
             sumberdana_id: 0,
             top_id: 0,
+            currency_amount: 1,
 
             additional_discount: 0,
             expense: 0,
@@ -169,6 +176,44 @@ export default function PembelianForm({
     const {simplePrint, previewInvoice, advancedPrint, isPrinting} =
         usePrintInvoice();
 
+
+    const currencyAmount = form.watch("currency_amount") || 1;
+
+
+    const convertRMBToIDR = (rmbPrice: number, currencyRate: number) => {
+        return roundToPrecision(rmbPrice * currencyRate);
+    };
+
+    const convertIDRToRMB = (idrPrice: number, currencyRate: number) => {
+        return roundToPrecision(idrPrice / currencyRate);
+    };
+
+    const debouncedConvertIDRToRMB = useMemo(
+        () => debounce((index: number, idrPrice: number, currencyRate: number) => {
+            if (currencyRate > 0) {
+                const rmbPrice = convertIDRToRMB(idrPrice, currencyRate);
+                form.setValue(`items.${index}.unit_price_rmb`, rmbPrice, {
+                    shouldValidate: false,
+                    shouldDirty: true
+                });
+            }
+        }, 300),
+        [form]
+    );
+
+    const debouncedConvertRMBToIDR = useMemo(
+        () => debounce((index: number, rmbPrice: number, currencyRate: number) => {
+            if (currencyRate > 0) {
+                const idrPrice = convertRMBToIDR(rmbPrice, currencyRate);
+                form.setValue(`items.${index}.unit_price`, idrPrice, {
+                    shouldValidate: false,
+                    shouldDirty: true
+                });
+            }
+        }, 300),
+        [form]
+    );
+
     useEffect(() => {
         if ((mode !== "edit" && mode !== "view") || !pembelianId) return;
 
@@ -176,18 +221,15 @@ export default function PembelianForm({
             try {
                 const data = await pembelianService.getById(Number(pembelianId));
 
-                console.log("=== RAW API DATA ===");
-                console.log("warehouse_id from API:", data.warehouse_id, typeof data.warehouse_id);
-                console.log("vendor_id from API:", data.vendor_id, typeof data.vendor_id);
-                console.log("sumberdana_id from API:", data.sumberdana_id, typeof data.sumberdana_id);
-                console.log("top_id from API:", data.top_id, typeof data.top_id);
 
                 const formData = {
                     no_pembelian: data.no_pembelian,
                     warehouse_id: data.warehouse_id ? Number(data.warehouse_id) : 0,
                     vendor_id: data.vendor_id ? String(data.vendor_id) : "",
                     top_id: data.top_id ? Number(data.top_id) : 0,
+
                     sumberdana_id: data.sumberdana_id ? Number(data.sumberdana_id) : 0,
+                    currency_amount: Number(data.currency_amount ?? 1),
                     sales_date: new Date(data.sales_date),
                     sales_due_date: new Date(data.sales_due_date),
                     additional_discount: Number(data.additional_discount ?? 0),
@@ -198,6 +240,7 @@ export default function PembelianForm({
                         item_id: Number(item.item_id),
                         qty: Number(item.qty),
                         unit_price: Number(item.unit_price),
+                        unit_price_rmb: Number(item.unit_price_rmb),
                         discount: Number(item.discount ?? 0),
                         tax_percentage: Number(item.tax_percentage ?? 10),
                     })),
@@ -205,7 +248,6 @@ export default function PembelianForm({
                 };
 
 
-                // Map selected items
                 setSelectedItems(
                     data.pembelian_items.map((item) => ({
                         id: Number(item.item_id),
@@ -270,7 +312,7 @@ export default function PembelianForm({
 
     const rows = watchedItems.map((it) => {
         const qty = Number(it?.qty ?? 0);
-        const unit = Number(it?.unit_price ?? 0); // pre-tax unit price
+        const unit = Number(it?.unit_price ?? 0);
         const taxPct = Number(it?.tax_percentage ?? 0);
         const discount = Number(it?.discount ?? 0); // nominal per-row discount
 
@@ -317,15 +359,10 @@ export default function PembelianForm({
 
     const totalTax = rows.reduce((s, r) => s + r.rowTax, 0);
 
-    // IMPORTANT: do NOT sum rowTotal when using a separate header additional discount,
-    // because rowTotal doesn't include any share of that header discount.
     const grandTotal = finalTotalBeforeTax + totalTax + expense;
 
-    // (Optional) still expose this for UI inspection only:
-    // sum of row totals (no header additional discount, no expense)
     const grandTotalItems = rows.reduce((s, r) => s + r.rowTotal, 0);
 
-    // Payments (assumed provided elsewhere)
     const paid = Number(totalPaid || 0);
     const ret = Number(totalReturn || 0);
     const remaining = grandTotal - (paid + ret);
@@ -370,10 +407,15 @@ export default function PembelianForm({
         } else {
             setSelectedItems([...selectedItems, pickedItem]);
 
+            // Use current currency rate, defaulting to 1 if not set
+            const currentCurrency = currencyAmount || 1;
+            const rmbPrice = currentCurrency > 0 ? convertIDRToRMB(pickedItem.price, currentCurrency) : 0;
+
             append({
                 item_id: pickedItem.id,
                 qty: 1,
                 unit_price: pickedItem.price,
+                unit_price_rmb: rmbPrice,
                 discount: 0,
                 tax_percentage: 10,
             });
@@ -409,11 +451,13 @@ export default function PembelianForm({
                 sales_date: formatDateForAPI(data.sales_date),
                 sales_due_date: formatDateForAPI(data.sales_due_date),
                 additional_discount: Number(data.additional_discount || 0),
+                currency_amount: Number(data.currency_amount || 0),
                 expense: Number(data.expense || 0),
                 items: data.items.map((item) => ({
                     item_id: Number(item.item_id),
                     qty: Number(item.qty),
                     unit_price: Number(item.unit_price),
+                    unit_price_rmb: Number(item.unit_price_rmb),
                     tax_percentage: Number(item.tax_percentage),
                     discount: Number(item.discount || 0),
                 })),
@@ -702,326 +746,72 @@ export default function PembelianForm({
 
                     {/* Warehouse & Vendor */}
                     <FormSection title="Gudang & Vendor">
-                        <FormField
+                        <QuickFormSearchableField
                             control={form.control}
                             name="vendor_id"
-                            render={({field}) => (
-                                <FormItem>
-                                    {isViewMode ? (
-                                        <SearchableSelect
-                                            label="Vendor"
-                                            placeholder="Pilih Vendor"
-                                            value={field.value ?? undefined}
-                                            preloadValue={field.value}
-                                            onChange={(value) => {
-                                                field.onChange(value);
-                                            }}
-                                            disabled={isViewMode}
-                                            fetchById={async (id) => {
-                                                const response = await vendorService.getForSearchable(id);
-                                                return {
-                                                    id: response.id,
-                                                    name: response.name
-                                                }
-                                            }}
-                                            fetchData={async (search) => {
-                                                try {
-                                                    const response = await vendorService.getAllVendors({
-                                                        skip: 0,
-                                                        limit: 10,
-                                                        contains_deleted: true,
-                                                        search_key: search,
-                                                    });
-                                                    return response;
-                                                } catch (error) {
-                                                    throw error;
-                                                }
-                                            }}
-                                            renderLabel={(item: any) =>
-                                                `${item.id} - ${item.name} ${
-                                                    item?.curr_rel?.symbol
-                                                        ? `(${item.curr_rel.symbol})`
-                                                        : ""
-                                                }`
-                                            }
-                                        />
-                                    ) : (
-                                        <SearchableSelect
-                                            label="Vendor"
-                                            placeholder="Pilih Vendor"
-                                            value={field.value ?? undefined}
-                                            preloadValue={field.value}
-                                            onChange={(value) => {
-                                                field.onChange(value);
-                                            }}
-                                            disabled={isViewMode}
-                                            fetchById={async (id) => {
-                                                const response = await vendorService.getForSearchable(id);
-                                                return {
-                                                    id: response.id,
-                                                    name: response.name
-                                                }
-                                            }}
-                                            fetchData={async (search) => {
-                                                try {
-                                                    const response = await vendorService.getAllVendors({
-                                                        skip: 0,
-                                                        limit: 10,
-                                                        is_active: true,
-                                                        search_key: search,
-                                                    });
-                                                    return response;
-                                                } catch (error) {
-                                                    throw error;
-                                                }
-                                            }}
-                                            renderLabel={(item: any) =>
-                                                `${item.id} - ${item.name} ${
-                                                    item?.curr_rel?.symbol
-                                                        ? `(${item.curr_rel.symbol})`
-                                                        : ""
-                                                }`
-                                            }
-                                        />
-                                    )}
-
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
+                            type="vendor"
+                            label="Vendor"
+                            placeholder="Pilih Vendor"
+                            disabled={isViewMode}
                         />
 
-                        <FormField
+                        <QuickFormSearchableField
                             control={form.control}
                             name="warehouse_id"
-                            render={({field}) => (
-                                <FormItem>
-                                    {isViewMode ? (
-                                        <SearchableSelect
-                                            label="Warehouse"
-                                            placeholder="Pilih Warehouse"
-                                            value={field.value ?? undefined}
-                                            preloadValue={field.value}
-                                            onChange={(value) => {
-
-                                                const numValue = Number(value);
-                                                field.onChange(numValue);
-                                            }}
-                                            disabled={isViewMode}
-                                            fetchById={async (id) => {
-                                                const response = await warehouseService.getForSearchable(id);
-                                                return {
-                                                    id: response.id,
-                                                    name: response.name
-                                                }
-                                            }}
-                                            fetchData={async (search) => {
-                                                try {
-                                                    const response =
-                                                        await warehouseService.getAllWarehouses({
-                                                            skip: 0,
-                                                            contains_deleted: true,
-                                                            limit: 2,
-                                                            search: search,
-                                                        });
-                                                    return response;
-                                                } catch (error) {
-                                                    throw error;
-                                                }
-                                            }}
-                                            renderLabel={(item: any) => item.name}
-                                        />
-                                    ) : (
-                                        <SearchableSelect
-                                            label="Warehouse"
-                                            placeholder="Pilih Warehouse"
-                                            value={field.value ?? undefined}
-                                            preloadValue={field.value}
-                                            onChange={(value) => {
-
-                                                const numValue = Number(value);
-                                                field.onChange(numValue);
-                                            }}
-                                            fetchById={async (id) => {
-                                                const response = await warehouseService.getForSearchable(id);
-                                                return {
-                                                    id: response.id,
-                                                    name: response.name
-                                                }
-                                            }}
-                                            disabled={isViewMode}
-                                            fetchData={async (search) => {
-                                                try {
-                                                    const response =
-                                                        await warehouseService.getAllWarehouses({
-                                                            skip: 0,
-                                                            is_active: true,
-                                                            limit: 2,
-                                                            search: search,
-                                                        });
-                                                    return response;
-                                                } catch (error) {
-                                                    throw error;
-                                                }
-                                            }}
-                                            renderLabel={(item: any) => item.name}
-                                        />
-                                    )}
-
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
+                            type="warehouse"
+                            label="Warehouse"
+                            placeholder="Pilih Warehouse"
+                            disabled={isViewMode}
                         />
 
-
-                        <FormField
+                        <QuickFormSearchableField
                             control={form.control}
                             name="sumberdana_id"
+                            type="sumberdana"
+                            label="Sumber Dana"
+                            placeholder="Pilih Sumber Dana"
+                            disabled={isViewMode}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="currency_amount"
                             render={({field}) => (
                                 <FormItem>
-                                    {isViewMode ? (
-                                        <SearchableSelect
-                                            label="Sumber Dana"
-                                            placeholder="Pilih Sumber Dana"
-                                            value={field.value ?? undefined}
-
-                                            fetchById={async (id) => {
-                                                try {
-                                                    const sumberDanaType = await sumberdanaService.getById(Number(id));
-                                                    console.log("SumberdanaType :  " + sumberDanaType)
-                                                    return sumberDanaType;
-                                                } catch (error) {
-                                                    console.error('Failed to fetch sumber dana by ID:', error);
-                                                    throw error;
-                                                }
-                                            }}
-                                            preloadValue={field.value}
-                                            onChange={(value) => {
-                                                field.onChange(Number(value));
-                                            }}
+                                    <FormLabel>Currency</FormLabel>
+                                    <FormControl>
+                                        <NumericFormat
+                                            customInput={Input}
+                                            thousandSeparator="."
+                                            decimalSeparator=","
+                                            allowNegative={false}
+                                            inputMode="decimal"
                                             disabled={isViewMode}
-                                            fetchData={async (search) => {
-                                                try {
-                                                    const response = await sumberdanaService.getAllSumberdanas({
-                                                        skip: 0,
-                                                        limit: 10,
-                                                        contains_deleted: true,
-                                                        search: search,
-                                                    });
-                                                    return response;
-                                                } catch (error) {
-                                                    throw error;
-                                                }
+                                            placeholder="1.00"
+                                            value={field.value ?? ""} // Use field.value directly
+                                            onValueChange={(values) => {
+                                                // Handle the conversion properly
+                                                const numericValue = Number(values.floatValue ?? 1);
+                                                field.onChange(numericValue);
                                             }}
-                                            renderLabel={(item: any) =>
-                                                `${item.id} - ${item.name} `
-                                            }
                                         />
-                                    ) : (
-                                        <SearchableSelect
-                                            label="Sumber Dana"
-                                            placeholder="Pilih Sumber Dana"
-                                            value={field.value ?? undefined}
-                                            preloadValue={field.value}
-                                            onChange={(value) => {
-                                                field.onChange(Number(value));
-                                            }}
-                                            disabled={isViewMode}
-                                            fetchData={async (search) => {
-                                                try {
-                                                    const response = await sumberdanaService.getAllSumberdanas({
-                                                        skip: 0,
-                                                        limit: 10,
-                                                        is_active: true,
-                                                        search: search,
-                                                    });
-                                                    return response;
-                                                } catch (error) {
-                                                    throw error;
-                                                }
-                                            }}
-                                            renderLabel={(item: any) =>
-                                                `${item.id} - ${item.name}`
-                                            }
-                                        />
-                                    )}
+                                    </FormControl>
                                     <FormMessage/>
                                 </FormItem>
                             )}
                         />
+
+
                     </FormSection>
 
                     {/* Payment Information */}
                     <FormSection title="Informasi Pembayaran">
-                        <FormField
+                        <QuickFormSearchableField
                             control={form.control}
                             name="top_id"
-                            render={({field}) => (
-                                <FormItem>
-                                    {isViewMode ? (
-                                        <SearchableSelect
-                                            label="Jenis Pembayaran"
-                                            placeholder="Pilih Jenis Pembayaran"
-                                            value={field.value ?? undefined}
-                                            preloadValue={field.value}
-                                            disabled={isViewMode}
-                                            onChange={(value) => {
-                                                console.log("[Payment] Selected value:", value);
-                                                const numValue = Number(value);
-                                                field.onChange(numValue);
-                                            }}
-                                            fetchData={async (search) => {
-                                                try {
-                                                    const response =
-                                                        await jenisPembayaranService.getAllMataUang({
-                                                            skip: 0,
-                                                            limit: 10,
-                                                            contains_deleted: true,
-                                                            search: search,
-                                                        });
-                                                    return response;
-                                                } catch (error) {
-                                                    throw error;
-                                                }
-                                            }}
-                                            renderLabel={(item: any) =>
-                                                `${item.symbol} - ${item.name}`
-                                            }
-                                        />
-                                    ) : (
-                                        <SearchableSelect
-                                            label="Jenis Pembayaran"
-                                            placeholder="Pilih Jenis Pembayaran"
-                                            value={field.value ?? undefined}
-                                            preloadValue={field.value}
-                                            disabled={isViewMode}
-                                            onChange={(value) => {
-                                                console.log("[Payment] Selected value:", value);
-                                                const numValue = Number(value);
-                                                field.onChange(numValue);
-                                            }}
-                                            fetchData={async (search) => {
-                                                try {
-                                                    const response =
-                                                        await jenisPembayaranService.getAllMataUang({
-                                                            skip: 0,
-                                                            limit: 10,
-                                                            is_active: true,
-                                                            search: search,
-                                                        });
-                                                    return response;
-                                                } catch (error) {
-                                                    throw error;
-                                                }
-                                            }}
-                                            renderLabel={(item: any) =>
-                                                `${item.symbol} - ${item.name}`
-                                            }
-                                        />
-                                    )}
-
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
+                            type="payment_type"
+                            label="Jenis Pembayaran"
+                            placeholder="Pilih Jenis Pembayaran"
+                            disabled={isViewMode}
                         />
 
                         <FormField
@@ -1144,7 +934,8 @@ export default function PembelianForm({
                                         <TableHead>Item Code</TableHead>
                                         <TableHead>Nama Item</TableHead>
                                         <TableHead>Qty</TableHead>
-                                        <TableHead>Harga Satuan</TableHead>
+                                        <TableHead>Harga (IDR)</TableHead>
+                                        <TableHead>Harga (RMB)</TableHead>
                                         <TableHead>Sub Total</TableHead>
                                         <TableHead>Discount</TableHead>
                                         <TableHead>DPP</TableHead>
@@ -1196,24 +987,52 @@ export default function PembelianForm({
                                                         control={form.control}
                                                         name={`items.${index}.unit_price`}
                                                         render={({field}) => (
-                                                            <>
-                                                                <NumericFormat
-                                                                    customInput={Input}
-                                                                    thousandSeparator="."
-                                                                    decimalSeparator=","
-                                                                    allowNegative={false}
-                                                                    inputMode="decimal"
-                                                                    disabled={isViewMode}
-                                                                    className="w-20"
-                                                                    value={field.value ?? ""}
-                                                                    onValueChange={(e) =>
-                                                                        field.onChange(Number(e.floatValue ?? 0))
-                                                                    }
-                                                                />
-                                                            </>
+                                                            <NumericFormat
+                                                                customInput={Input}
+                                                                thousandSeparator="."
+                                                                decimalSeparator=","
+                                                                allowNegative={false}
+                                                                inputMode="decimal"
+                                                                disabled={isViewMode}
+                                                                className="w-20"
+                                                                value={field.value ?? ""}
+                                                                onValueChange={(values) => {
+                                                                    const idrPrice = Number(values.floatValue ?? 0);
+                                                                    field.onChange(idrPrice);
+
+                                                                    // Debounced conversion to RMB
+                                                                    debouncedConvertIDRToRMB(index, idrPrice, currencyAmount);
+                                                                }}
+                                                            />
+                                                        )}
+                                                    />
+
+
+                                                </TableCell>
+                                                <TableCell>
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`items.${index}.unit_price_rmb`}
+                                                        render={({field}) => (
+                                                            <NumericFormat
+                                                                customInput={Input}
+                                                                thousandSeparator="."
+                                                                decimalSeparator=","
+                                                                allowNegative={false}
+                                                                inputMode="decimal"
+                                                                disabled={isViewMode}
+                                                                className="w-20"
+                                                                value={field.value ?? ""}
+                                                                onValueChange={(values) => {
+                                                                    const rmbPrice = Number(values.floatValue ?? 0);
+                                                                    field.onChange(rmbPrice);
+                                                                    debouncedConvertRMBToIDR(index, rmbPrice, currencyAmount);
+                                                                }}
+                                                            />
                                                         )}
                                                     />
                                                 </TableCell>
+
                                                 <TableCell>
                           <span>
                             {(() => {

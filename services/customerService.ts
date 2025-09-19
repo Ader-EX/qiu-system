@@ -64,7 +64,7 @@ class CustomerService {
         return response.json();
     }
 
-    async getById(id: string): Promise<Customer> {
+    async getById(id: number): Promise<Customer> {
         const response = await fetch(`${this.baseUrl}/${id}`, {
             method: "GET",
             headers: this.getAuthHeaders(),

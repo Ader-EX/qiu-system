@@ -57,7 +57,7 @@ import {jenisPembayaranService} from "@/services/mataUangService";
 import {customerService} from "@/services/customerService";
 import {imageService, ParentType} from "@/services/imageService";
 import {Item} from "@/types/types";
-import {useState, useEffect} from "react";
+import {useState, useEffect, useMemo} from "react";
 import toast from "react-hot-toast";
 import {useRouter} from "next/navigation";
 import {
@@ -68,6 +68,8 @@ import {
 import {usePrintInvoice} from "@/hooks/usePrintInvoice";
 import {NumericFormat} from "react-number-format";
 import {calcRowTotalData} from "@/services/pembelianService";
+import {debounce} from "lodash";
+import {QuickFormSearchableField} from "@/components/form/FormSearchableField";
 
 
 const FormSection = ({
@@ -92,7 +94,7 @@ const penjualanSchema = z.object({
     top_id: z.number().min(1, "Jenis Pembayaran harus dipilih"),
     sales_date: z.date({required_error: "Sales Date harus diisi"}),
     sales_due_date: z.date({required_error: "Sales Due Date harus diisi"}),
-
+    currency_amount: z.number({required_error: "Currency harus diisi"}).min(0.01).default(1),
     additional_discount: z.number().min(0).default(0),
     expense: z.number().min(0).default(0),
     items: z
@@ -101,6 +103,7 @@ const penjualanSchema = z.object({
                 item_id: z.number().min(1),
                 qty: z.number().min(1),
                 unit_price: z.number().min(0),
+                unit_price_rmb: z.number().min(0),
                 tax_percentage: z.number().min(0).max(100).default(10),
                 discount: z.number().min(0).default(0),
             })
@@ -143,11 +146,12 @@ export default function PenjualanForm({
             no_penjualan: isEditMode ? "" : `-`,
             warehouse_id: undefined,
             customer_id: "",
-            top_id: undefined,
-
+            top_id: 0,
+            currency_amount: 1,
             additional_discount: 0,
             expense: 0,
             items: [],
+
             attachments: [],
         },
         mode: "onChange",
@@ -169,7 +173,48 @@ export default function PenjualanForm({
         control: form.control,
         name: "items",
     });
+
     const {isPrinting} = usePrintInvoice();
+
+
+    const currencyAmount = form.watch("currency_amount") || 1;
+
+
+    const convertRMBToIDR = (rmbPrice: number, currencyRate: number) => {
+        return roundToPrecision(rmbPrice * currencyRate);
+    };
+
+    const convertIDRToRMB = (idrPrice: number, currencyRate: number) => {
+        return roundToPrecision(idrPrice / currencyRate);
+    };
+
+
+    const debouncedConvertIDRToRMB = useMemo(
+        () => debounce((index: number, idrPrice: number, currencyRate: number) => {
+            if (currencyRate > 0) {
+                const rmbPrice = convertIDRToRMB(idrPrice, currencyRate);
+                form.setValue(`items.${index}.unit_price_rmb`, rmbPrice, {
+                    shouldValidate: false,
+                    shouldDirty: true
+                });
+            }
+        }, 300),
+        [form]
+    );
+
+    const debouncedConvertRMBToIDR = useMemo(
+        () => debounce((index: number, rmbPrice: number, currencyRate: number) => {
+            if (currencyRate > 0) {
+                const idrPrice = convertRMBToIDR(rmbPrice, currencyRate);
+                form.setValue(`items.${index}.unit_price`, idrPrice, {
+                    shouldValidate: false,
+                    shouldDirty: true
+                });
+            }
+        }, 300),
+        [form]
+    );
+
 
     useEffect(() => {
         if ((mode !== "edit" && mode !== "view") || !penjualanId) return;
@@ -187,6 +232,7 @@ export default function PenjualanForm({
                     top_id: Number(data.top_id),
                     sales_date: new Date(data.sales_date),
                     sales_due_date: new Date(data.sales_due_date),
+                    currency_amount: Number(data.currency_amount),
                     additional_discount: Number(data.additional_discount ?? 0),
                     expense: Number(data.expense ?? 0),
                     status_pembayaran: data.status_pembayaran || "UNPAID",
@@ -195,6 +241,8 @@ export default function PenjualanForm({
                         item_id: Number(item.item_id),
                         qty: Number(item.qty),
                         unit_price: Number(item.unit_price),
+                        unit_price_rmb: Number(item.unit_price_rmb),
+
                         discount: Number(item.discount ?? 0),
                         tax_percentage: Number(item.tax_percentage ?? 10),
                     })),
@@ -248,10 +296,10 @@ export default function PenjualanForm({
             unit,
             taxPct,
             discount,
-            rowSubTotal, // shown as "Sub Total" per row
-            taxableBase, // base after row discount (for tax)
-            rowTax, // tax on taxableBase
-            rowTotal, // row grand total (after discount + tax)
+            rowSubTotal,
+            taxableBase,
+            rowTax,
+            rowTotal,
         };
     });
 
@@ -299,10 +347,14 @@ export default function PenjualanForm({
         } else {
             setSelectedItems([...selectedItems, pickedItem]);
 
+            const currentCurrency = currencyAmount || 1;
+            const rmbPrice = currentCurrency > 0 ? convertIDRToRMB(pickedItem.price, currentCurrency) : 0;
+
             append({
                 item_id: pickedItem.id,
                 qty: 1,
-                unit_price: pickedItem.price, // BEFORE tax
+                unit_price: pickedItem.price,
+                unit_price_rmb: rmbPrice,
                 discount: 0,
                 tax_percentage: 10,
             });
@@ -382,11 +434,14 @@ export default function PenjualanForm({
                 sales_date: formatDateForAPI(data.sales_date),
                 sales_due_date: formatDateForAPI(data.sales_due_date),
                 additional_discount: Number(data.additional_discount || 0),
+                currency_amount: Number(data.currency_amount || 0),
                 expense: Number(data.expense || 0),
                 items: data.items.map((item) => ({
                     item_id: Number(item.item_id),
                     qty: Number(item.qty),
                     unit_price: Number(item.unit_price), // BEFORE tax
+                    unit_price_rmb: Number(item.unit_price_rmb), // BEFORE tax
+
                     tax_percentage: Number(item.tax_percentage),
                     discount: Number(item.discount || 0),
                 })),
@@ -633,53 +688,38 @@ export default function PenjualanForm({
                             )}
                         />
 
-                        <FormField
+                        <QuickFormSearchableField
                             control={form.control}
                             name="warehouse_id"
+                            type="warehouse"
+                            label="Warehouse"
+                            placeholder="Pilih Warehouse"
+                            disabled={isViewMode}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="currency_amount"
                             render={({field}) => (
                                 <FormItem>
-                                    {isViewMode ? (
-                                        <SearchableSelect
-                                            label="Warehouse"
-                                            placeholder="Pilih Warehouse"
-                                            value={field.value ?? undefined}
-                                            preloadValue={field.value}
-                                            onChange={(value) => field.onChange(Number(value))}
+                                    <FormLabel>Currency</FormLabel>
+                                    <FormControl>
+                                        <NumericFormat
+                                            customInput={Input}
+                                            thousandSeparator="."
+                                            decimalSeparator=","
+                                            allowNegative={false}
+                                            inputMode="decimal"
                                             disabled={isViewMode}
-                                            fetchData={async (search) => {
-                                                const response =
-                                                    await warehouseService.getAllWarehouses({
-                                                        skip: 0,
-                                                        contains_deleted: true,
-                                                        limit: 10,
-                                                        search: search,
-                                                    });
-                                                return response;
+                                            placeholder="1.00"
+                                            value={field.value ?? ""} // Use field.value directly
+                                            onValueChange={(values) => {
+                                                // Handle the conversion properly
+                                                const numericValue = Number(values.floatValue ?? 1);
+                                                field.onChange(numericValue);
                                             }}
-                                            renderLabel={(item: any) => item.name}
                                         />
-                                    ) : (
-                                        <SearchableSelect
-                                            label="Warehouse"
-                                            placeholder="Pilih Warehouse"
-                                            value={field.value ?? undefined}
-                                            preloadValue={field.value}
-                                            onChange={(value) => field.onChange(Number(value))}
-                                            disabled={isViewMode}
-                                            fetchData={async (search) => {
-                                                const response =
-                                                    await warehouseService.getAllWarehouses({
-                                                        skip: 0,
-                                                        is_active: true,
-                                                        limit: 10,
-                                                        search: search,
-                                                    });
-                                                return response;
-                                            }}
-                                            renderLabel={(item: any) => item.name}
-                                        />
-                                    )}
-
+                                    </FormControl>
                                     <FormMessage/>
                                 </FormItem>
                             )}
@@ -861,7 +901,8 @@ export default function PenjualanForm({
                                         <TableHead>Item Code</TableHead>
                                         <TableHead>Nama Item</TableHead>
                                         <TableHead>Qty</TableHead>
-                                        <TableHead>Harga Satuan</TableHead>
+                                        <TableHead>Harga (IDR)</TableHead>
+                                        <TableHead>Harga (RMB)</TableHead>
                                         <TableHead>Sub Total</TableHead>
                                         <TableHead>Discount</TableHead>
                                         <TableHead>DPP</TableHead>
@@ -894,7 +935,7 @@ export default function PenjualanForm({
                                                             <Input
                                                                 disabled={isViewMode || false}
                                                                 type="number"
-                                                                className="w-10"
+                                                                className="w-20"
                                                                 onKeyDown={(e) => {
                                                                     if (e.key === "Enter") {
                                                                         e.preventDefault();
@@ -913,24 +954,53 @@ export default function PenjualanForm({
                                                         control={form.control}
                                                         name={`items.${index}.unit_price`}
                                                         render={({field}) => (
-                                                            <>
-                                                                <NumericFormat
-                                                                    customInput={Input}
-                                                                    thousandSeparator="."
-                                                                    decimalSeparator=","
-                                                                    allowNegative={false}
-                                                                    inputMode="decimal"
-                                                                    disabled={isViewMode}
-                                                                    className="w-20"
-                                                                    value={field.value ?? ""}
-                                                                    onValueChange={(e) =>
-                                                                        field.onChange(Number(e.floatValue ?? 0))
-                                                                    }
-                                                                />
-                                                            </>
+                                                            <NumericFormat
+                                                                customInput={Input}
+                                                                thousandSeparator="."
+                                                                decimalSeparator=","
+                                                                allowNegative={false}
+                                                                inputMode="decimal"
+                                                                disabled={isViewMode}
+                                                                className="w-20"
+                                                                value={field.value ?? ""}
+                                                                onValueChange={(values) => {
+                                                                    const idrPrice = Number(values.floatValue ?? 0);
+                                                                    field.onChange(idrPrice);
+
+                                                                    // Debounced conversion to RMB
+                                                                    debouncedConvertIDRToRMB(index, idrPrice, currencyAmount);
+                                                                }}
+                                                            />
+                                                        )}
+                                                    />
+
+
+                                                </TableCell>
+                                                <TableCell>
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`items.${index}.unit_price_rmb`}
+                                                        render={({field}) => (
+                                                            <NumericFormat
+                                                                customInput={Input}
+                                                                thousandSeparator="."
+                                                                decimalSeparator=","
+                                                                allowNegative={false}
+                                                                inputMode="decimal"
+                                                                disabled={isViewMode}
+                                                                className="w-20"
+                                                                value={field.value ?? ""}
+                                                                onValueChange={(values) => {
+                                                                    const rmbPrice = Number(values.floatValue ?? 0);
+                                                                    field.onChange(rmbPrice);
+                                                                    debouncedConvertRMBToIDR(index, rmbPrice, currencyAmount);
+                                                                }}
+                                                            />
                                                         )}
                                                     />
                                                 </TableCell>
+
+
                                                 <TableCell>
                           <span>
                             {(() => {
@@ -1006,7 +1076,7 @@ export default function PenjualanForm({
                                                                         e.preventDefault();
                                                                     }
                                                                 }}
-                                                                className="w-12"
+                                                                className="w-[130%]"
                                                                 {...field}
                                                                 onChange={(e) => {
                                                                     const newTaxPercentage =

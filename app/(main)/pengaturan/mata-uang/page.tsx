@@ -7,7 +7,7 @@ import {
     MoreHorizontal,
     Edit,
     Trash2,
-    Search as SearchIcon,
+    Search as SearchIcon, Calendar,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -48,6 +48,9 @@ import GlobalPaginationFunction from "@/components/pagination-global";
 import CurrencyForm from "@/components/currency/CurrencyForm";
 import {Spinner} from "@/components/ui/spinner";
 import {format} from "date-fns";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {cn} from "@/lib/utils";
+import {Calendar as CalendarComponent} from "@/components/ui/calendar";
 
 export default function CurrencyPage() {
     const [units, setUnits] = useState<TOPUnit[]>([]);
@@ -250,8 +253,8 @@ export default function CurrencyPage() {
                 </DialogContent>
             </Dialog>
 
-            <div className="flex w-full justify-between space-x-2">
-                <div className="relative max-w-sm">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 w-full">
+                <div className="relative max-w-sm w-full">
                     <Search
                         className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                     <Input
@@ -261,6 +264,57 @@ export default function CurrencyPage() {
                         onKeyDown={handleSearchKeyDown}
                         className="pl-7 w-full"
                     />
+                </div>
+                <div className="flex gap-2">
+                    {/* From Date */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "w-[140px] justify-start text-left font-normal",
+                                    !fromDate && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-6"/>
+                                {fromDate ? format(fromDate, "dd/MM/yyyy") : "Tgl Mulai"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                                mode="single"
+                                selected={fromDate}
+                                onSelect={setFromDate}
+
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <span className="self-center">-</span>
+                    {/* To Date */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "w-[140px] justify-start text-left font-normal",
+                                    !toDate && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-4"/>
+                                {toDate ? format(toDate, "dd/MM/yyyy") : "Tgl Selesai"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                                mode="single"
+                                selected={toDate}
+                                onSelect={setToDate}
+
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
                 </div>
 
                 <Button onClick={handleSearch} disabled={loading}>
@@ -289,7 +343,7 @@ export default function CurrencyPage() {
                             {units.length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={4}
+                                        colSpan={5}
                                         className="text-center py-8 text-muted-foreground"
                                     >
                                         {searchTerm

@@ -234,10 +234,10 @@ export default function SearchableSelect<T extends { id: number | string }>({
 
     // Handle value changes
     const internalValue =
-        value === "all" || value === undefined
+        value === "all" || value === undefined || value === 0 || value === ""
             ? INTERNAL_ALL_VALUE
             : value.toString();
-
+    
     const handleInternalChange = useCallback((val: string) => {
         onChange(val === INTERNAL_ALL_VALUE ? "all" : val);
         setIsOpen(false);

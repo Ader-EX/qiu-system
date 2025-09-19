@@ -52,15 +52,24 @@ import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {cn} from "@/lib/utils";
 import {format} from "date-fns";
 import {Calendar as CalendarComponent} from "@/components/ui/calendar";
+import {Spinner} from "@/components/ui/spinner";
 
 export default function Kategori1Page() {
     const [categories, setCategories] = useState<Unit[]>([]);
     const [total, setTotal] = useState(0)
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
+
+    // Separate state for input values and applied filters
     const [searchTerm, setSearchTerm] = useState("");
     const [fromDate, setFromDate] = useState<Date | undefined>();
     const [toDate, setToDate] = useState<Date | undefined>();
+
+    // Applied filter states (only used when button is clicked)
+    const [appliedSearchTerm, setAppliedSearchTerm] = useState("");
+    const [appliedFromDate, setAppliedFromDate] = useState<Date | undefined>();
+    const [appliedToDate, setAppliedToDate] = useState<Date | undefined>();
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Unit | null>(null);
     const [loading, setLoading] = useState(false);
@@ -74,10 +83,10 @@ export default function Kategori1Page() {
 
     const totalPages = Math.ceil(total / rowsPerPage);
 
+    // Only trigger on page, rowsPerPage changes, or when applied filters change
     useEffect(() => {
-        loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
-    }, [page, rowsPerPage, fromDate, toDate, searchTerm]);
-
+        loadCategories(page, appliedSearchTerm, rowsPerPage, appliedFromDate, appliedToDate);
+    }, [page, rowsPerPage, appliedSearchTerm, appliedFromDate, appliedToDate]);
 
     const loadCategories = async (
         page: number,
@@ -105,7 +114,6 @@ export default function Kategori1Page() {
 
             const response = await kategoriService.getAllCategories(params);
 
-
             setCategories(response.data || []);
             setTotal(response.total || 0);
         } catch (error) {
@@ -127,6 +135,7 @@ export default function Kategori1Page() {
             setPage(newPage);
         }
     };
+
     const handleSubmit = async (data: { name: string; is_active: boolean }) => {
         try {
             setLoading(true);
@@ -144,8 +153,8 @@ export default function Kategori1Page() {
                         );
                     }
 
-                    // Reload data with current filters
-                    await loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
+                    // Reload data with current applied filters
+                    await loadCategories(page, appliedSearchTerm, rowsPerPage, appliedFromDate, appliedToDate);
                 }
                 toast.success("Brand berhasil diperbarui!");
             } else {
@@ -155,8 +164,8 @@ export default function Kategori1Page() {
                     category_type: 1
                 });
 
-                // Reload data with current filters
-                await loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
+                // Reload data with current applied filters
+                await loadCategories(page, appliedSearchTerm, rowsPerPage, appliedFromDate, appliedToDate);
                 toast.success("Brand berhasil ditambahkan!");
             }
 
@@ -180,13 +189,14 @@ export default function Kategori1Page() {
         });
         setIsDialogOpen(true);
     };
+
     const handleDelete = async (id: number) => {
         try {
             setLoading(true);
             await kategoriService.deleteCategory(id);
 
-
-            await loadCategories(page, searchTerm, rowsPerPage, fromDate, toDate);
+            // Reload data with current applied filters
+            await loadCategories(page, appliedSearchTerm, rowsPerPage, appliedFromDate, appliedToDate);
             toast.success("Brand berhasil dihapus!");
         } catch (error) {
             console.error("Error deleting category:", error);
@@ -202,9 +212,17 @@ export default function Kategori1Page() {
         setIsDialogOpen(true);
     };
 
+    // Apply filters only when search button is clicked
     const handleSearch = async () => {
-        console.log('Search clicked, searchTerm:', searchTerm); // Debug log
-        setPage(1); // Reset to first page
+        console.log('Search clicked, searchTerm:', searchTerm);
+
+        // Apply the current input values to the filter states
+        setAppliedSearchTerm(searchTerm);
+        setAppliedFromDate(fromDate);
+        setAppliedToDate(toDate);
+
+        // Reset to first page when applying new filters
+        setPage(1);
     };
 
     // Handle Enter key in search input
@@ -212,6 +230,17 @@ export default function Kategori1Page() {
         if (e.key === "Enter") {
             handleSearch();
         }
+    };
+
+    // Clear filters function
+    const handleClearFilters = () => {
+        setSearchTerm("");
+        setFromDate(undefined);
+        setToDate(undefined);
+        setAppliedSearchTerm("");
+        setAppliedFromDate(undefined);
+        setAppliedToDate(undefined);
+        setPage(1);
     };
 
     return (
@@ -288,7 +317,6 @@ export default function Kategori1Page() {
                                 mode="single"
                                 selected={fromDate}
                                 onSelect={setFromDate}
-
                                 initialFocus
                             />
                         </PopoverContent>
@@ -313,23 +341,22 @@ export default function Kategori1Page() {
                                 mode="single"
                                 selected={toDate}
                                 onSelect={setToDate}
-
                                 initialFocus
                             />
                         </PopoverContent>
                     </Popover>
                 </div>
 
-
-                <Button onClick={handleSearch} disabled={loading}>
-                    <SearchIcon className="mr-2 h-4 w-4"/> Cari
-                </Button>
+                <div className="flex gap-2">
+                    <Button onClick={handleSearch} disabled={loading}>
+                        <SearchIcon className="mr-2 h-4 w-4"/> Cari
+                    </Button>
+                </div>
             </div>
 
+
             {loading ? (
-                <div className="flex justify-center py-8">
-                    <div className="text-muted-foreground">Memuat data...</div>
-                </div>
+                <Spinner/>
             ) : (
                 <Table>
                     <TableHeader>
@@ -344,8 +371,8 @@ export default function Kategori1Page() {
                     <TableBody>
                         {categories.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                                    {searchTerm ? "Tidak ada brand yang ditemukan" : "Belum ada data brand"}
+                                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                    {appliedSearchTerm ? "Tidak ada brand yang ditemukan" : "Belum ada data brand"}
                                 </TableCell>
                             </TableRow>
                         ) : (

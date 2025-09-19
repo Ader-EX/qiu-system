@@ -33,6 +33,7 @@ class WarehouseService {
                                search,
                                contains_deleted,
                                signal,
+                               from_date, to_date
                            }: {
         skip: number;
         limit: number;
@@ -40,6 +41,8 @@ class WarehouseService {
         search: string;
         contains_deleted?: boolean;
         signal?: AbortSignal;
+        from_date?: Date,
+        to_date?: Date
     }): Promise<WarehouseListResponse> {
         const params = new URLSearchParams();
         params.append("skip", String(skip));
@@ -49,6 +52,12 @@ class WarehouseService {
         if (contains_deleted)
             params.append("contains_deleted", String(contains_deleted));
 
+
+        if (from_date && to_date) {
+            params.append("from_date", String(from_date));
+            params.append("to_date", String(to_date));
+
+        }
         const url = `${this.baseUrl}?${params.toString()}`;
 
         const response = await fetch(url, {

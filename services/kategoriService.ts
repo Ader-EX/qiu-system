@@ -31,6 +31,7 @@ class CategoryService {
                                type = 1,
                                is_active,
                                search = "",
+                               from_date, to_date
                            }: {
         skip: number;
         limit: number;
@@ -38,6 +39,8 @@ class CategoryService {
         type: number;
         is_active?: boolean;
         search: string;
+        from_date?: Date,
+        to_date?: Date
 
     }): Promise<CategoryListResponse> {
         const params = new URLSearchParams();
@@ -51,6 +54,12 @@ class CategoryService {
 
         if (is_active) {
             params.append("is_active", String(is_active));
+        }
+
+        if (from_date && to_date) {
+            params.append("from_date", String(from_date));
+            params.append("to_date", String(to_date));
+
         }
 
         const url = `${this.baseUrl}?${params.toString()}`;

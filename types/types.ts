@@ -62,6 +62,7 @@ export interface Item {
     is_active: boolean;
     total_item: number;
     price: number;
+    price_rmb?: number;
     created_at: string | null;
     satuan_rel: SatuanOut | null;
     kode_lambung?: string;

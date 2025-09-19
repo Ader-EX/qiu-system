@@ -286,6 +286,7 @@ export default function PembelianPage() {
                         <TableRow>
                             <TableHead>No. Pembelian</TableHead>
                             <TableHead>Date</TableHead>
+                            <TableHead>Nama Vendor</TableHead>
                             <TableHead>Total Pembelian</TableHead>
                             <TableHead>Total Dibayar</TableHead>
 
@@ -312,6 +313,7 @@ export default function PembelianPage() {
                                         <span className="font-mono">{pembelian.no_pembelian}</span>
                                     </TableCell>
                                     <TableCell>{formatDate(pembelian.sales_date)}</TableCell>
+                                    <TableCell>{pembelian.vendor_name}</TableCell>
                                     <TableCell>
                                         {formatMoney(pembelian.total_price ?? 0)}
                                     </TableCell>

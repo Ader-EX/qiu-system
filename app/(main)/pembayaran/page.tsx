@@ -304,6 +304,7 @@ export default function PembayaranPage() {
                         <TableHead>No. Referensi</TableHead>
                         <TableHead>Tipe Referensi</TableHead>
                         <TableHead>Tanggal</TableHead>
+                        <TableHead>Nama Klien</TableHead>
                         <TableHead>Total Pembayaran</TableHead>
                         <TableHead>Status Transaksi</TableHead>
                         <TableHead className="text-right">Aksi</TableHead>
@@ -343,6 +344,7 @@ export default function PembayaranPage() {
                                     <Badge variant="okay">{pembayaran.reference_type}</Badge>
                                 </TableCell>
                                 <TableCell>{formatDate(pembayaran.payment_date)}</TableCell>
+                                <TableCell>{pembayaran?.vend_rel?.name || pembayaran?.customer_rel?.name || "-"}</TableCell>
                                 <TableCell>
                                     {formatMoney(getTotalPayment(pembayaran))}
                                 </TableCell>

@@ -7,7 +7,7 @@ import {
     MoreHorizontal,
     Edit,
     Trash2,
-    Search as SearchIcon,
+    Search as SearchIcon, Calendar,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -47,6 +47,10 @@ import {satuanService} from "@/services/mataUangService";
 import CurrencyForm from "@/components/currency/CurrencyForm";
 import GlobalPaginationFunction from "@/components/pagination-global";
 import {Spinner} from "@/components/ui/spinner";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {cn} from "@/lib/utils";
+import {format} from "date-fns";
+import {Calendar as CalendarComponent} from "@/components/ui/calendar";
 
 export default function SatuanPage() {
     const [units, setUnits] = useState<TOPUnit[]>([]);
@@ -54,6 +58,9 @@ export default function SatuanPage() {
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [searchTerm, setSearchTerm] = useState("");
+    const [fromDate, setFromDate] = useState<Date | undefined>();
+    const [toDate, setToDate] = useState<Date | undefined>();
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingsatuan, setEditingsatuan] = useState<TOPUnit | null>(null);
     const [loading, setLoading] = useState(false);
@@ -69,20 +76,33 @@ export default function SatuanPage() {
 
     const totalPages = Math.ceil(total / rowsPerPage);
 
-    // Load units on component mount and when page/rowsPerPage changes
-    useEffect(() => {
-        loadUnits(page, "", rowsPerPage);
-    }, [page, rowsPerPage]);
 
-    const loadUnits = async (page: number, searchTerm: string, limit: number) => {
+    useEffect(() => {
+        // (optional) prevent invalid range
+        if (fromDate && toDate && fromDate > toDate) return;
+        loadUnits(page, searchTerm, rowsPerPage, fromDate, toDate);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, rowsPerPage, fromDate, toDate, searchTerm]);
+
+    const loadUnits = async (
+        pageNumber: number,
+        query: string,
+        limit: number,
+        from?: Date,
+        to?: Date
+    ) => {
         try {
             setLoading(true);
-            const response = await satuanService.getAllMataUang({
-                skip: (page - 1) * limit,
-                limit: limit,
-                search: searchTerm,
-            });
+            const params: any = {
+                skip: (pageNumber - 1) * limit,
+                limit,
+                search: query,
+            };
 
+            if (from) params.from_date = format(from, "yyyy-MM-dd");
+            if (to) params.to_date = format(to, "yyyy-MM-dd");
+
+            const response = await satuanService.getAllMataUang(params);
             setUnits(response.data || []);
             setTotal(response.total || 0);
         } catch (error) {
@@ -91,7 +111,6 @@ export default function SatuanPage() {
             setLoading(false);
         }
     };
-
     const handleRowsPerPageChange = (value: number) => {
         setRowsPerPage(value);
         setPage(1);
@@ -186,9 +205,8 @@ export default function SatuanPage() {
     };
 
     const handleSearch = async () => {
-        console.log("Search clicked, searchTerm:", searchTerm); // Debug log
         setPage(1); // Reset to first page
-        await loadUnits(1, searchTerm, rowsPerPage); // Direct API call
+        await loadUnits(1, searchTerm, rowsPerPage, fromDate, toDate);
     };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -238,7 +256,7 @@ export default function SatuanPage() {
                 </DialogContent>
             </Dialog>
 
-            <div className="flex w-full justify-between space-x-2">
+            <div className="flex flex-col lg:flex-row gap-4">
                 <div className="relative max-w-sm">
                     <Search
                         className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
@@ -250,6 +268,59 @@ export default function SatuanPage() {
                         className="pl-7 w-full"
                     />
                 </div>
+
+                <div className="flex gap-2">
+                    {/* From Date */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "w-[140px] justify-start text-left font-normal",
+                                    !fromDate && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-6"/>
+                                {fromDate ? format(fromDate, "dd/MM/yyyy") : "Tgl Mulai"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                                mode="single"
+                                selected={fromDate}
+                                onSelect={setFromDate}
+
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <span className="self-center">-</span>
+                    {/* To Date */}
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "w-[140px] justify-start text-left font-normal",
+                                    !toDate && "text-muted-foreground"
+                                )}
+                            >
+                                <Calendar className="mr-2 h-4 w-6"/>
+                                {toDate ? format(toDate, "dd/MM/yyyy") : "Tgl Selesai"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                                mode="single"
+                                selected={toDate}
+                                onSelect={setToDate}
+
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
 
                 <Button onClick={handleSearch} disabled={loading}>
                     <SearchIcon className="mr-2 h-4 w-4"/> Cari
@@ -266,8 +337,9 @@ export default function SatuanPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-[10%]">ID</TableHead>
-                                <TableHead className="w-[60%]">Nama</TableHead>
-                                <TableHead className="w-[60%]">Symbol</TableHead>
+                                <TableHead className="w-[30%]">Nama</TableHead>
+                                <TableHead className="w-[20%]">Symbol</TableHead>
+                                <TableHead className="w-[20%]">Created At</TableHead>
                                 <TableHead className="w-[20%]">Status</TableHead>
                                 <TableHead className="w-[10%] text-right">Aksi</TableHead>
                             </TableRow>
@@ -276,7 +348,7 @@ export default function SatuanPage() {
                             {units.length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={4}
+                                        colSpan={5}
                                         className="text-center py-8 text-muted-foreground"
                                     >
                                         {searchTerm
@@ -293,6 +365,9 @@ export default function SatuanPage() {
                                         </TableCell>
                                         <TableCell className="font-medium">
                                             {category.symbol}
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            {new Date(category.created_at).toLocaleDateString()}
                                         </TableCell>
                                         <TableCell>
                                             <Badge

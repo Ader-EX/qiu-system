@@ -28,6 +28,7 @@ export interface PembelianItem {
     qty: number;
     discount: number;
     unit_price: number;
+    unit_price_rmb: number;
     total_price: number;
     tax_percentage?: number;
     item_rel?: any;
@@ -57,6 +58,7 @@ export interface Pembelian {
 
     total_paid?: number;
     total_return?: number;
+    currency_amount?: number;
 
     warehouse_id?: number;
     sumberdana_id?: number;
@@ -569,6 +571,7 @@ class PembelianService {
             item_id: this.toNum(it.item_id),
             qty: this.toNum(it.qty),
             unit_price: this.toNum(it.unit_price),
+            unit_price_rmb: this.toNum(it.unit_price_rmb),
             discount: this.toNum(it.discount),
             total_price: this.toNum(it.total_price),
             tax_percentage: this.toNum(it.tax_percentage),

@@ -28,6 +28,7 @@ export interface PenjualanItem {
     customer_name?: string;
     qty: number;
     unit_price: number;
+    unit_price_rmb: number;
     total_price: number;
     tax_percentage?: number;
     item_rel?: any;
@@ -56,6 +57,7 @@ export interface Penjualan {
     total_paid: number;
     total_return: number;
     warehouse_id?: number;
+    currency_amount?: number;
     customer_id?: string;
     top_id?: number;
     warehouse_name?: string;
@@ -541,6 +543,7 @@ class PenjualanService {
             item_id: this.toNum(it.item_id),
             qty: this.toNum(it.qty),
             unit_price: this.toNum(it.unit_price),
+            unit_price_rmb: this.toNum(it.unit_price_rmb),
             discount: this.toNum(it.discount),
             total_price: this.toNum(it.total_price),
             tax_percentage: this.toNum(it.tax_percentage),
@@ -554,7 +557,6 @@ class PenjualanService {
             vendor_name: it.vendor_name,
         }));
 
-        // Status/number: accept both pembelian and penjualan fields
         const noDoc = raw.no_pembelian ?? raw.no_penjualan ?? raw.no ?? "";
 
         const statusPembayaran =

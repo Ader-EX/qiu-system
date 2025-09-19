@@ -285,6 +285,7 @@ export default function PenjualanPage() {
                         <TableRow>
                             <TableHead>No. Penjualan</TableHead>
                             <TableHead>Tanggal</TableHead>
+                            <TableHead>Nama Customer</TableHead>
                             <TableHead>Total Penjualan</TableHead>
                             <TableHead>Total Dibayar</TableHead>
                             <TableHead>Status Transaksi</TableHead>
@@ -310,6 +311,7 @@ export default function PenjualanPage() {
                                         <span className="font-mono">{penjualan.no_penjualan}</span>
                                     </TableCell>
                                     <TableCell>{formatDate(penjualan.sales_date)}</TableCell>
+                                    <TableCell>{penjualan.customer_name}</TableCell>
                                     <TableCell>
                                         {formatMoney(penjualan.total_price ?? 0)}
                                     </TableCell>
