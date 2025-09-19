@@ -1,12 +1,7 @@
+// imports (added kodeLambungService)
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Download,
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-
+import { Download, Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn, formatMoney } from "@/lib/utils";
 import { LaporanPenjualanRows, utilsService } from "@/services/utilsService";
@@ -17,12 +12,14 @@ import toast from "react-hot-toast";
 import {
   Table,
   TableBody,
-  TableCaption,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
+  TableCell,
 } from "@/components/ui/table";
+import SearchableSelect from "../SearchableSelect";
+import { customerService } from "@/services/customerService";
+import { kodeLambungService } from "@/services/kodeLambungService";
 
 const formatDate = (dateString: any) => {
   return new Date(dateString).toLocaleDateString("id-ID", {
@@ -35,6 +32,8 @@ const formatDate = (dateString: any) => {
 const SalesDropdown = () => {
   const [dateFrom, setDateFrom] = useState<Date>(new Date(2025, 0, 1));
   const [dateTo, setDateTo] = useState<Date>(new Date());
+  const [customerId, setCustomerId] = useState<number>();
+  const [kodeLambungId, setKodeLambungId] = useState<number>(); // <-- NEW
   const [showForm, setShowForm] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -49,7 +48,6 @@ const SalesDropdown = () => {
       toast.error("Silakan pilih tanggal mulai dan selesai");
       return;
     }
-
     if (dateFrom > dateTo) {
       toast.error("Tanggal mulai tidak boleh lebih besar dari tanggal selesai");
       return;
@@ -61,17 +59,19 @@ const SalesDropdown = () => {
     setShowForm(false);
 
     try {
-      // Use consistent page numbering (1-based)
+      // keep your initial 0/1-based behavior; just add filters
       const response = await utilsService.getLaporanPenjualan(
         dateFrom,
         dateTo,
         0,
-        pageSize
+        pageSize,
+        customerId,
+        kodeLambungId // <-- NEW
       );
       setReportData(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
-      setShowForm(true); // Return to form if initial load fails
+      setShowForm(true);
     } finally {
       setIsLoading(false);
     }
@@ -94,9 +94,12 @@ const SalesDropdown = () => {
   const handleDownload = async () => {
     let downloadUrl = "";
     try {
+      // pass filters to download too
       downloadUrl = await utilsService.downloadLaporanPenjualan(
         dateFrom,
         dateTo
+        // customerId,
+        // kodeLambungId // <-- NEW
       );
       const a = document.createElement("a");
       a.href = downloadUrl;
@@ -104,32 +107,24 @@ const SalesDropdown = () => {
         dateFrom,
         "yyyy-MM-dd"
       )}-${format(dateTo, "yyyy-MM-dd")}.csv`;
-      document.body.appendChild(a); // Ensure it's in DOM
+      document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a); // Clean up
+      document.body.removeChild(a);
       toast.success("Report downloaded successfully");
     } catch (error) {
       toast.error("Failed to download report");
       console.error("Download error:", error);
     } finally {
-      // Always clean up the URL
       if (downloadUrl) {
         window.URL.revokeObjectURL(downloadUrl);
       }
     }
   };
 
-  // Calculate totals
   const calculateTotals = () => {
     if (!reportData?.data?.length) {
-      return {
-        subTotal: 0,
-        total: 0,
-        tax: 0,
-        grandTotal: 0,
-      };
+      return { subTotal: 0, total: 0, tax: 0, grandTotal: 0 };
     }
-
     return reportData.data.reduce(
       (acc, row) => ({
         subTotal: acc.subTotal + parseFloat(row.sub_total || "0"),
@@ -142,13 +137,7 @@ const SalesDropdown = () => {
   };
 
   const totals = calculateTotals();
-
-  // Calculate pagination info
   const totalPages = reportData ? Math.ceil(reportData.total / pageSize) : 0;
-  const startItem = reportData ? (currentPage - 1) * pageSize + 1 : 0;
-  const endItem = reportData
-    ? Math.min(currentPage * pageSize, reportData.total)
-    : 0;
 
   const handlePageChange = async (page: number) => {
     const previousPage = currentPage;
@@ -161,11 +150,12 @@ const SalesDropdown = () => {
         dateFrom,
         dateTo,
         page,
-        pageSize
+        pageSize,
+        customerId,
+        kodeLambungId // <-- NEW
       );
       setReportData(data);
     } catch (err) {
-      // Revert page if failed
       setCurrentPage(previousPage);
       setError(err instanceof Error ? err.message : "An error occurred");
       toast.error("Failed to load page data");
@@ -184,7 +174,9 @@ const SalesDropdown = () => {
         dateFrom,
         dateTo,
         1,
-        newPageSize
+        newPageSize,
+        customerId,
+        kodeLambungId // <-- NEW
       );
       setReportData(data);
     } catch (err) {
@@ -195,7 +187,7 @@ const SalesDropdown = () => {
     }
   };
 
-  // Loading State
+  // Loading state
   if (isLoading && showForm) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
@@ -204,7 +196,7 @@ const SalesDropdown = () => {
     );
   }
 
-  // Form State
+  // Form
   if (showForm) {
     return (
       <div>
@@ -241,6 +233,49 @@ const SalesDropdown = () => {
             />
           </div>
 
+          {/* Customer filter (existing) */}
+          <SearchableSelect
+            label="Customer"
+            placeholder="Pilih Customer"
+            value={customerId}
+            onChange={(value) => setCustomerId(Number(value))}
+            fetchData={async (search) => {
+              const response = await customerService.getAllCustomers({
+                page: 0,
+                rowsPerPage: 10,
+                contains_deleted: true,
+                search_key: search,
+              });
+              return response;
+            }}
+            renderLabel={(item: any) =>
+              `${item.code} - ${item.name} ${
+                item?.curr_rel?.symbol ? `(${item.curr_rel.symbol})` : ""
+              }`
+            }
+          />
+
+          {/* NEW: Kode Lambung filter */}
+          <SearchableSelect
+            label="Kode Lambung"
+            placeholder="Pilih Kode Lambung"
+            value={kodeLambungId}
+            onChange={(value) => setKodeLambungId(Number(value))}
+            fetchData={async (search) => {
+              const res = await kodeLambungService.getAll({
+                page: 1,
+                size: 10,
+                search,
+              });
+              // Ensure it matches SearchableSelect expected shape
+              return {
+                data: res.data, // [{id, name}]
+                total: res.total,
+              };
+            }}
+            renderLabel={(item: any) => item.name}
+          />
+
           <div className="flex justify-end gap-4 pt-4">
             <Button onClick={handleGenerateReport} disabled={isLoading}>
               {isLoading ? (
@@ -256,7 +291,7 @@ const SalesDropdown = () => {
     );
   }
 
-  // Error State
+  // Error on initial load
   if (error && !reportData) {
     return (
       <div className="text-center py-12">
@@ -269,10 +304,9 @@ const SalesDropdown = () => {
     );
   }
 
-  // Report Display State
+  // Report table (unchanged except filters are applied upstream)
   return (
     <>
-      {/* Header - Fixed width, no horizontal scroll */}
       <div className="border-b pb-4 ">
         <div className="flex min-w-0 justify-between items-center">
           <div>
@@ -300,14 +334,12 @@ const SalesDropdown = () => {
         </div>
       </div>
 
-      {/* Loading overlay for pagination */}
       {isPaginationLoading && (
         <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
           <Spinner />
         </div>
       )}
 
-      {/* Table Container - ONLY table scrolls */}
       <div className="relative min-w-0">
         {reportData?.data?.length === 0 ? (
           <div className="text-center py-12">
@@ -318,48 +350,21 @@ const SalesDropdown = () => {
         ) : (
           <div className="w-full min-w-0 overflow-x-auto">
             <Table className="min-w-full divide-y divide-gray-200">
-              {/* Sticky header with explicit column widths */}
               <TableHeader className="bg-gray-50">
                 <TableRow className="text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </TableHead>
-                  <TableHead className=" px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Kode Lambung
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    No Penjualan
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Item Code
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Item Name
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Qty
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Sub Total
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tax
-                  </TableHead>
-                  <TableHead className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Grand Total
-                  </TableHead>
+                  <TableHead className="px-3 py-3">Date</TableHead>
+                  <TableHead className="px-3 py-3">Customer</TableHead>
+                  <TableHead className="px-3 py-3">Kode Lambung</TableHead>
+                  <TableHead className="px-3 py-3">No Penjualan</TableHead>
+                  <TableHead className="px-3 py-3">Status</TableHead>
+                  <TableHead className="px-3 py-3">Item Code</TableHead>
+                  <TableHead className="px-3 py-3">Item Name</TableHead>
+                  <TableHead className="px-3 py-3">Qty</TableHead>
+                  <TableHead className="px-3 py-3">Price</TableHead>
+                  <TableHead className="px-3 py-3">Sub Total</TableHead>
+                  <TableHead className="px-3 py-3">Total</TableHead>
+                  <TableHead className="px-3 py-3">Tax</TableHead>
+                  <TableHead className="px-3 py-3">Grand Total</TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -370,21 +375,19 @@ const SalesDropdown = () => {
                       key={`${row.no_penjualan}-${index}`}
                       className="hover:bg-gray-50"
                     >
-                      <TableCell className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                      <TableCell className="px-3 py-4">
                         {formatDate(row.date)}
                       </TableCell>
-                      <TableCell className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
-                        <div className="" title={row.customer}>
-                          {row.customer}
-                        </div>
+                      <TableCell className="px-3 py-4">
+                        <div title={row.customer}>{row.customer}</div>
                       </TableCell>
-                      <TableCell className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                      <TableCell className="px-3 py-4">
                         {row.kode_lambung || "-"}
                       </TableCell>
-                      <TableCell className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                      <TableCell className="px-3 py-4">
                         {row.no_penjualan}
                       </TableCell>
-                      <TableCell className="px-4 py-4 whitespace-nowrap">
+                      <TableCell className="px-4 py-4">
                         <span
                           className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
                             row.status === "Paid"
@@ -397,30 +400,30 @@ const SalesDropdown = () => {
                           {row.status}
                         </span>
                       </TableCell>
-                      <TableCell className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                      <TableCell className="px-3 py-4">
                         {row.item_code}
                       </TableCell>
-                      <TableCell className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                      <TableCell className="px-3 py-4">
                         <div className="truncate" title={row.item_name}>
                           {row.item_name}
                         </div>
                       </TableCell>
-                      <TableCell className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                      <TableCell className="px-3 py-4">
                         {row.qty.toLocaleString("id-ID")}
                       </TableCell>
-                      <TableCell className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                      <TableCell className="px-3 py-4">
                         {formatMoney(parseFloat(row.price || "0"))}
                       </TableCell>
-                      <TableCell className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                      <TableCell className="px-3 py-4">
                         {formatMoney(parseFloat(row.sub_total || "0"))}
                       </TableCell>
-                      <TableCell className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                      <TableCell className="px-3 py-4">
                         {formatMoney(parseFloat(row.total || "0"))}
                       </TableCell>
-                      <TableCell className="px-3 py-4 whitespace-normal break-words text-sm text-gray-900">
+                      <TableCell className="px-3 py-4">
                         {formatMoney(parseFloat(row.tax || "0"))}
                       </TableCell>
-                      <TableCell className="px-4 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
+                      <TableCell className="px-4 py-4 text-right font-semibold">
                         {formatMoney(parseFloat(row.grand_total || "0"))}
                       </TableCell>
                     </TableRow>
@@ -437,26 +440,22 @@ const SalesDropdown = () => {
                 )}
               </TableBody>
 
-              {/* Proper footer for totals (don’t keep this in <tbody>) */}
               {reportData?.data?.length ? (
                 <tfoot className="sticky bottom-0 bg-gray-100">
                   <tr className="border-t-2 border-gray-300">
-                    <td
-                      colSpan={9}
-                      className="px-4 py-3 text-sm font-semibold text-gray-900"
-                    >
+                    <td colSpan={9} className="px-4 py-3 font-semibold">
                       TOTAL
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                    <td className="px-4 py-3 text-right font-semibold">
                       {formatMoney(totals.subTotal)}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                    <td className="px-4 py-3 text-right font-semibold">
                       {formatMoney(totals.total)}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                    <td className="px-4 py-3 text-right font-semibold">
                       {formatMoney(totals.tax)}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                    <td className="px-4 py-3 text-right font-semibold">
                       {formatMoney(totals.grandTotal)}
                     </td>
                   </tr>
@@ -467,14 +466,12 @@ const SalesDropdown = () => {
         )}
       </div>
 
-      {/* Error display */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
 
-      {/* Pagination - Fixed width, no horizontal scroll */}
       {reportData && (
         <GlobalPaginationFunction
           page={currentPage}

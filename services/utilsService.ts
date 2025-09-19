@@ -111,13 +111,21 @@ class UtilsService {
     from_date: Date,
     to_date: Date,
     skip: number = 0,
-    limit: number = 100
+    limit: number = 100,
+    customer_id?: number,
+    kode_lambung_id?: number
   ): Promise<PaginatedResponse<LaporanPenjualanRows>> {
     const params = new URLSearchParams({
       from_date: from_date.toISOString().split("T")[0],
       to_date: to_date.toISOString().split("T")[0],
       skip: skip.toString(),
       limit: limit.toString(),
+      ...(customer_id !== undefined
+        ? { customer_id: customer_id.toString() }
+        : {}),
+      ...(kode_lambung_id !== undefined
+        ? { kode_lambung_id: kode_lambung_id.toString() }
+        : {}),
     });
 
     const url = this.baseUrl + `/penjualan?${params.toString()}`;
