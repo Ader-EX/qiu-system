@@ -64,6 +64,11 @@ import {
 import {TOPUnit, Vendor} from "@/types/types";
 import GlobalPaginationFunction from "@/components/pagination-global";
 import SearchableSelect from "@/components/SearchableSelect";
+import {QuickFormSearchableField} from "@/components/form/FormSearchableField";
+import {Form} from "@/components/ui/form";
+import {useForm} from "react-hook-form";
+import {zodResolver} from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 export default function VendorPage() {
     const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -82,6 +87,32 @@ export default function VendorPage() {
 
     const totalPages = Math.ceil(totalCount / rowsPerPage);
 
+    const vendorFormSchema = z.object({
+        name: z.string().min(1, "Nama vendor wajib diisi"),
+        address: z.string().min(1, "Alamat wajib diisi"),
+        currency_id: z.number({
+            required_error: "Mata uang wajib dipilih",
+            invalid_type_error: "Mata uang wajib dipilih",
+        }),
+        top_id: z.number({
+            required_error: "Jenis pembayaran wajib dipilih",
+            invalid_type_error: "Jenis pembayaran wajib dipilih",
+        }),
+        is_active: z.boolean(),
+    });
+
+    type VendorFormData = z.infer<typeof vendorFormSchema>;
+    const form = useForm<VendorFormData>({
+        resolver: zodResolver(vendorFormSchema),
+        defaultValues: {
+            name: "",
+            address: "",
+            currency_id: undefined,
+            top_id: undefined,
+            is_active: true,
+        },
+    });
+
     const [formData, setFormData] = useState({
         id: "",
         name: "",
@@ -90,23 +121,7 @@ export default function VendorPage() {
         top_id: "",
         is_active: true,
     });
-    const fetchCurrencyData = useCallback((search: string) => {
-        return mataUangService.getAllMataUang({
-            skip: 0,
-            limit: 50,
-            is_active: true,
-            search,
-        });
-    }, []);
-
-    const fetchPaymentTypeData = useCallback((search: string) => {
-        return jenisPembayaranService.getAllMataUang({
-            skip: 0,
-            is_active: true,
-            limit: 50,
-            search,
-        });
-    }, []);
+  
     useEffect(() => {
         loadVendors();
     }, [currentPage, rowsPerPage, filterStatus]);
@@ -144,12 +159,11 @@ export default function VendorPage() {
         }
     }, [currentPage, rowsPerPage, filterStatus, searchTerm]);
     const resetForm = () => {
-        setFormData({
-            id: "",
+        form.reset({
             name: "",
             address: "",
-            currency_id: "",
-            top_id: "",
+            currency_id: undefined,
+            top_id: undefined,
             is_active: true,
         });
     };
@@ -173,12 +187,11 @@ export default function VendorPage() {
     const openEditDialog = (vendor: Vendor) => {
         setDialogMode("edit");
         setEditingVendor(vendor);
-        setFormData({
-            id: vendor.id,
+        form.reset({
             name: vendor.name,
             address: vendor.address,
-            currency_id: vendor?.curr_rel?.id?.toString() || "",
-            top_id: vendor?.top_rel?.id?.toString() || "",
+            currency_id: vendor?.curr_rel?.id || undefined,
+            top_id: vendor?.top_rel?.id || undefined,
             is_active: vendor.is_active,
         });
         setIsDialogOpen(true);
@@ -200,41 +213,29 @@ export default function VendorPage() {
         setDetailDialogOpen(false);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (
-            !formData.name.trim() ||
-            !formData.address.trim() ||
-            !formData.currency_id ||
-            !formData.top_id
-        ) {
-            toast.error("Semua field wajib diisi");
-            return;
-        }
-
+    const handleSubmit = async (data: VendorFormData) => {
         try {
             setLoading(true);
 
             if (dialogMode === "add") {
                 const newVendorData: VendorCreate = {
-                    name: formData.name,
-                    address: formData.address,
-                    currency_id: parseInt(formData.currency_id),
-                    top_id: parseInt(formData.top_id),
-                    is_active: formData.is_active,
+                    name: data.name,
+                    address: data.address,
+                    currency_id: data.currency_id,
+                    top_id: data.top_id,
+                    is_active: data.is_active,
                 };
 
                 await vendorService.createVendor(newVendorData);
                 toast.success("Vendor berhasil ditambahkan!");
             } else if (editingVendor) {
                 const updateData: VendorUpdate = {
-                    id: formData.id,
-                    name: formData.name,
-                    address: formData.address,
-                    currency_id: parseInt(formData.currency_id),
-                    top_id: parseInt(formData.top_id),
-                    is_active: formData.is_active,
+                    id: editingVendor.id,
+                    name: data.name,
+                    address: data.address,
+                    currency_id: data.currency_id,
+                    top_id: data.top_id,
+                    is_active: data.is_active,
                 };
 
                 await vendorService.updateVendor(editingVendor.id, updateData);
@@ -438,86 +439,87 @@ export default function VendorPage() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Nama Vendor</Label>
-                                <Input
-                                    id="name"
-                                    value={formData.name}
-                                    onChange={(e) => handleInputChange("name", e.target.value)}
-                                    placeholder="Nama vendor"
-                                    required
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Nama Vendor</Label>
+                                    <Input
+                                        id="name"
+                                        {...form.register("name")}
+                                        placeholder="Nama vendor"
+                                        required
+                                    />
+                                    {form.formState.errors.name && (
+                                        <p className="text-sm text-red-600">{form.formState.errors.name.message}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="status">Status</Label>
+                                    <Select
+                                        value={form.watch("is_active") ? "active" : "inactive"}
+                                        onValueChange={(value) =>
+                                            form.setValue("is_active", value === "active")
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue/>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="active">Aktif</SelectItem>
+                                            <SelectItem value="inactive">Tidak Aktif</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <QuickFormSearchableField
+                                    control={form.control}
+                                    name="currency_id"
+                                    type="currency"
+                                    label="Mata Uang"
+                                    placeholder="Pilih Mata Uang"
+                                />
+
+                                <QuickFormSearchableField
+                                    control={form.control}
+                                    name="top_id"
+                                    type="payment_type"
+                                    label="Jenis Pembayaran"
+                                    placeholder="Pilih Jenis Pembayaran"
                                 />
                             </div>
 
-
                             <div className="space-y-2">
-                                <Label htmlFor="status">Status</Label>
-                                <Select
-                                    value={formData.is_active ? "active" : "inactive"}
-                                    onValueChange={(value) =>
-                                        handleInputChange("is_active", value === "active")
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="active">Aktif</SelectItem>
-                                        <SelectItem value="inactive">Tidak Aktif</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Label htmlFor="address">Alamat</Label>
+                                <Textarea
+                                    id="address"
+                                    {...form.register("address")}
+                                    placeholder="Masukkan alamat lengkap vendor"
+                                    rows={3}
+                                    required
+                                />
+                                {form.formState.errors.address && (
+                                    <p className="text-sm text-red-600">{form.formState.errors.address.message}</p>
+                                )}
                             </div>
-                        </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <SearchableSelect<TOPUnit>
-                                label="Mata Uang"
-                                placeholder="Pilih mata uang"
-                                value={formData.currency_id}
-                                onChange={handleCurrencyChange}
-                                fetchData={fetchCurrencyData}
-                                renderLabel={(item) => `${item.symbol} - ${item.name}`}
-                                preloadValue={formData.currency_id}
-                            />
-
-                            <SearchableSelect<TOPUnit>
-                                label="Jenis Pembayaran"
-                                placeholder="Pilih jenis pembayaran"
-                                value={formData.top_id}
-                                onChange={handleTopChange}
-                                fetchData={fetchPaymentTypeData}
-                                renderLabel={(item) => `${item.symbol} - ${item.name}`}
-                                preloadValue={formData.top_id}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="address">Alamat</Label>
-                            <Textarea
-                                id="address"
-                                value={formData.address}
-                                onChange={(e) => handleInputChange("address", e.target.value)}
-                                placeholder="Masukkan alamat lengkap vendor"
-                                rows={3}
-                                required
-                            />
-                        </div>
-
-                        <DialogFooter className="gap-2">
-                            <Button type="button" variant="outline" onClick={closeDialog}>
-                                Batal
-                            </Button>
-                            <Button type="submit" disabled={loading}>
-                                {loading
-                                    ? "Loading..."
-                                    : dialogMode === "add"
-                                        ? "Tambah Vendor"
-                                        : "Simpan Perubahan"}
-                            </Button>
-                        </DialogFooter>
-                    </form>
+                            <DialogFooter className="gap-2">
+                                <Button type="button" variant="outline" onClick={closeDialog}>
+                                    Batal
+                                </Button>
+                                <Button type="submit" disabled={loading}>
+                                    {loading
+                                        ? "Loading..."
+                                        : dialogMode === "add"
+                                            ? "Tambah Vendor"
+                                            : "Simpan Perubahan"}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
                 </DialogContent>
             </Dialog>
 

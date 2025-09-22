@@ -50,7 +50,6 @@ import {
 import {Calendar} from "@/components/ui/calendar";
 import {SidebarHeaderBar} from "@/components/ui/SidebarHeaderBar";
 import CustomBreadcrumb from "@/components/custom-breadcrumb";
-import SearchableSelect from "@/components/SearchableSelect";
 import ItemSelectorDialog from "@/components/ItemSelectorDialog";
 import {FileUploadButton} from "@/components/ImageUpload";
 

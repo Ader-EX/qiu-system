@@ -31,10 +31,11 @@ import {Badge} from "@/components/ui/badge";
 import {X, Upload, Loader2} from "lucide-react";
 import {Item, TOPUnit} from "@/types/types";
 import {ItemTypeEnum} from "@/services/itemService";
-import SearchableSelect from "../SearchableSelect";
+
 
 import {NumericFormat} from "react-number-format";
 import toast from "react-hot-toast";
+import {QuickFormSearchableField} from "@/components/form/FormSearchableField";
 
 const itemSchema = z.object({
     is_active: z.boolean().default(true),
@@ -45,12 +46,11 @@ const itemSchema = z.object({
     sku: z.string().min(1, "SKU is required"),
     total_item: z.coerce.number().min(1, "Total item must be at least 1"), // Changed from 0 to 1
     price: z.coerce.number().min(0, "Price must be 0 or greater"),
-    satuan_id: z.number({
-        required_error: "Satuan is required",
-    }),
-
-    category_one: z.number().optional(),
-    category_two: z.number().optional(),
+    satuan_id: z.coerce.number({
+        required_error: "Satuan is required"
+    }).min(1, "Please select a satuan"),
+    category_one: z.coerce.number().optional(),
+    category_two: z.coerce.number().optional(),
     images: z.array(z.instanceof(File)),
 });
 
@@ -83,9 +83,9 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
             type: "" as ItemTypeEnum,
             name: "",
             sku: "",
-            total_item: 1, // Changed default from 0 to 1
+            total_item: 1,
             price: 0,
-            satuan_id: undefined,
+            satuan_id: 0,
 
             category_one: undefined, // Changed from null to undefined for required field
             category_two: undefined, // Changed from null to undefined for required field
@@ -381,90 +381,32 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                 )}
                             />
                         </div>
-
-                        <FormField
+                        <QuickFormSearchableField
                             control={form.control}
                             name="satuan_id"
-                            render={({field}) => (
-                                <FormItem>
-                                    <SearchableSelect<TOPUnit>
-                                        label="Satuan *"
-                                        placeholder="Pilih satuan"
-                                        value={field.value?.toString()}
-                                        onChange={(value) => field.onChange(parseInt(value))}
-                                        fetchData={(search: string) =>
-                                            satuanService.getAllMataUang({
-                                                skip: 0,
-                                                limit: 5,
-                                                is_active: true,
-                                                search,
-                                            })
-                                        }
-                                        renderLabel={(item: any) =>
-                                            `${item.symbol} - ${item.name}`
-                                        }
-                                        disabled={isSubmitting}
-                                    />
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
+                            type="satuan"
+                            label="Satuan"
+                            placeholder="Pilih Satuan"
                         />
-
 
                         {/* Row 5: categories - NOW MANDATORY */}
                         <div className="grid grid-cols-2 gap-4">
-                            <FormField
+                            <QuickFormSearchableField
                                 control={form.control}
                                 name="category_one"
-                                render={({field}) => (
-                                    <FormItem>
-                                        <SearchableSelect<TOPUnit>
-                                            label="Brand"
-                                            placeholder="Pilih Brand"
-                                            value={field.value?.toString()}
-                                            onChange={(value) => field.onChange(parseInt(value))}
-                                            fetchData={(search: string) =>
-                                                kategoriService.getAllCategories({
-                                                    skip: 0,
-                                                    limit: 5,
-                                                    type: 1,
-                                                    is_active: true,
-                                                    search,
-                                                })
-                                            }
-                                            renderLabel={(item: any) => `${item.name}`}
-                                            disabled={isSubmitting}
-                                        />
-                                        <FormMessage/>
-                                    </FormItem>
-                                )}
+                                type="category_one"
+                                label="Brand"
+                                placeholder="Pilih Brand"
+
                             />
 
-                            <FormField
+                            <QuickFormSearchableField
                                 control={form.control}
                                 name="category_two"
-                                render={({field}) => (
-                                    <FormItem>
-                                        <SearchableSelect<TOPUnit>
-                                            label="Jenis Barang"
-                                            placeholder="Pilih Jenis Barang"
-                                            value={field.value?.toString()}
-                                            onChange={(value) => field.onChange(parseInt(value))}
-                                            fetchData={(search: string) =>
-                                                kategoriService.getAllCategories({
-                                                    skip: 0,
-                                                    limit: 5,
-                                                    type: 2,
-                                                    is_active: true,
-                                                    search,
-                                                })
-                                            }
-                                            renderLabel={(item: any) => `${item.name}`}
-                                            disabled={isSubmitting}
-                                        />
-                                        <FormMessage/>
-                                    </FormItem>
-                                )}
+                                type="category_two"
+                                label="Jenis Barang"
+                                placeholder="Pilih jenis barang"
+
                             />
                         </div>
 

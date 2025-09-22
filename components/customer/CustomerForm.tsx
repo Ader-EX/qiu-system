@@ -25,12 +25,12 @@ import {Textarea} from "@/components/ui/textarea";
 import {Plus, Minus} from "lucide-react";
 import {SidebarHeaderBar} from "@/components/ui/SidebarHeaderBar";
 import CustomBreadcrumb from "@/components/custom-breadcrumb";
-import SearchableSelect from "@/components/SearchableSelect";
+
 import {TOPUnit} from "@/types/types";
-import {mataUangService} from "@/services/mataUangService";
 import toast from "react-hot-toast";
 import {useRouter} from "next/navigation";
 import {customerService} from "@/services/customerService";
+import {QuickFormSearchableField} from "@/components/form/FormSearchableField";
 
 const FormSection = ({
                          title,
@@ -52,7 +52,7 @@ const customerSchema = z.object({
     code: z.string().optional(),
     name: z.string().min(1, "Name is required"),
     is_active: z.boolean().default(true),
-    currency_id: z.number({
+    currency_id: z.coerce.number({
         required_error: "Currency is required",
     }),
     address: z.string().min(1, "Address is required"),
@@ -98,7 +98,7 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
         const loadCustomerData = async () => {
             try {
                 setIsDataLoaded(false);
-                const data = await customerService.getById(customerId);
+                const data = await customerService.getById(Number(customerId));
                 console.log("Customer data from API:", data);
 
                 let kodeLambungArray = [""];
@@ -336,88 +336,13 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
 
                     {/* Currency & Address */}
                     <FormSection title="Detail Tambahan">
-                        <FormField
+                        <QuickFormSearchableField
                             control={form.control}
                             name="currency_id"
-                            render={({field}) => (
-                                <FormItem className="md:col-span-2">
-                                    {isViewMode ? (
-                                        <SearchableSelect<TOPUnit>
-                                            key={`currency-${preloadCurrency?.id || "empty"}`} // Force re-render when preload changes
-                                            label="Mata Uang *"
-                                            placeholder="Pilih mata uang"
-                                            value={field.value?.toString() || ""}
-                                            preloadValue={preloadCurrency?.id}
-                                            disabled={isViewMode}
-                                            onChange={(val) => {
-                                                console.log(
-                                                    "Selected currency value from SearchableSelect:",
-                                                    val
-                                                );
-                                                if (val === "" || val === "all" || !val) {
-                                                    field.onChange(undefined);
-                                                    return;
-                                                }
-                                                const numericValue = Number(val);
-                                                field.onChange(numericValue);
-                                                console.log(
-                                                    "Form currency_id after onChange:",
-                                                    numericValue
-                                                );
-                                            }}
-                                            fetchData={async (search) => {
-                                                const response = mataUangService.getAllMataUang({
-                                                    skip: 0,
-                                                    contains_deleted: true,
-                                                    limit: 5,
-                                                    search,
-                                                });
-
-                                                return response;
-                                            }}
-                                            renderLabel={(item) => `${item.symbol} - ${item.name}`}
-                                        />
-                                    ) : (
-                                        <SearchableSelect<TOPUnit>
-                                            key={`currency-${preloadCurrency?.id || "empty"}`}
-                                            label="Mata Uang *"
-                                            placeholder="Pilih mata uang"
-                                            value={field.value?.toString() || ""}
-                                            preloadValue={preloadCurrency?.id}
-                                            disabled={isViewMode}
-                                            onChange={(val) => {
-                                                console.log(
-                                                    "Selected currency value from SearchableSelect:",
-                                                    val
-                                                );
-                                                if (val === "" || val === "all" || !val) {
-                                                    field.onChange(undefined);
-                                                    return;
-                                                }
-                                                const numericValue = Number(val);
-                                                field.onChange(numericValue);
-                                                console.log(
-                                                    "Form currency_id after onChange:",
-                                                    numericValue
-                                                );
-                                            }}
-                                            fetchData={async (search) => {
-                                                const response = mataUangService.getAllMataUang({
-                                                    skip: 0,
-                                                    is_active: true,
-                                                    limit: 5,
-                                                    search,
-                                                });
-
-                                                return response;
-                                            }}
-                                            renderLabel={(item) => `${item.symbol} - ${item.name}`}
-                                        />
-                                    )}
-
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
+                            type="currency"
+                            label="Mata Uang *"
+                            placeholder="Pilih Mata Uang"
+                            disabled={isViewMode}
                         />
 
                         <FormField

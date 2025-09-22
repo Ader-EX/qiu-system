@@ -31,6 +31,8 @@ export interface CustomerFilters {
     is_active?: boolean;
     search_key?: string;
     contains_deleted?: boolean;
+    from_date?: Date;
+    to_date?: Date
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -51,6 +53,10 @@ class CustomerService {
         if (filters.search_key) params.append("search_key", filters.search_key);
         if (filters.contains_deleted)
             params.append("contains_deleted", filters.contains_deleted.toString());
+        if (filters.from_date && filters.to_date) {
+            params.append("from_date", String(filters.from_date));
+            params.append("to_date", String(filters.to_date));
+        }
 
         const response = await fetch(`${this.baseUrl}?${params.toString()}`, {
             method: "GET",

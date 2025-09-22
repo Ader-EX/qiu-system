@@ -5,8 +5,9 @@ import {Control, FieldPath, FieldValues} from "react-hook-form";
 import {vendorService} from "@/services/vendorService";
 import {warehouseService} from "@/services/warehouseService";
 import {sumberdanaService} from "@/services/sumberdanaservice";
-import {jenisPembayaranService} from "@/services/mataUangService";
+import {jenisPembayaranService, mataUangService, satuanService} from "@/services/mataUangService";
 import {customerService} from "@/services/customerService";
+import {kategoriService} from "@/services/kategoriService";
 
 interface FormSearchableFieldProps<T extends FieldValues> {
     control: Control<T>;
@@ -69,7 +70,7 @@ export function FormSearchableField<T extends FieldValues>({
 //   fetchData={async (search) => {
 //     return await vendorService.getAllVendors({
 //       skip: 0,
-//       limit: 10,
+//       limit: 5,
 //       is_active: !isViewMode,
 //       contains_deleted: isViewMode,
 //       search_key: search,
@@ -92,7 +93,7 @@ const FIELD_CONFIGS: Record<string, SearchableFieldConfig> = {
         fetchData: (includeDeleted) => async (search) => {
             return await vendorService.getAllVendors({
                 skip: 0,
-                limit: 10,
+                limit: 5,
                 contains_deleted: includeDeleted,
                 is_active: !includeDeleted,
                 search_key: search,
@@ -104,6 +105,80 @@ const FIELD_CONFIGS: Record<string, SearchableFieldConfig> = {
         },
         renderLabel: (item: any) => `${item.id} - ${item.name} ${item?.curr_rel?.symbol ? `(${item.curr_rel.symbol})` : ""}`,
     },
+    category_one: {
+        fetchData: (includeDeleted) => async (search) => {
+            return await kategoriService.getAllCategories({
+                skip: 0,
+                limit: 5,
+                type: 1,
+                contains_deleted: includeDeleted,
+                is_active: !includeDeleted,
+                search: search,
+            });
+        },
+        fetchById: async (id) => {
+            const response = await kategoriService.getById(Number(id));
+            return {id: response.id, name: response.name};
+        },
+        renderLabel: (item: any) => `${item.name}`,
+    },
+
+    currency: {
+        fetchData: (includeDeleted) => async (search) => {
+            return await mataUangService.getAllMataUang({
+                skip: 0,
+                limit: 5,
+                contains_deleted: includeDeleted,
+                is_active: !includeDeleted,
+                search: search,
+            });
+        },
+        fetchById: async (id) => {
+            const response = await mataUangService.getMataUang(Number(id));
+            return {id: response.id, symbol: response.symbol, name: response.name};
+        },
+        renderLabel: (item: any) =>
+            `${item.symbol} - ${item.name}`
+    },
+
+
+    satuan: {
+        fetchData: (includeDeleted) => async (search) => {
+            return await satuanService.getAllMataUang({
+                skip: 0,
+                limit: 5,
+                contains_deleted: includeDeleted,
+                is_active: !includeDeleted,
+                search: search,
+            });
+        },
+        fetchById: async (id) => {
+            const response = await satuanService.getMataUang(Number(id));
+            return {id: response.id, symbol: response.symbol, name: response.name};
+        },
+        renderLabel: (item: any) =>
+            `${item.symbol} - ${item.name}`
+    },
+
+
+    category_two: {
+        fetchData: (includeDeleted) => async (search) => {
+            return await kategoriService.getAllCategories({
+                skip: 0,
+                limit: 5,
+                type: 2,
+                contains_deleted: includeDeleted,
+                is_active: !includeDeleted,
+                search: search,
+            });
+        },
+        fetchById: async (id) => {
+            const response = await kategoriService.getById(Number(id));
+            return {id: response.id, name: response.name};
+        },
+        renderLabel: (item: any) => `${item.name}`,
+    },
+
 
     customer: {
         fetchData: (includeDeleted) => async (search) => {
@@ -125,7 +200,7 @@ const FIELD_CONFIGS: Record<string, SearchableFieldConfig> = {
         fetchData: (includeDeleted) => async (search) => {
             return await warehouseService.getAllWarehouses({
                 skip: 0,
-                limit: 10,
+                limit: 5,
                 contains_deleted: includeDeleted,
                 is_active: !includeDeleted,
                 search: search,
@@ -142,7 +217,7 @@ const FIELD_CONFIGS: Record<string, SearchableFieldConfig> = {
         fetchData: (includeDeleted) => async (search) => {
             return await sumberdanaService.getAllSumberdanas({
                 skip: 0,
-                limit: 10,
+                limit: 5,
                 contains_deleted: includeDeleted,
                 is_active: !includeDeleted,
                 search: search,
@@ -156,7 +231,7 @@ const FIELD_CONFIGS: Record<string, SearchableFieldConfig> = {
         fetchData: (includeDeleted) => async (search) => {
             return await jenisPembayaranService.getAllMataUang({
                 skip: 0,
-                limit: 10,
+                limit: 5,
                 contains_deleted: includeDeleted,
                 is_active: !includeDeleted,
                 search: search,

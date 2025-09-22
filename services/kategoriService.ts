@@ -31,17 +31,17 @@ class CategoryService {
                                type = 1,
                                is_active,
                                search = "",
-                               from_date, to_date
+                               from_date, to_date,
+                               contains_deleted
                            }: {
         skip: number;
         limit: number;
-
         type: number;
         is_active?: boolean;
         search: string;
         from_date?: Date,
         to_date?: Date
-
+        contains_deleted?: boolean
     }): Promise<CategoryListResponse> {
         const params = new URLSearchParams();
         params.append("skip", String(skip));
@@ -61,6 +61,9 @@ class CategoryService {
             params.append("to_date", String(to_date));
 
         }
+        if (contains_deleted)
+            params.append("contains_deleted", String(contains_deleted));
+
 
         const url = `${this.baseUrl}?${params.toString()}`;
 
@@ -82,7 +85,7 @@ class CategoryService {
         }
     }
 
-    async getById(id: string): Promise<Unit> {
+    async getById(id: number): Promise<Unit> {
         try {
             const response = await fetch(`${this.baseUrl}/${id}`, {
                 method: "GET",
