@@ -187,7 +187,6 @@ const SalesDropdown = () => {
         }
     };
 
-    // Loading state
     if (isLoading && showForm) {
         return (
             <div className="flex justify-center items-center min-h-[200px]">
@@ -233,7 +232,6 @@ const SalesDropdown = () => {
                         />
                     </div>
 
-                    {/* Customer filter (existing) */}
                     <SearchableSelect
                         label="Customer"
                         placeholder="Pilih Customer"
@@ -267,9 +265,8 @@ const SalesDropdown = () => {
                                 size: 10,
                                 search,
                             });
-                            // Ensure it matches SearchableSelect expected shape
                             return {
-                                data: res.data, // [{id, name}]
+                                data: res.data,
                                 total: res.total,
                             };
                         }}

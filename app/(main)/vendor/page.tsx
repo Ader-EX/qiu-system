@@ -121,7 +121,7 @@ export default function VendorPage() {
         top_id: "",
         is_active: true,
     });
-  
+
     useEffect(() => {
         loadVendors();
     }, [currentPage, rowsPerPage, filterStatus]);
@@ -277,16 +277,6 @@ export default function VendorPage() {
         []
     );
 
-    // Stable callbacks for SearchableSelect onChange handlers
-    const handleCurrencyChange = useCallback(
-        (val: string) => handleInputChange("currency_id", val),
-        [handleInputChange]
-    );
-
-    const handleTopChange = useCallback(
-        (val: string) => handleInputChange("top_id", val),
-        [handleInputChange]
-    );
 
     return (
         <div className="space-y-6">

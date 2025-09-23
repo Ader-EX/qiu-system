@@ -31,6 +31,9 @@ import toast from "react-hot-toast";
 import {useRouter} from "next/navigation";
 import {customerService} from "@/services/customerService";
 import {QuickFormSearchableField} from "@/components/form/FormSearchableField";
+import {DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger} from "../ui/dialog";
+import {Dialog} from "@/components/ui/dialog";
+import {ConfirmationDialog} from "@/components/ConfirmationDialog";
 
 const FormSection = ({
                          title,
@@ -383,16 +386,12 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
                                     </div>
                                     {!isViewMode && (
                                         <div className="flex space-x-1">
-                                            {kodeLambungItems.length > 1 && (
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => removeKodeLambungItem(index)}
-                                                    className="px-2"
-                                                >
-                                                    <Minus className="w-4 h-4"/>
-                                                </Button>
+                                            {(kodeLambungItems.length > 1) && (
+                                                <ConfirmationDialog title={"Konfirmasi hapus kode lambung"}
+                                                                    description={"Apakah Anda yakin ingin menghapus kode lambung ini?"}
+                                                                    handleOnClick={() => removeKodeLambungItem(index)}
+                                                />
+                                                
                                             )}
                                             {index === kodeLambungItems.length - 1 && (
                                                 <Button
