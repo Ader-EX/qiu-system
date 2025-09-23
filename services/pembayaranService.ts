@@ -13,6 +13,8 @@ export type PembayaranFilters = {
     status?: string;
     page?: number;
     size?: number;
+    from_date?: string;
+    to_date?: string;
 };
 
 export type PembayaranDetailCreate = {
@@ -150,18 +152,35 @@ class PembayaranService {
 
     // GET ALL
     async getAllPembayaran(
-        filters: PembayaranFilters = {}
+        filters?: {
+            search_key?: string;
+            tipe_referensi?: string;
+            status?: string;
+            page: number;
+            size: number;
+            from_date?: string | undefined;
+            to_date?: string | undefined
+        }
     ): Promise<PaginatedResponse<PembayaranResponse>> {
         const params = new URLSearchParams();
+        if (filters) {
 
-        if (filters.search_key) params.append("search_key", filters.search_key);
-        if (filters.tipe_referensi && filters.tipe_referensi !== "ALL")
-            params.append("reference_type", filters.tipe_referensi);
-        if (filters.status && filters.status !== "ALL")
-            params.append("status", filters.status);
-        if (filters.page) params.append("page", filters.page.toString());
-        if (filters.size) params.append("size", filters.size.toString());
+            if (filters.search_key) params.append("search", filters.search_key);
+            if (filters.tipe_referensi && filters.tipe_referensi !== "ALL")
+                params.append("reference_type", filters.tipe_referensi);
+            if (filters.status && filters.status !== "ALL")
+                params.append("status", filters.status);
+            if (filters.page) params.append("page", filters.page.toString());
+            if (filters.size) params.append("size", filters.size.toString());
 
+            if (filters.from_date && filters.to_date) {
+                params.append("from_date", String(filters.from_date));
+                params.append("to_date", String(filters.to_date));
+
+            }
+
+
+        }
         const response = await fetch(`${this.baseUrl}?${params}`, {
             headers: this.getAuthHeaders(),
         });

@@ -10,7 +10,7 @@ import {
     Trash2,
     Eye,
     Search as SearchIcon,
-    RefreshCw,
+    RefreshCw, Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
@@ -44,13 +44,16 @@ import {
 
 import GlobalPaginationFunction from "@/components/pagination-global";
 import toast from "react-hot-toast";
-import {formatMoney} from "@/lib/utils";
+import {cn, formatMoney} from "@/lib/utils";
 
 import {
     PengembalianResponse,
     pengembalianService,
 } from "@/services/pengembalianService";
 import {PembayaranFilters} from "@/services/pembayaranService";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {format} from "date-fns";
+import {Calendar as CalendarComponent} from "@/components/ui/calendar";
 
 export default function PengembalianPage() {
     const [pengembalians, setPengembalians] = useState<PengembalianResponse[]>([]);
@@ -58,6 +61,8 @@ export default function PengembalianPage() {
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [pengembalianType, setPengembalianType] = useState("");
     const [statusPengembalian, setStatusPengembalian] = useState("");
+    const [fromDate, setFromDate] = useState<Date | undefined>();
+    const [toDate, setToDate] = useState<Date | undefined>();
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -84,7 +89,6 @@ export default function PengembalianPage() {
         }
     };
 
-    // Build filters object
     const buildFilters = (): PembayaranFilters => {
         const filters: PembayaranFilters = {
             page: currentPage,
@@ -100,10 +104,15 @@ export default function PengembalianPage() {
         if (searchTerm.trim()) {
             filters.search_key = searchTerm.trim();
         }
+        if (fromDate) {
+            filters.from_date = format(fromDate, "yyyy-MM-dd");
+        }
+        if (toDate) {
+            filters.to_date = format(toDate, "yyyy-MM-dd");
+        }
 
         return filters;
     };
-
     // Effect for initial load and filter changes
     useEffect(() => {
         const filters = buildFilters();
@@ -271,6 +280,57 @@ export default function PengembalianPage() {
                             onKeyDown={handleSearchKeyDown}
                             className="pl-7 w-full"
                         />
+                    </div>
+
+
+                    <div className="flex gap-2">
+                        {/* From Date */}
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-[140px] justify-start text-left font-normal",
+                                        !fromDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <Calendar className="mr-2 h-4 w-6"/>
+                                    {fromDate ? format(fromDate, "dd/MM/yyyy") : "Tgl Mulai"}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <CalendarComponent
+                                    mode="single"
+                                    selected={fromDate}
+                                    onSelect={setFromDate}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        <span className="self-center">-</span>
+                        {/* To Date */}
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-[140px] justify-start text-left font-normal",
+                                        !toDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <Calendar className="mr-2 h-4 w-6"/>
+                                    {toDate ? format(toDate, "dd/MM/yyyy") : "Tgl Selesai"}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <CalendarComponent
+                                    mode="single"
+                                    selected={toDate}
+                                    onSelect={setToDate}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
                     <Button onClick={handleSearch} disabled={isLoading}>

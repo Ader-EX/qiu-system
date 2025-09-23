@@ -87,7 +87,7 @@ const pembayaranSchema = z
         reference_type: z.enum(["PEMBELIAN", "PENJUALAN"], {
             required_error: "Reference type harus dipilih",
         }),
-        currency_id: z.number().min(1, "Currency harus dipilih"),
+        currency_id: z.coerce.number().min(1, "Currency harus dipilih"),
         warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
         warehouse_name: z.string().optional(),
         customer_name: z.string().optional(),

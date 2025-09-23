@@ -11,7 +11,7 @@ import {
     Filter,
     RefreshCw,
     Search as SearchIcon,
-    File,
+    File, Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
@@ -52,8 +52,11 @@ import {
 } from "@/services/pembelianService";
 import GlobalPaginationFunction from "@/components/pagination-global";
 import toast from "react-hot-toast";
-import {formatMoney} from "@/lib/utils";
+import {cn, formatMoney} from "@/lib/utils";
 import {usePrintInvoice} from "@/hooks/usePrintInvoice";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {format} from "date-fns";
+import {Calendar as CalendarComponent} from "@/components/ui/calendar";
 
 export default function PembelianPage() {
     const [pembelians, setPembelians] = useState<PembelianListResponse[]>([]);
@@ -61,6 +64,9 @@ export default function PembelianPage() {
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [statusPembelian, setStatusPembelian] = useState("");
     const [statusPembayaran, setStatusPembayaran] = useState("");
+    const [fromDate, setFromDate] = useState<Date | undefined>();
+    const [toDate, setToDate] = useState<Date | undefined>();
+
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
 
@@ -72,7 +78,6 @@ export default function PembelianPage() {
         downloadInvoice,
     } = usePrintInvoice();
 
-    // Fetch data
     const fetchPembelians = async (filters: PembelianFilters = {}) => {
         try {
             const response = await pembelianService.getAllPembelian({
@@ -81,26 +86,26 @@ export default function PembelianPage() {
                 size: rowsPerPage,
             });
 
-            console.log(response.data);
 
             setPembelians(response.data);
             setTotalItems(response.total);
         } catch (err) {
             const errorMsg =
                 err instanceof Error ? err.message : "Failed to fetch pembelians";
+            toast.error(errorMsg);
         }
     };
 
     useEffect(() => {
-        const filters: PembelianFilters = {};
+        const filters: PembelianFilters = {
+            page: currentPage,
+            size: rowsPerPage,
+        };
 
-        if (statusPembelian)
+        if (statusPembelian && statusPembelian !== "ALL")
             filters.status_pembelian = statusPembelian as StatusPembelianEnum;
-        if (statusPembayaran)
+        if (statusPembayaran && statusPembayaran !== "ALL")
             filters.status_pembayaran = statusPembayaran as StatusPembayaranEnum;
-        if (searchTerm) filters.search_key = searchTerm;
-        if (rowsPerPage) filters.size = rowsPerPage;
-
         fetchPembelians(filters);
     }, [currentPage, statusPembelian, statusPembayaran, rowsPerPage]);
 
@@ -187,6 +192,40 @@ export default function PembelianPage() {
         return <Badge variant={config.variant}>{config.label}</Badge>;
     };
 
+    const handleSearch = async () => {
+        setCurrentPage(1);
+        const filters = buildFilters();
+        await fetchPembelians(filters);
+    };
+
+    const buildFilters = (): PembelianFilters => {
+        const filters: PembelianFilters = {
+            page: currentPage,
+            size: rowsPerPage,
+        };
+
+        if (statusPembelian && statusPembelian !== "ALL") {
+            filters.status_pembelian = statusPembelian as StatusPembelianEnum;
+        }
+        if (statusPembayaran && statusPembayaran !== "ALL") {
+            filters.status_pembayaran = statusPembayaran as StatusPembayaranEnum;
+        }
+        if (searchTerm.trim()) {
+            filters.search_key = searchTerm.trim();
+        }
+
+        // Handle date filters - only apply when manually searching
+        if (fromDate) {
+            filters.from_date = format(fromDate, "yyyy-MM-dd");
+        }
+        if (toDate) {
+            filters.to_date = format(toDate, "yyyy-MM-dd");
+        }
+
+        return filters;
+    };
+
+
     const handleRowsPerPageChange = (i: number) => {
         setRowsPerPage(i);
         setCurrentPage(1);
@@ -202,10 +241,6 @@ export default function PembelianPage() {
 
     const totalPages = Math.ceil(totalItems / rowsPerPage);
 
-    const handleSearch = async () => {
-        setCurrentPage(1);
-        await fetchPembelians();
-    };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
@@ -242,6 +277,56 @@ export default function PembelianPage() {
                             onKeyDown={handleSearchKeyDown}
                             className="pl-7 w-full"
                         />
+                    </div>
+
+                    <div className="flex gap-2">
+                        {/* From Date */}
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-[140px] justify-start text-left font-normal",
+                                        !fromDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <Calendar className="mr-2 h-4 w-6"/>
+                                    {fromDate ? format(fromDate, "dd/MM/yyyy") : "Tgl Mulai"}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <CalendarComponent
+                                    mode="single"
+                                    selected={fromDate}
+                                    onSelect={setFromDate}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        <span className="self-center">-</span>
+                        {/* To Date */}
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-[140px] justify-start text-left font-normal",
+                                        !toDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <Calendar className="mr-2 h-4 w-4"/>
+                                    {toDate ? format(toDate, "dd/MM/yyyy") : "Tgl Selesai"}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <CalendarComponent
+                                    mode="single"
+                                    selected={toDate}
+                                    onSelect={setToDate}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
                     <Button onClick={handleSearch}>
