@@ -82,7 +82,6 @@ export default function SumberdanaPage() {
 
   const totalPages = Math.ceil(total / rowsPerPage);
 
-  // Load units on component mount and when page/rowsPerPage changes
   useEffect(() => {
     loadUnits(page, searchTerm, rowsPerPage, fromDate, toDate);
   }, [page, rowsPerPage]);

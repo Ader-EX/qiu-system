@@ -176,6 +176,8 @@ export interface PenjualanFilters {
   warehouse_id?: number;
   page?: number;
   size?: number;
+  from_date?: Date;
+  to_date?: Date;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -202,6 +204,10 @@ class PenjualanService {
       params.append("warehouse_id", filters.warehouse_id.toString());
     if (filters.page) params.append("page", filters.page.toString());
     if (filters.size) params.append("size", filters.size.toString());
+    if (filters.from_date && filters.to_date) {
+      params.append("from_date", String(filters.from_date));
+      params.append("to_date", String(filters.to_date));
+    }
 
     const response = await fetch(`${this.baseUrl}?${params}`, {
       headers: this.getAuthHeaders(),
