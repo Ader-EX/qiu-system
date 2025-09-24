@@ -61,6 +61,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import {format} from "date-fns";
+import AuditDialog from "@/components/AuditDialog";
 
 export default function PembayaranPage() {
     const [pembayarans, setPembayarans] = useState<PembayaranResponse[]>([]);
@@ -454,7 +455,7 @@ export default function PembayaranPage() {
                                                     </Link>
                                                 </DropdownMenuItem>
                                             )}
-
+                                            <AuditDialog id={pembayaran.id} type={"PEMBAYARAN"}/>
                                             {pembayaran.status === "DRAFT" && (
                                                 <DropdownMenuItem
                                                     onClick={() =>

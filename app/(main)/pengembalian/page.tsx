@@ -54,6 +54,7 @@ import {PembayaranFilters} from "@/services/pembayaranService";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {format} from "date-fns";
 import {Calendar as CalendarComponent} from "@/components/ui/calendar";
+import AuditDialog from "@/components/AuditDialog";
 
 export default function PengembalianPage() {
     const [pengembalians, setPengembalians] = useState<PengembalianResponse[]>([]);
@@ -450,6 +451,9 @@ export default function PengembalianPage() {
                                                     </Link>
                                                 </DropdownMenuItem>
                                             )}
+
+                                            <AuditDialog id={pengembalian.id} type={"PENGEMBALIAN"}/>
+
 
                                             {pengembalian.status === "DRAFT" && (
                                                 <DropdownMenuItem

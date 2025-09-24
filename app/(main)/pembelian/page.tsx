@@ -457,7 +457,7 @@ export default function PembelianPage() {
                                                         </DropdownMenuItem>
                                                     </>
                                                 )}
-
+                                                <AuditDialog id={pembelian.id} type={"PEMBELIAN"}/>
                                                 {pembelian.status_pembelian ===
                                                     StatusPembelianEnum.DRAFT && (
                                                         <DropdownMenuItem
