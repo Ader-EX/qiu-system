@@ -91,14 +91,14 @@ export default function VendorPage() {
     const vendorFormSchema = z.object({
         name: z.string().min(1, "Nama vendor wajib diisi"),
         address: z.string().min(1, "Alamat wajib diisi"),
-        currency_id: z.number({
+        currency_id: z.coerce.number({
             required_error: "Mata uang wajib dipilih",
             invalid_type_error: "Mata uang wajib dipilih",
-        }),
+        }).min(1, "Mata uang wajib dipilih"),
         top_id: z.number({
             required_error: "Jenis pembayaran wajib dipilih",
             invalid_type_error: "Jenis pembayaran wajib dipilih",
-        }),
+        }).min(1),
         is_active: z.boolean(),
     });
 
@@ -108,8 +108,8 @@ export default function VendorPage() {
         defaultValues: {
             name: "",
             address: "",
-            currency_id: undefined,
-            top_id: undefined,
+            currency_id: 0,
+            top_id: 0,
             is_active: true,
         },
     });
@@ -163,8 +163,8 @@ export default function VendorPage() {
         form.reset({
             name: "",
             address: "",
-            currency_id: undefined,
-            top_id: undefined,
+            currency_id: 0,
+            top_id: 0,
             is_active: true,
         });
     };
