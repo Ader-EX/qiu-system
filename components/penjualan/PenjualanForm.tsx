@@ -810,8 +810,8 @@ export default function PenjualanForm({
                                         <TableHead>Item Code</TableHead>
                                         <TableHead>Nama Item</TableHead>
                                         <TableHead>Qty</TableHead>
-                                        <TableHead>Harga (IDR)</TableHead>
                                         <TableHead>Harga (RMB)</TableHead>
+                                        <TableHead>Harga (IDR)</TableHead>
                                         <TableHead>Sub Total</TableHead>
                                         <TableHead>Discount</TableHead>
                                         <TableHead>DPP</TableHead>
@@ -826,7 +826,7 @@ export default function PenjualanForm({
                                 </TableHeader>
                                 <TableBody>
                                     {fields.map((field, index) => {
-                                     
+
                                         return (
                                             <TableRow key={field.id}>
                                                 <TableCell>
@@ -857,6 +857,36 @@ export default function PenjualanForm({
                                                         )}
                                                     />
                                                 </TableCell>
+
+                                                <TableCell>
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`items.${index}.unit_price_rmb`}
+                                                        render={({field}) => (
+                                                            <NumericFormat
+                                                                customInput={Input}
+                                                                thousandSeparator="."
+                                                                decimalSeparator=","
+                                                                allowNegative={false}
+                                                                inputMode="decimal"
+                                                                disabled={isViewMode}
+                                                                className="w-20"
+                                                                value={field.value ?? ""}
+                                                                onValueChange={(values) => {
+                                                                    const rmbPrice = Number(
+                                                                        values.floatValue ?? 0
+                                                                    );
+                                                                    field.onChange(rmbPrice);
+                                                                    debouncedConvertRMBToIDR(
+                                                                        index,
+                                                                        rmbPrice,
+                                                                        currencyAmount
+                                                                    );
+                                                                }}
+                                                            />
+                                                        )}
+                                                    />
+                                                </TableCell>
                                                 <TableCell>
                                                     <FormField
                                                         control={form.control}
@@ -881,35 +911,6 @@ export default function PenjualanForm({
                                                                     debouncedConvertIDRToRMB(
                                                                         index,
                                                                         idrPrice,
-                                                                        currencyAmount
-                                                                    );
-                                                                }}
-                                                            />
-                                                        )}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`items.${index}.unit_price_rmb`}
-                                                        render={({field}) => (
-                                                            <NumericFormat
-                                                                customInput={Input}
-                                                                thousandSeparator="."
-                                                                decimalSeparator=","
-                                                                allowNegative={false}
-                                                                inputMode="decimal"
-                                                                disabled={isViewMode}
-                                                                className="w-20"
-                                                                value={field.value ?? ""}
-                                                                onValueChange={(values) => {
-                                                                    const rmbPrice = Number(
-                                                                        values.floatValue ?? 0
-                                                                    );
-                                                                    field.onChange(rmbPrice);
-                                                                    debouncedConvertRMBToIDR(
-                                                                        index,
-                                                                        rmbPrice,
                                                                         currencyAmount
                                                                     );
                                                                 }}

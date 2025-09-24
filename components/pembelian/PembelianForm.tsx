@@ -94,6 +94,7 @@ const pembelianSchema = z.object({
     sumberdana_id: z.number().min(1, "Sumber Dana harus dipilih"),
     sales_date: z.date({required_error: "Purchase Date harus diisi"}),
     sales_due_date: z.date({required_error: "Purchase Due Date harus diisi"}),
+    price_source: z.enum(["IDR", "RMB"]).default("IDR"),
     additional_discount: z.number().min(0).default(0),
     expense: z.number().min(0).default(0),
     currency_amount: z.number({required_error: "Currency harus diisi"}).min(0.01).default(1),
@@ -307,7 +308,54 @@ export default function PembelianForm({
         loadPembelianData();
     }, [isEditMode, isViewMode, pembelianId, form]);
 
+
+    useEffect(() => {
+        const subscription = form.watch((value, {name, type}) => {
+            // Only react to currency_amount changes
+            if (name === 'currency_amount' && type === 'change') {
+                const newCurrencyRate = Number(value.currency_amount || 1);
+                const currentItems = form.getValues("items");
+
+                if (newCurrencyRate > 0 && currentItems.length > 0) {
+                    currentItems.forEach((item, index) => {
+                        const currentIDRPrice = Number(item.unit_price || 0);
+                        const currentRMBPrice = Number(item.unit_price_rmb || 0);
+
+                        if (currentIDRPrice > 0) {
+                            const newRMBPrice = convertIDRToRMB(currentIDRPrice, newCurrencyRate);
+                            form.setValue(`items.${index}.unit_price_rmb`, newRMBPrice, {
+                                shouldValidate: false,
+                                shouldDirty: true
+                            });
+                        }
+                    });
+                }
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [form, convertIDRToRMB]);
+
     const watchedItems = form.watch("items") || [];
+
+
+    const recalcRow = (index: number) => {
+        const rate = Number(form.getValues("currency_amount") || 1);
+        if (rate <= 0) return;
+
+        const src = form.getValues(`items.${index}.price_source`);
+        const idr = Number(form.getValues(`items.${index}.unit_price`) || 0);
+        const rmb = Number(form.getValues(`items.${index}.unit_price_rmb`) || 0);
+
+        if (src === "IDR") {
+            const nextRMB = convertIDRToRMB(idr, rate);
+            form.setValue(`items.${index}.unit_price_rmb`, nextRMB, {shouldDirty: true, shouldValidate: false});
+        } else {
+            const nextIDR = convertRMBToIDR(rmb, rate);
+            form.setValue(`items.${index}.unit_price`, nextIDR, {shouldDirty: true, shouldValidate: false});
+        }
+    };
+
 
     const rows = watchedItems.map((it) => {
         const qty = Number(it?.qty ?? 0);
@@ -415,6 +463,7 @@ export default function PembelianForm({
                 qty: 1,
                 unit_price: pickedItem.price,
                 unit_price_rmb: rmbPrice,
+                price_source: "IDR",
                 discount: 0,
                 tax_percentage: 10,
             });
@@ -933,8 +982,8 @@ export default function PembelianForm({
                                         <TableHead>Item Code</TableHead>
                                         <TableHead>Nama Item</TableHead>
                                         <TableHead>Qty</TableHead>
-                                        <TableHead>Harga (IDR)</TableHead>
                                         <TableHead>Harga (RMB)</TableHead>
+                                        <TableHead>Harga (IDR)</TableHead>
                                         <TableHead>Sub Total</TableHead>
                                         <TableHead>Discount</TableHead>
                                         <TableHead>DPP</TableHead>
@@ -981,33 +1030,7 @@ export default function PembelianForm({
                                                         )}
                                                     />
                                                 </TableCell>
-                                                <TableCell>
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`items.${index}.unit_price`}
-                                                        render={({field}) => (
-                                                            <NumericFormat
-                                                                customInput={Input}
-                                                                thousandSeparator="."
-                                                                decimalSeparator=","
-                                                                allowNegative={false}
-                                                                inputMode="decimal"
-                                                                disabled={isViewMode}
-                                                                className="w-20"
-                                                                value={field.value ?? ""}
-                                                                onValueChange={(values) => {
-                                                                    const idrPrice = Number(values.floatValue ?? 0);
-                                                                    field.onChange(idrPrice);
 
-                                                                    // Debounced conversion to RMB
-                                                                    debouncedConvertIDRToRMB(index, idrPrice, currencyAmount);
-                                                                }}
-                                                            />
-                                                        )}
-                                                    />
-
-
-                                                </TableCell>
                                                 <TableCell>
                                                     <FormField
                                                         control={form.control}
@@ -1022,14 +1045,41 @@ export default function PembelianForm({
                                                                 disabled={isViewMode}
                                                                 className="w-20"
                                                                 value={field.value ?? ""}
-                                                                onValueChange={(values) => {
-                                                                    const rmbPrice = Number(values.floatValue ?? 0);
-                                                                    field.onChange(rmbPrice);
-                                                                    debouncedConvertRMBToIDR(index, rmbPrice, currencyAmount);
+                                                                onValueChange={(v) => {
+                                                                    const rmb = Number(v.floatValue ?? 0);
+                                                                    field.onChange(rmb);
+                                                                    form.setValue(`items.${index}.price_source`, "RMB", {shouldDirty: true});
+                                                                    recalcRow(index);
                                                                 }}
                                                             />
                                                         )}
                                                     />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`items.${index}.unit_price`}
+                                                        render={({field}) => (
+                                                            <NumericFormat
+                                                                customInput={Input}
+                                                                thousandSeparator="."
+                                                                decimalSeparator=","
+                                                                allowNegative={false}
+                                                                inputMode="decimal"
+                                                                disabled={isViewMode}
+                                                                className="w-20"
+                                                                value={field.value ?? ""}
+                                                                onValueChange={(v) => {
+                                                                    const idr = Number(v.floatValue ?? 0);
+                                                                    field.onChange(idr);
+                                                                    form.setValue(`items.${index}.price_source`, "IDR", {shouldDirty: true});
+                                                                    recalcRow(index);
+                                                                }}
+                                                            />
+                                                        )}
+                                                    />
+
+
                                                 </TableCell>
 
                                                 <TableCell>
