@@ -7,7 +7,7 @@ export interface CustomerCreate {
     name: string;
     address: string;
     currency_id: number;
-    kode_lambung?: string;
+    kode_lambungs?: string[];
     is_active: boolean;
 }
 
@@ -15,7 +15,7 @@ export interface CustomerUpdate {
     id?: string;
     name?: string;
     address?: string;
-    kode_lambung?: string;
+    kode_lambungs?: string[];
     currency_id?: number;
     is_active?: boolean;
 }

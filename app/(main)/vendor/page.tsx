@@ -8,7 +8,7 @@ import {
     Edit,
     Trash2,
     Eye,
-    Search as SearchIcon,
+    Search as SearchIcon, Newspaper,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -69,6 +69,7 @@ import {Form} from "@/components/ui/form";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import * as z from "zod";
+import AuditDialog from "@/components/AuditDialog";
 
 export default function VendorPage() {
     const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -382,6 +383,7 @@ export default function VendorPage() {
                                                 <Edit className="mr-2 h-4 w-4"/>
                                                 Edit
                                             </DropdownMenuItem>
+                                            <AuditDialog id={vendor.id} type={"VENDOR"}/>
                                             <DropdownMenuItem
                                                 onClick={() => handleDelete(vendor.id)}
                                                 className="text-red-600"

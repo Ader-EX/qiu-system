@@ -86,7 +86,7 @@ const penjualanSchema = z.object({
     no_penjualan: z.string().optional(),
     warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
     customer_id: z.coerce.string().min(1, "Customer harus dipilih"),
-    kode_lambung: z.string().min(1, "Kode LAmbung harus diisi"),
+    kode_lambung_id: z.coerce.number().min(1, "Kode Lambung harus diisi"),
     top_id: z.coerce.number().min(1, "Jenis Pembayaran harus dipilih"),
     sales_date: z.date({required_error: "Sales Date harus diisi"}),
     sales_due_date: z.date({required_error: "Sales Due Date harus diisi"}),
@@ -145,7 +145,7 @@ export default function PenjualanForm({
             no_penjualan: isEditMode ? "" : `-`,
             warehouse_id: undefined,
             customer_id: "",
-            kode_lambung: "",
+            kode_lambung_id: 0,
             top_id: 0,
             currency_amount: 1,
             additional_discount: 0,
@@ -229,7 +229,7 @@ export default function PenjualanForm({
                     sales_date: new Date(data.sales_date),
                     sales_due_date: new Date(data.sales_due_date),
                     currency_amount: Number(data.currency_amount),
-                    kode_lambung: data.kode_lambung.name,
+                    kode_lambung_id: data.kode_lambung.id,
                     additional_discount: Number(data.additional_discount ?? 0),
                     expense: Number(data.expense ?? 0),
                     status_pembayaran: data.status_pembayaran || "UNPAID",
@@ -430,7 +430,7 @@ export default function PenjualanForm({
                 warehouse_id: Number(data.warehouse_id),
                 customer_id: data.customer_id,
                 top_id: Number(data.top_id),
-                kode_lambung: data.kode_lambung,
+                kode_lambung_id: data.kode_lambung_id,
                 sales_date: formatDateForAPI(data.sales_date),
                 sales_due_date: formatDateForAPI(data.sales_due_date),
                 additional_discount: Number(data.additional_discount || 0),
@@ -634,19 +634,16 @@ export default function PenjualanForm({
                             placeholder="Pilih Customer"
                             disabled={isViewMode}
                         />
-
-                        <FormField
+                        <QuickFormSearchableField
                             control={form.control}
-                            name="kode_lambung"
-                            render={({field}) => (
-                                <FormItem>
-                                    <FormLabel>Kode Lambung</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Isi kode lambung..." {...field} />
-                                    </FormControl>
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
+                            name="kode_lambung_id"
+                            type="kodelambung"
+                            label="Kode Lambung"
+                            placeholder="Pilih Kode Lambung"
+                            disabled={isViewMode}
+                            dynamicParam={form.watch("customer_id")}
+                            watchField="customer_id"
+                            showCondition={(customerId) => customerId && customerId !== "0" && customerId !== ""} // Show only if customer_id has value
                         />
 
                         <QuickFormSearchableField
@@ -675,7 +672,6 @@ export default function PenjualanForm({
                                             placeholder="1.00"
                                             value={field.value ?? ""} // Use field.value directly
                                             onValueChange={(values) => {
-                                                // Handle the conversion properly
                                                 const numericValue = Number(values.floatValue ?? 1);
                                                 field.onChange(numericValue);
                                             }}
@@ -830,8 +826,7 @@ export default function PenjualanForm({
                                 </TableHeader>
                                 <TableBody>
                                     {fields.map((field, index) => {
-                                        const item = watchedItems[index];
-
+                                     
                                         return (
                                             <TableRow key={field.id}>
                                                 <TableCell>
@@ -1045,7 +1040,7 @@ export default function PenjualanForm({
                                                 </TableCell>
 
                                                 <TableCell>
-                                                    {/* Total Price - includes tax and discount */}
+
                                                     <span>
                             {(() => {
                                 const unitPrice =

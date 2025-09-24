@@ -7,7 +7,7 @@ import {
     ChevronRight,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
-import {useState, useEffect, useRef} from "react";
+import React, {useState, useEffect, useRef} from "react";
 
 import {
     Card,
@@ -28,6 +28,7 @@ import {Badge} from "@/components/ui/badge";
 import Image, {StaticImageData} from "next/image";
 import {Item, AttachmentResponse} from "@/types/types";
 import {formatMoney} from "@/lib/utils";
+import AuditDialog from "@/components/AuditDialog";
 
 interface ImageCarouselProps {
     attachments: AttachmentResponse[]; // Changed from photos to attachments
@@ -211,6 +212,8 @@ export const ProductGridView: React.FC<{
                                     >
                                         <Edit className="mr-2 h-4 w-4"/> Edit
                                     </DropdownMenuItem>
+
+                                    <AuditDialog id={product.id} type={"ITEM"}/>
                                     <DropdownMenuItem
                                         onClick={() => {
                                             if (onDelete && product) onDelete(product.id);

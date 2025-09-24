@@ -102,18 +102,13 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
             try {
                 setIsDataLoaded(false);
                 const data = await customerService.getById(Number(customerId));
-                console.log("Customer data from API:", data);
 
                 let kodeLambungArray = [""];
-                if (data.kode_lambung) {
-                    kodeLambungArray = data.kode_lambung
-                        .split(", ")
-                        .filter((item) => item.trim() !== "");
+                if (data.kode_lambung_rel) {
                     if (kodeLambungArray.length === 0) kodeLambungArray = [""];
+                    setKodeLambungItems(data.kode_lambung_rel);
                 }
-                setKodeLambungItems(kodeLambungArray);
 
-                // Handle currency preload
                 if (data.curr_rel) {
                     const preloadCurrencyData = {
                         id: Number(data.curr_rel.id),
@@ -146,7 +141,6 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
 
                 setIsDataLoaded(true);
             } catch (error: any) {
-                console.error("Error loading customer data:", error);
                 toast.error(error.message || "Failed to load customer data");
                 setIsDataLoaded(true);
             }
@@ -155,7 +149,6 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
         loadCustomerData();
     }, [mode, customerId, form]);
 
-    // Kode Lambung handlers
     const addKodeLambungItem = () => {
         const newItems = [...kodeLambungItems, ""];
         setKodeLambungItems(newItems);
@@ -182,30 +175,25 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
         try {
             const kodeLambungString = kodeLambungItems
                 .filter((item) => item.trim() !== "")
-                .join(", ");
 
             const submitData = {
                 name: data.name,
                 is_active: data.is_active ?? true,
                 currency_id: data.currency_id,
                 address: data.address,
-                kode_lambung: kodeLambungString.trim() || undefined,
+                kode_lambung: kodeLambungString || undefined,
             };
 
-            let result;
             if (isEditMode && customerId) {
-                result = await customerService.updateCustomer(customerId, submitData);
-                console.log("Updating customer:", submitData);
+                await customerService.updateCustomer(customerId, submitData);
                 toast.success("Customer berhasil diperbarui");
             } else {
-                result = await customerService.createCustomer(submitData);
-                console.log("Creating customer:", submitData);
+                await customerService.createCustomer(submitData);
                 toast.success("Customer berhasil ditambahkan");
             }
 
             router.push("/customer");
         } catch (error: any) {
-            console.error("Submit error:", error);
             toast.error(error.detail || error.message || "Terjadi kesalahan");
         } finally {
             setIsSubmitting(false);
@@ -255,7 +243,6 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
 
     const breadcrumbData = getBreadcrumbData();
 
-    // Don't render the form until data is loaded for edit/view modes
     if ((isEditMode || isViewMode) && !isDataLoaded) {
         return (
             <div className="space-y-6">
@@ -391,7 +378,7 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
                                                                     description={"Apakah Anda yakin ingin menghapus kode lambung ini?"}
                                                                     handleOnClick={() => removeKodeLambungItem(index)}
                                                 />
-                                                
+
                                             )}
                                             {index === kodeLambungItems.length - 1 && (
                                                 <Button

@@ -143,7 +143,6 @@ export default function SearchableSelect<T extends { id: number | string }>({
         }
     }, [getCachedItem, setCachedItem, fetchById, fetchOptions]);
 
-    // Smart initialization with optimized loading
     const initialize = useCallback(async () => {
         setIsLoading(true);
 
@@ -151,15 +150,12 @@ export default function SearchableSelect<T extends { id: number | string }>({
             let preloadedItem: T | null = null;
             let initialData: T[] = [];
 
-            // If we have a preloadValue that's not "all", try to get it first
             if (preloadValue && preloadValue !== "all") {
                 preloadedItem = await smartPreloadItem(preloadValue);
             }
 
-            // Load initial data (empty search) - this might be cached
             initialData = await fetchOptions("");
 
-            // Combine preloaded item with initial data if needed
             if (preloadedItem) {
                 const exists = initialData.some(
                     (opt) => opt.id.toString() === preloadValue?.toString()
@@ -167,7 +163,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
                 if (!exists) {
                     const combinedData = [preloadedItem, ...initialData];
                     setOptions(combinedData);
-                    // Update cache with combined data
+
                     setCachedSearchResult("", combinedData);
                 } else {
                     setOptions(initialData);
@@ -186,9 +182,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
         }
     }, [preloadValue, smartPreloadItem, fetchOptions, setCachedSearchResult]);
 
-    // Initialize component with promise tracking to avoid multiple calls
     useEffect(() => {
-        // Reset initialization when preloadValue changes
         setInitialized(false);
         initializationPromiseRef.current = null;
 
@@ -237,7 +231,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
         value === "all" || value === undefined || value === 0 || value === ""
             ? INTERNAL_ALL_VALUE
             : value.toString();
-    
+
     const handleInternalChange = useCallback((val: string) => {
         onChange(val === INTERNAL_ALL_VALUE ? "all" : val);
         setIsOpen(false);

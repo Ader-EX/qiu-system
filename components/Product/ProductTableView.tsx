@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {Item} from "@/types/types";
 import {formatMoney} from "@/lib/utils";
+import AuditDialog from "@/components/AuditDialog";
+import React from "react";
 
 interface ProductTableViewProps {
     products?: Item[];
@@ -90,6 +92,7 @@ export default function ProductTableView({
                                                 <Edit className="mr-2 h-4 w-4"/>
                                                 Edit
                                             </DropdownMenuItem>
+                                            <AuditDialog id={product.id} type={"ITEM"}/>
                                             <DropdownMenuItem
                                                 onClick={() => {
                                                     if (product && onDelete) onDelete(product.id);

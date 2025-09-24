@@ -12,6 +12,8 @@ import {formatMoney, getStockStatus} from "@/lib/utils";
 import Image from "next/image";
 import carouselone from "@/public/not-found.png";
 import {Item, AttachmentResponse} from "@/types/types";
+import AuditDialog from "@/components/AuditDialog";
+import React from "react";
 
 interface ProductListViewProps {
     products?: Item[];
@@ -90,6 +92,7 @@ export default function ProductListView({
                                                         <Edit className="mr-2 h-4 w-4"/>
                                                         Edit
                                                     </DropdownMenuItem>
+                                                    <AuditDialog id={product.id} type={"ITEM"}/>
                                                     <DropdownMenuItem
                                                         onClick={() => {
                                                             if (onDelete && product) onDelete(product.id);
