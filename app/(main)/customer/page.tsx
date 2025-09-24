@@ -77,18 +77,11 @@ export default function CustomerPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
 
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
-    const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-    const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-        null
-    );
 
     const totalPages = Math.ceil(totalCount / rowsPerPage);
 
     const [formData, setFormData] = useState({
-        code: "",
+
         name: "",
         address: "",
         currency_id: "",
@@ -141,7 +134,7 @@ export default function CustomerPage() {
 
     const resetForm = () => {
         setFormData({
-            code: "",
+
             name: "",
             address: "",
             currency_id: "",
@@ -154,73 +147,6 @@ export default function CustomerPage() {
         return `CUS-${Date.now() % 1000}-${Math.floor(Math.random() * 10)}`;
     };
 
-
-    const closeDialog = () => {
-        setIsDialogOpen(false);
-        setEditingCustomer(null);
-        resetForm();
-    };
-
-    const openDetailDialog = (Customer: Customer) => {
-        setSelectedCustomer(Customer);
-        setDetailDialogOpen(true);
-    };
-
-    const closeDetailDialog = () => {
-        setSelectedCustomer(null);
-        setDetailDialogOpen(false);
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (
-            !formData.name.trim() ||
-            !formData.address.trim() ||
-            !formData.currency_id
-        ) {
-            toast.error("Semua field wajib diisi");
-            return;
-        }
-
-        try {
-            setLoading(true);
-
-            if (dialogMode === "add") {
-                const newCustomerData: CustomerCreate = {
-                    code: formData.code,
-                    name: formData.name,
-                    address: formData.address,
-                    currency_id: parseInt(formData.currency_id),
-
-                    is_active: formData.is_active,
-                };
-
-                await customerService.createCustomer(newCustomerData);
-                toast.success("Customer berhasil ditambahkan!");
-            } else if (editingCustomer) {
-                const updateData: CustomerUpdate = {
-                    id: formData.code,
-                    name: formData.name,
-                    address: formData.address,
-                    currency_id: parseInt(formData.currency_id),
-
-                    is_active: formData.is_active,
-                };
-
-                await customerService.updateCustomer(editingCustomer.code, updateData);
-                toast.success("Customer berhasil diperbarui!");
-            }
-
-            closeDialog();
-            loadCustomers();
-        } catch (error: any) {
-            console.error("Error saving Customer:", error);
-            toast.error(error.detail || "Gagal menyimpan Customer");
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleDelete = async (id: number) => {
         try {
@@ -236,17 +162,7 @@ export default function CustomerPage() {
         }
     };
 
-    const handleInputChange = (
-        field: keyof typeof formData,
-        value: string | boolean
-    ) => {
-        setFormData((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
-    };
 
-    // @ts-ignore
     return (
         <div className="space-y-6">
             <SidebarHeaderBar
