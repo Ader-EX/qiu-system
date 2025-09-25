@@ -34,6 +34,7 @@ import {QuickFormSearchableField} from "@/components/form/FormSearchableField";
 import {DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger} from "../ui/dialog";
 import {Dialog} from "@/components/ui/dialog";
 import {ConfirmationDialog} from "@/components/ConfirmationDialog";
+import {KodeLambungData} from "@/services/kodeLambungService";
 
 const FormSection = ({
                          title,
@@ -60,7 +61,10 @@ const customerSchema = z.object({
     }),
     address: z.string().min(1, "Address is required"),
     kode_lambung: z.string().optional(),
-    kode_lambung_items: z.array(z.string()).optional(),
+    kode_lambung_items: z.array(z.object({
+        id: z.number().optional(),
+        name: z.string(),
+    })).optional(),
 });
 
 type CustomerFormData = z.infer<typeof customerSchema>;
@@ -73,7 +77,7 @@ interface CustomerFormProps {
 export default function CustomerForm({mode, customerId}: CustomerFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [preloadCurrency, setPreloadCurrency] = useState<TOPUnit | null>(null);
-    const [kodeLambungItems, setKodeLambungItems] = useState<string[]>([""]);
+    const [kodeLambungItems, setKodeLambungItems] = useState<KodeLambungData[]>([]);
     const [isDataLoaded, setIsDataLoaded] = useState(false);
     const router = useRouter();
 
@@ -88,10 +92,9 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
             is_active: true,
             currency_id: undefined,
             address: "",
-            kode_lambung_items: [""],
+            kode_lambung_items: [],
         },
     });
-
     useEffect(() => {
         if ((mode !== "edit" && mode !== "view") || !customerId) {
             setIsDataLoaded(true);
@@ -103,11 +106,13 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
                 setIsDataLoaded(false);
                 const data = await customerService.getById(Number(customerId));
 
-                let kodeLambungArray = [""];
-                if (data.kode_lambung_rel) {
-                    if (kodeLambungArray.length === 0) kodeLambungArray = [""];
-                    setKodeLambungItems(data.kode_lambung_rel);
+                // Fix: Properly handle kode lambung array
+                let kodeLambungArray: KodeLambungData[] = [];
+                if (data.kode_lambung_rel && data.kode_lambung_rel.length > 0) {
+                    kodeLambungArray = data.kode_lambung_rel;
                 }
+
+                setKodeLambungItems(kodeLambungArray);
 
                 if (data.curr_rel) {
                     const preloadCurrencyData = {
@@ -118,14 +123,13 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
 
                     setPreloadCurrency(preloadCurrencyData);
 
-                    // Reset form with all data including currency
                     form.reset({
                         code: data.code || "",
                         name: data.name || "",
                         is_active: data.is_active,
                         currency_id: preloadCurrencyData.id,
                         address: data.address || "",
-                        kode_lambung_items: kodeLambungArray,
+                        kode_lambung_items: kodeLambungArray, // Use the actual array
                     });
                 } else {
                     setPreloadCurrency(null);
@@ -135,7 +139,7 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
                         is_active: data.is_active,
                         currency_id: undefined,
                         address: data.address || "",
-                        kode_lambung_items: kodeLambungArray,
+                        kode_lambung_items: kodeLambungArray, // Use the actual array
                     });
                 }
 
@@ -150,13 +154,14 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
     }, [mode, customerId, form]);
 
     const addKodeLambungItem = () => {
-        const newItems = [...kodeLambungItems, ""];
+        const newItems = [...kodeLambungItems, {name: ""}]; // Add proper KodeLambungData object
         setKodeLambungItems(newItems);
         form.setValue("kode_lambung_items", newItems);
     };
 
+
     const removeKodeLambungItem = (index: number) => {
-        if (kodeLambungItems.length === 1) return; // Keep at least one input
+
 
         const newItems = kodeLambungItems.filter((_, i) => i !== index);
         setKodeLambungItems(newItems);
@@ -165,7 +170,7 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
 
     const updateKodeLambungItem = (index: number, value: string) => {
         const newItems = [...kodeLambungItems];
-        newItems[index] = value;
+        newItems[index] = {...newItems[index], name: value}; // Update the name property
         setKodeLambungItems(newItems);
         form.setValue("kode_lambung_items", newItems);
     };
@@ -173,16 +178,23 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
     const onSubmit = async (data: CustomerFormData) => {
         setIsSubmitting(true);
         try {
-            const kodeLambungString = kodeLambungItems
+            // Filter out empty kode lambung items and process them properly
+            const kodeLambungFiltered = kodeLambungItems
                 .filter((item) => item.trim() !== "")
+                .map((item) => item.trim()); // Also trim whitespace
 
             const submitData = {
                 name: data.name,
                 is_active: data.is_active ?? true,
                 currency_id: data.currency_id,
                 address: data.address,
-                kode_lambungs: kodeLambungString || undefined,
+                // Send as array if API expects array, or join as string if it expects string
+                kode_lambungs: kodeLambungFiltered.length > 0 ? kodeLambungFiltered : undefined,
             };
+
+            // Debug log to see what's being sent
+            console.log('Submit data:', submitData);
+            console.log('Kode lambungs:', kodeLambungFiltered);
 
             if (isEditMode && customerId) {
                 await customerService.updateCustomer(customerId, submitData);
@@ -199,7 +211,6 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
             setIsSubmitting(false);
         }
     };
-
     const getPageTitle = () => {
         switch (mode) {
             case "add":
@@ -358,43 +369,62 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
                     {/* Kode Lambung Section */}
                     <FormSection title="Kode Lambung">
                         <div className="md:col-span-2 space-y-3">
-                            <FormLabel>Kode Lambung</FormLabel>
-                            {kodeLambungItems.map((item, index) => (
-                                <div key={index} className="flex items-center space-x-2">
-                                    <div className="flex-1">
-                                        <Input
-                                            placeholder={`Kode ${index + 1}`}
-                                            value={item}
-                                            disabled={isViewMode}
-                                            onChange={(e) =>
-                                                updateKodeLambungItem(index, e.target.value)
-                                            }
-                                        />
-                                    </div>
-                                    {!isViewMode && (
-                                        <div className="flex space-x-1">
-                                            {(kodeLambungItems.length > 1) && (
-                                                <ConfirmationDialog title={"Konfirmasi hapus kode lambung"}
-                                                                    description={"Apakah Anda yakin ingin menghapus kode lambung ini?"}
-                                                                    handleOnClick={() => removeKodeLambungItem(index)}
-                                                />
+                            <div className="flex items-center justify-between">
+                                <FormLabel>Kode Lambung</FormLabel>
+                                {!isViewMode && kodeLambungItems.length === 0 && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={addKodeLambungItem}
+                                        className="px-2"
+                                    >
+                                        <Plus className="w-4 h-4"/>
+                                        <span className="ml-1">Tambah Kode</span>
+                                    </Button>
+                                )}
+                            </div>
 
-                                            )}
-                                            {index === kodeLambungItems.length - 1 && (
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={addKodeLambungItem}
-                                                    className="px-2"
-                                                >
-                                                    <Plus className="w-4 h-4"/>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    )}
+                            {kodeLambungItems.length === 0 ? (
+                                <div className="text-gray-500 italic">
+                                    Tidak ada kode lambung
                                 </div>
-                            ))}
+                            ) : (
+                                kodeLambungItems.map((item, index) => (
+                                    <div key={index} className="flex items-center space-x-2">
+                                        <div className="flex-1">
+                                            <Input
+                                                placeholder={`Kode ${index + 1}`}
+                                                value={item.name}
+                                                disabled={isViewMode}
+                                                onChange={(e) =>
+                                                    updateKodeLambungItem(index, e.target.value)
+                                                }
+                                            />
+                                        </div>
+                                        {!isViewMode && (
+                                            <div className="flex space-x-1">
+                                                <ConfirmationDialog
+                                                    title={"Konfirmasi hapus kode lambung"}
+                                                    description={"Apakah Anda yakin ingin menghapus kode lambung ini?"}
+                                                    handleOnClick={() => removeKodeLambungItem(index)}
+                                                />
+                                                {index === kodeLambungItems.length - 1 && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={addKodeLambungItem}
+                                                        className="px-2"
+                                                    >
+                                                        <Plus className="w-4 h-4"/>
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </FormSection>
 

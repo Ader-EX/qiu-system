@@ -63,6 +63,7 @@ import {
 } from "@/components/ui/popover";
 
 import {format} from "date-fns";
+import AuditDialog from "@/components/AuditDialog";
 
 export default function PenjualanPage() {
     // State management
@@ -403,7 +404,7 @@ export default function PenjualanPage() {
                                                         Lihat Detail
                                                     </Link>
                                                 </DropdownMenuItem>
-                                                <AuditDialog id={penjualan.id} type={"PENJUALAN"}/>
+                                                <AuditDialog id={Number(penjualan.id)} type={"PENJUALAN"}/>
                                                 {penjualan.status_penjualan ===
                                                 StatusPenjualanEnum.DRAFT ? (
                                                     <DropdownMenuItem asChild>

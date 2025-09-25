@@ -1,6 +1,7 @@
 import carouselone from "@/public/carouselone.jpg";
 import {ItemTypeEnum} from "@/services/itemService";
 import {StaticImageData} from "next/image";
+import {KodeLambungData} from "@/services/kodeLambungService";
 
 export interface TOPUnit {
     id: number;
@@ -119,7 +120,7 @@ export interface Customer {
     address: string;
     curr_rel: TOPUnit;
     is_active: boolean;
-    kode_lambung_rel?: string[];
+    kode_lambung_rel?: KodeLambungData[];
 }
 
 export interface SearchableSelectResponse<TId extends string | number> {
