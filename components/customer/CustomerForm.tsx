@@ -181,7 +181,7 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
                 is_active: data.is_active ?? true,
                 currency_id: data.currency_id,
                 address: data.address,
-                kode_lambung: kodeLambungString || undefined,
+                kode_lambungs: kodeLambungString || undefined,
             };
 
             if (isEditMode && customerId) {
