@@ -18,7 +18,7 @@ import {auditService, AuditTrailListResponse} from "@/services/auditService";
 import {Spinner} from "@/components/ui/spinner";
 
 type AuditDialogProps = {
-    id: string;
+    id: string | number;
     type: string;
     dropdownMsg?: string;
 }
@@ -33,7 +33,7 @@ const AuditDialog = ({id, type, dropdownMsg = "Lihat Audit Trail"}: AuditDialogP
         setLoading(true);
         setError(null);
         try {
-            const data = await auditService.getAuditLogsByIdAndType(id, type);
+            const data = await auditService.getAuditLogsByIdAndType(String(id), type);
             setAuditLogs(data);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to fetch audit logs");
@@ -75,7 +75,7 @@ const AuditDialog = ({id, type, dropdownMsg = "Lihat Audit Trail"}: AuditDialogP
     const renderAuditLogs = () => {
         if (!auditLogs || auditLogs.items.length === 0) return null;
 
-        const elements = [];
+        const elements: any[] = [];
 
         auditLogs.items.forEach((log, index) => {
             const isFirstItem = index === 0;

@@ -176,6 +176,7 @@ export interface PenjualanFilters {
     warehouse_id?: number;
     page?: number;
     size?: number;
+    is_picker_view?: boolean
     from_date?: Date;
     to_date?: Date;
 }
@@ -208,6 +209,7 @@ class PenjualanService {
             params.append("from_date", String(filters.from_date));
             params.append("to_date", String(filters.to_date));
         }
+        if (filters.is_picker_view) params.append("is_picker_view", filters.is_picker_view.toString());
 
         const response = await fetch(`${this.baseUrl}?${params}`, {
             headers: this.getAuthHeaders(),

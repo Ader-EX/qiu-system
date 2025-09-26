@@ -154,7 +154,8 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
     }, [mode, customerId, form]);
 
     const addKodeLambungItem = () => {
-        const newItems = [...kodeLambungItems, {name: ""}]; // Add proper KodeLambungData object
+        const newItems = [...kodeLambungItems, {id: undefined, name: ""}]; // Add proper KodeLambungData object
+        // @ts-ignore
         setKodeLambungItems(newItems);
         form.setValue("kode_lambung_items", newItems);
     };
@@ -174,27 +175,39 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
         setKodeLambungItems(newItems);
         form.setValue("kode_lambung_items", newItems);
     };
-
     const onSubmit = async (data: CustomerFormData) => {
         setIsSubmitting(true);
         try {
-            // Filter out empty kode lambung items and process them properly
-            const kodeLambungFiltered = kodeLambungItems
-                .filter((item) => item.trim() !== "")
-                .map((item) => item.trim()); // Also trim whitespace
+            // Process kode lambung items properly for update
+            let kodeLambungForSubmit: any = undefined;
+
+            if (kodeLambungItems.length > 0) {
+                // Filter out empty items and process them
+                const validItems = kodeLambungItems.filter((item) => item.name.trim() !== "");
+
+                if (validItems.length > 0) {
+                    if (isEditMode) {
+                        kodeLambungForSubmit = validItems.map((item) => ({
+                            ...(item.id && {id: item.id}),
+                            name: item.name.trim()
+                        }));
+                    } else {
+                        kodeLambungForSubmit = validItems.map((item) => item.name.trim());
+                    }
+                }
+            }
 
             const submitData = {
                 name: data.name,
                 is_active: data.is_active ?? true,
                 currency_id: data.currency_id,
                 address: data.address,
-                // Send as array if API expects array, or join as string if it expects string
-                kode_lambungs: kodeLambungFiltered.length > 0 ? kodeLambungFiltered : undefined,
+                kode_lambungs: kodeLambungForSubmit,
             };
 
             // Debug log to see what's being sent
             console.log('Submit data:', submitData);
-            console.log('Kode lambungs:', kodeLambungFiltered);
+            console.log('Kode lambungs:', kodeLambungForSubmit);
 
             if (isEditMode && customerId) {
                 await customerService.updateCustomer(customerId, submitData);
@@ -211,6 +224,7 @@ export default function CustomerForm({mode, customerId}: CustomerFormProps) {
             setIsSubmitting(false);
         }
     };
+
     const getPageTitle = () => {
         switch (mode) {
             case "add":

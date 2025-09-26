@@ -79,6 +79,31 @@ export default function PembelianPage() {
         downloadInvoice,
     } = usePrintInvoice();
 
+
+    const getStatusBadge = (status: StatusPembelianEnum) => {
+        const variants = {
+            [StatusPembelianEnum.DRAFT]: {
+                variant: "secondary" as const,
+                label: "Draft",
+            },
+            [StatusPembelianEnum.ACTIVE]: {
+                variant: "yellow" as const,
+                label: "Aktif",
+            },
+            [StatusPembelianEnum.PROCESSED]: {
+                variant: "okay" as const,
+                label: "Processed",
+            },
+            [StatusPembelianEnum.COMPLETED]: {
+                variant: "okay" as const,
+                label: "Selesai",
+            },
+        };
+
+        const config = variants[status];
+        return <Badge variant={config.variant}>{config.label}</Badge>;
+    };
+
     const fetchPembelians = async (filters: PembelianFilters = {}) => {
         try {
             const response = await pembelianService.getAllPembelian({
@@ -149,29 +174,6 @@ export default function PembelianPage() {
         setCurrentPage(1);
     };
 
-    const getStatusBadge = (status: StatusPembelianEnum) => {
-        const variants = {
-            [StatusPembelianEnum.DRAFT]: {
-                variant: "secondary" as const,
-                label: "Draft",
-            },
-            [StatusPembelianEnum.ACTIVE]: {
-                variant: "yellow" as const,
-                label: "Aktif",
-            },
-            [StatusPembelianEnum.PROCESSED]: {
-                variant: "okay" as const,
-                label: "Processed",
-            },
-            [StatusPembelianEnum.COMPLETED]: {
-                variant: "okay" as const,
-                label: "Selesai",
-            },
-        };
-
-        const config = variants[status];
-        return <Badge variant={config.variant}>{config.label}</Badge>;
-    };
 
     const getPaymentStatusBadge = (status: StatusPembayaranEnum) => {
         const variants = {

@@ -55,6 +55,7 @@ import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {format} from "date-fns";
 import {Calendar as CalendarComponent} from "@/components/ui/calendar";
 import AuditDialog from "@/components/AuditDialog";
+import {StatusPembelianEnum} from "@/services/pembelianService";
 
 export default function PengembalianPage() {
     const [pengembalians, setPengembalians] = useState<PengembalianResponse[]>([]);
@@ -148,25 +149,6 @@ export default function PengembalianPage() {
         }
     };
 
-    const getStatusBadge = (status: string) => {
-        const variants = {
-            DRAFT: {
-                variant: "secondary" as const,
-                label: "Draft",
-            },
-            ACTIVE: {
-                variant: "okay" as const,
-                label: "Aktif",
-            },
-        };
-
-        const config = variants[status as keyof typeof variants] || {
-            variant: "secondary" as const,
-            label: status,
-        };
-        return <Badge variant={config.variant}>{config.label}</Badge>;
-    };
-
     // Helper function to get reference numbers from pengembalian_details
     const getReferenceNumbers = (pengembalian: PengembalianResponse) => {
         if (
@@ -202,6 +184,31 @@ export default function PengembalianPage() {
     const handleRowsPerPageChange = (newRowsPerPage: number) => {
         setRowsPerPage(newRowsPerPage);
         setCurrentPage(1); // Reset to first page when changing page size
+    };
+
+
+    const getStatusBadge = (status: StatusPembelianEnum) => {
+        const variants = {
+            [StatusPembelianEnum.DRAFT]: {
+                variant: "secondary" as const,
+                label: "Draft",
+            },
+            [StatusPembelianEnum.ACTIVE]: {
+                variant: "yellow" as const,
+                label: "Aktif",
+            },
+            [StatusPembelianEnum.PROCESSED]: {
+                variant: "okay" as const,
+                label: "Processed",
+            },
+            [StatusPembelianEnum.COMPLETED]: {
+                variant: "okay" as const,
+                label: "Selesai",
+            },
+        };
+
+        const config = variants[status];
+        return <Badge variant={config.variant}>{config.label}</Badge>;
     };
 
     const formatDate = (dateString: string) => {
@@ -452,7 +459,7 @@ export default function PengembalianPage() {
                                                 </DropdownMenuItem>
                                             )}
 
-                                            <AuditDialog id={pengembalian.id} type={"PENGEMBALIAN"}/>
+                                            <AuditDialog id={Number(pengembalian.id)} type={"PENGEMBALIAN"}/>
 
 
                                             {pengembalian.status === "DRAFT" && (

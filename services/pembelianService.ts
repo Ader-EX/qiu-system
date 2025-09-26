@@ -182,6 +182,7 @@ export interface PembelianFilters {
     size?: number;
     from_date?: string;
     to_date?: string;
+    is_picker_view?: boolean
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -221,6 +222,7 @@ class PembelianService {
             params.append("warehouse_id", filters.warehouse_id.toString());
         if (filters.page) params.append("page", filters.page.toString());
         if (filters.size) params.append("size", filters.size.toString());
+        if (filters.is_picker_view) params.append("is_picker_view", filters.is_picker_view.toString());
         if (filters.from_date && filters.to_date) {
             params.append("from_date", String(filters.from_date));
             params.append("to_date", String(filters.to_date));

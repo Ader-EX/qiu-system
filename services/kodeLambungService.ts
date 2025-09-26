@@ -8,6 +8,12 @@ export type KodeLambungData = {
     name: string;
 };
 
+export type KodeLambungUpdateData = {
+    id?: number;
+    name: string;
+};
+
+
 export type KodeLambungListResponse = {
     data: KodeLambungData[];
     total: number;

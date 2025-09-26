@@ -2,6 +2,8 @@
 
 import {Customer} from "@/types/types";
 import Cookies from "js-cookie";
+import {KodeLambungData, KodeLambungUpdateData} from "@/services/kodeLambungService";
+import {param} from "ts-interface-checker";
 
 export interface CustomerCreate {
     name: string;
@@ -15,7 +17,7 @@ export interface CustomerUpdate {
     id?: string;
     name?: string;
     address?: string;
-    kode_lambungs?: string[];
+    kode_lambungs?: KodeLambungUpdateData[];
     currency_id?: number;
     is_active?: boolean;
 }
@@ -70,8 +72,12 @@ class CustomerService {
         return response.json();
     }
 
-    async getById(id: number): Promise<Customer> {
-        const response = await fetch(`${this.baseUrl}/${id}`, {
+    async getById(id: number, is_kodelambung_active?: boolean): Promise<Customer> {
+        const params = new URLSearchParams();
+
+        if (is_kodelambung_active) params.append("is_kodelambung_active", String(is_kodelambung_active));
+        params.append("contains_deleted", "false")
+        const response = await fetch(`${this.baseUrl}/${id}?${params}`, {
             method: "GET",
             headers: this.getAuthHeaders(),
         });
