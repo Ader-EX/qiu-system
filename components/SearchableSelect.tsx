@@ -22,6 +22,7 @@ interface SearchableSelectProps<T extends { id: number | string }> {
 }
 
 const INTERNAL_ALL_VALUE = "__all__";
+const MIN_SEARCH_LENGTH = 3;
 
 export default function SearchableSelect<T extends { id: number | string }>({
                                                                                 label,
@@ -201,8 +202,6 @@ export default function SearchableSelect<T extends { id: number | string }>({
             initializationPromiseRef.current = initialize();
         }
     }, [initialize, initialized]);
-
-    // Handle search input changes with optimized debouncing
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const newSearchTerm = e.target.value;
         setSearchTerm(newSearchTerm);
@@ -210,6 +209,16 @@ export default function SearchableSelect<T extends { id: number | string }>({
         // Clear existing timeout
         if (debounceTimeoutRef.current) {
             clearTimeout(debounceTimeoutRef.current);
+        }
+
+        // Don't search if less than MIN_SEARCH_LENGTH characters (but allow empty string for reset)
+        if (newSearchTerm.length > 0 && newSearchTerm.length < MIN_SEARCH_LENGTH) {
+            // Still show cached empty results if available when user has typed less than 3 chars
+            const cachedInitial = getCachedSearchResult("");
+            if (cachedInitial) {
+                setOptions(cachedInitial);
+            }
+            return;
         }
 
         // Check cache immediately for instant response
@@ -226,7 +235,6 @@ export default function SearchableSelect<T extends { id: number | string }>({
         }, 300);
     }, [fetchOptions, getCachedSearchResult]);
 
-    // Handle value changes
     const internalValue =
         value === "all" || value === undefined || value === 0 || value === ""
             ? INTERNAL_ALL_VALUE
@@ -260,9 +268,9 @@ export default function SearchableSelect<T extends { id: number | string }>({
         }
     }, [searchTerm, getCachedSearchResult, fetchOptions]);
 
-    // Event handlers to prevent dropdown closing
-    const handleInputMouseDown = useCallback((e: React.MouseEvent) => {
+    const handleInputMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
         e.stopPropagation();
+        e.preventDefault();
     }, []);
 
     const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -320,6 +328,8 @@ export default function SearchableSelect<T extends { id: number | string }>({
                     <div
                         className="p-2 sticky top-0 bg-background border-b z-10"
                         onMouseDown={handleInputMouseDown}
+                        onTouchStart={handleInputMouseDown}
+                        onTouchEnd={(e) => e.stopPropagation()}
                     >
                         <Input
                             ref={searchInputRef}
@@ -328,13 +338,21 @@ export default function SearchableSelect<T extends { id: number | string }>({
                             onChange={handleSearchChange}
                             onKeyDown={handleInputKeyDown}
                             onMouseDown={handleInputMouseDown}
+                            onTouchStart={handleInputMouseDown}
+                            onTouchEnd={(e) => e.stopPropagation()}
                             onFocus={(e) => e.stopPropagation()}
                             className="w-full"
                             autoComplete="off"
                             autoCorrect="off"
                             autoCapitalize="off"
                             spellCheck="false"
+                            type="text"
                         />
+                        {searchTerm.length > 0 && searchTerm.length < MIN_SEARCH_LENGTH && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Ketik minimal {MIN_SEARCH_LENGTH} karakter untuk mencari
+                            </p>
+                        )}
                     </div>
 
                     <SelectItem

@@ -44,7 +44,7 @@ const itemSchema = z.object({
     }),
     name: z.string().min(1, "Name is required"),
     sku: z.string().min(1, "SKU is required"),
-    total_item: z.coerce.number().min(1, "Total item must be at least 1"), // Changed from 0 to 1
+    total_item: z.coerce.number().min(0, "Total item must be at least 0").default(0), // Changed from 0 to 1
     price: z.coerce.number().min(0, "Price must be 0 or greater"),
     satuan_id: z.coerce.number({
         required_error: "Satuan is required"
@@ -59,7 +59,8 @@ type ItemFormData = z.infer<typeof itemSchema>;
 interface AddEditItemDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (itemData: FormData) => Promise<void>; // Made async to handle loading
+    onSave: (itemData: FormData) => Promise<void>;
+    isEdit?: boolean;
     item?: Partial<Item> | null;
     satuanService: any;
     kategoriService: any;
@@ -68,6 +69,7 @@ interface AddEditItemDialogProps {
 const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                                                  isOpen,
                                                                  onClose,
+                                                                 isEdit = false,
                                                                  onSave,
                                                                  item = null,
                                                                  satuanService,
@@ -83,7 +85,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
             type: "" as ItemTypeEnum,
             name: "",
             sku: "",
-            total_item: 1,
+            total_item: 0,
             price: 0,
             satuan_id: 0,
 
@@ -106,7 +108,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 type: item.type || ("" as ItemTypeEnum),
                 name: item.name || "",
                 sku: item.sku || "",
-                total_item: item.total_item || 1,
+                total_item: item.total_item || 0,
                 price: item.price || 0,
                 satuan_id:
                     typeof item.satuan_rel === "object"
@@ -129,7 +131,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 type: "" as ItemTypeEnum,
                 name: "",
                 sku: "",
-                total_item: 1,
+                total_item: 0,
                 price: 0,
                 satuan_id: undefined,
 
@@ -295,7 +297,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                         <Select
                                             onValueChange={field.onChange}
                                             value={field.value}
-                                            disabled={isSubmitting}
+                                            disabled={isSubmitting || isEdit}
                                         >
                                             <FormControl>
                                                 <SelectTrigger>
@@ -369,9 +371,9 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                placeholder="1"
-                                                min="1"
-                                                disabled={isSubmitting}
+                                                placeholder="0"
+                                                min="0"
+                                                disabled
                                                 {...field}
                                                 onChange={(e) => field.onChange(Number(e.target.value))}
                                             />

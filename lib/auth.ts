@@ -49,7 +49,6 @@ const refreshTokens = async (): Promise<boolean> => {
     }
 };
 
-// Store original fetch
 const originalFetch = window.fetch;
 let isRefreshing = false;
 const refreshQueue: Array<{ resolve: Function; reject: Function; requestInfo: any; requestInit: any }> = [];
@@ -62,7 +61,6 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
         return originalFetch(input, init);
     }
 
-    // Add auth token to headers
     const token = Cookies.get('access_token');
     if (token && !isTokenExpired(token)) {
         init = {

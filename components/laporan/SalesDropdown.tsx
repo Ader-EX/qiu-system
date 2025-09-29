@@ -3,7 +3,7 @@ import React, {useState} from "react";
 import {Button} from "@/components/ui/button";
 import {Download, Calendar as CalendarIcon} from "lucide-react";
 import {format} from "date-fns";
-import {cn, formatMoney} from "@/lib/utils";
+import {formatMoney} from "@/lib/utils";
 import {LaporanPenjualanRows, utilsService} from "@/services/utilsService";
 import {Spinner} from "../ui/spinner";
 import GlobalPaginationFunction from "../pagination-global";
@@ -238,13 +238,13 @@ const SalesDropdown = () => {
                         value={customerId}
                         onChange={(value) => setCustomerId(Number(value))}
                         fetchData={async (search) => {
-                            const response = await customerService.getAllCustomers({
+                            return await customerService.getAllCustomers({
                                 page: 0,
                                 rowsPerPage: 10,
                                 contains_deleted: false,
                                 search_key: search,
                             });
-                            return response;
+                            
                         }}
                         renderLabel={(item: any) =>
                             `${item.code} - ${item.name} ${
@@ -380,7 +380,7 @@ const SalesDropdown = () => {
                                                 <div title={row.customer}>{row.customer}</div>
                                             </TableCell>
                                             <TableCell className="px-3 py-4">
-                                                {row.kode_lambung || "-"}
+                                                {row.kode_lambung_rel || "-"}
                                             </TableCell>
                                             <TableCell className="px-3 py-4">
                                                 {row.no_penjualan}
