@@ -989,7 +989,12 @@ export default function PembelianForm({
                           {Number(form.watch(`items.0.tax_percentage`)) || 0}%)
                         </TableHead>
                         <TableHead>Grand Total</TableHead>
-                        <TableHead className="bg-gray-400/10">Ongkir</TableHead>
+                        <TableHead className="bg-gray-400/10">
+                          Harga Ongkir Satuan
+                        </TableHead>
+                        <TableHead className="bg-gray-400/10">
+                          Total Ongkir
+                        </TableHead>
                         <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1269,6 +1274,28 @@ export default function PembelianForm({
                               />
                             </TableCell>
 
+                            <TableCell className="bg-gray-400/10">
+                              <span>
+                                {(() => {
+                                  const qty =
+                                    Number(form.watch(`items.${index}.qty`)) ||
+                                    0;
+                                  const ongkir =
+                                    Number(
+                                      form.watch(`items.${index}.ongkir`)
+                                    ) || 0;
+                                  const lineOngkir = qty * ongkir;
+
+                                  return formatMoney(
+                                    lineOngkir,
+                                    "IDR",
+                                    "id-ID",
+                                    "nosymbol"
+                                  );
+                                })()}
+                              </span>
+                            </TableCell>
+
                             <TableCell>
                               <Button
                                 disabled={isViewMode}
@@ -1506,6 +1533,7 @@ export default function PembelianForm({
         open={isItemDialogOpen}
         onOpenChange={setIsItemDialogOpen}
         onSelect={handleAddItem}
+        canDisabledBePicked={true}
       />
     </div>
   );

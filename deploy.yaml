@@ -1,0 +1,31 @@
+name: CI/CD to VPS (Next.js + Nginx)
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} << 'EOF'
+          cd /root/nextjs-app
+          git pull
+          docker stop nextjs-container || true
+          docker rm nextjs-container || true
+          docker build -t nextjs-app .
+          docker run -d -p 80:80 \
+            --name nextjs-container \
+            nextjs-app
+          EOF
