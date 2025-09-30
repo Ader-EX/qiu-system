@@ -21,7 +21,7 @@ import SearchableSelect from "../SearchableSelect";
 import {customerService} from "@/services/customerService";
 import {kodeLambungService} from "@/services/kodeLambungService";
 
-const formatDate = (dateString: any) => {
+export const formatDate = (dateString: any) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
         day: "2-digit",
         month: "2-digit",
@@ -244,7 +244,7 @@ const SalesDropdown = () => {
                                 contains_deleted: false,
                                 search_key: search,
                             });
-                            
+
                         }}
                         renderLabel={(item: any) =>
                             `${item.code} - ${item.name} ${

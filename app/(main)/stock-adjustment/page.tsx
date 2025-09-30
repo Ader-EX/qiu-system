@@ -12,6 +12,7 @@ import {
     Search as SearchIcon,
     RefreshCw,
     Calendar,
+    CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
 import {Button} from "@/components/ui/button";
@@ -46,15 +47,13 @@ import {
 
 import GlobalPaginationFunction from "@/components/pagination-global";
 import toast from "react-hot-toast";
-import {cn, formatMoney} from "@/lib/utils";
-
-import {usePrintInvoice} from "@/hooks/usePrintInvoice";
+import {cn} from "@/lib/utils";
 
 import {
-    PembayaranFilters,
-    PembayaranResponse,
-    pembayaranService,
-} from "@/services/pembayaranService";
+    StockAdjustmentQueryParams,
+    StockAdjustmentResponse,
+    stockAdjustmentService
+} from "@/services/adjustmentService";
 import {
     Popover,
     PopoverContent,
@@ -62,46 +61,47 @@ import {
 } from "@/components/ui/popover";
 import {format} from "date-fns";
 import AuditDialog from "@/components/AuditDialog";
-import {StockAdjustmentResponse, stockAdjustmentService} from "@/services/adjustmentService";
+import {Spinner} from "@/components/ui/spinner";
+
 
 export default function StockAdjustmentPage() {
-    const [adjustments, setAdjustments] = useState<StockAdjustmentResponse[]>([]);
+    const [adjustmentsData, setAdjustmentsData] = useState<StockAdjustmentResponse[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [searchInput, setSearchInput] = useState("");
     const [fromDate, setFromDate] = useState<Date | undefined>();
     const [toDate, setToDate] = useState<Date | undefined>();
+    const [totalItems, setTotalItems] = useState(0)
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [adjustmentsType, setAdjustmentsType] = useState("");
     const [adjustmentsStatus, setAdjustmentsStatus] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
 
-    const adjustments = async (filters: PembayaranFilters = {}) => {
+    const loadAdjustments = async (filters: StockAdjustmentQueryParams = {}) => {
         setIsLoading(true);
         try {
             const response = await stockAdjustmentService.getStockAdjustments({
                 ...filters,
-                page: currentPage,
-                size: rowsPerPage,
+                skip: (currentPage - 1) * rowsPerPage,
+                limit: rowsPerPage,
             });
 
-            setAdjustments(response.data);
+            setAdjustmentsData(response.data);
             setTotalItems(response.total);
         } catch (err) {
             const errorMsg =
-                err instanceof Error ? err.message : "Gagal memuat data pembayaran";
+                err instanceof Error ? err.message : "Gagal memuat data stock adjustment";
             toast.error(errorMsg);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Build filters object - removed searchTerm from automatic filters
-    const buildAutoFilters = (): PembayaranFilters => {
-        const filters: PembayaranFilters = {};
+    const buildAutoFilters = (): StockAdjustmentQueryParams => {
+        const filters: StockAdjustmentQueryParams = {};
 
         if (adjustmentsType && adjustmentsType !== "ALL") {
-            filters.tipe_referensi = adjustmentsType;
+            filters.adjustment_type = adjustmentsType;
         }
         if (adjustmentsStatus && adjustmentsStatus !== "ALL") {
             filters.status = adjustmentsStatus;
@@ -115,20 +115,20 @@ export default function StockAdjustmentPage() {
     };
 
     // Build filters with search term for manual search
-    const buildSearchFilters = (): PembayaranFilters => {
+    const buildSearchFilters = (): StockAdjustmentQueryParams => {
         const filters = buildAutoFilters();
 
         if (searchTerm) {
-            filters.search_key = searchTerm;
+            filters.search = searchTerm;
         }
 
         return filters;
     };
 
-    // Effect for fetching data when filters or pagination changes (excluding searchTerm)
+    // Effect for fetching data when filters or pagination changes
     useEffect(() => {
         const filters = buildSearchFilters();
-        adjustments(filters);
+        loadAdjustments(filters);
     }, [currentPage, adjustmentsType, adjustmentsStatus, rowsPerPage]);
 
     useEffect(() => {
@@ -138,20 +138,20 @@ export default function StockAdjustmentPage() {
     }, [adjustmentsType, adjustmentsStatus]);
 
     const handleDeleteClick = (id: number) => {
-        confirmDelete(id).then(() => toast.success("Pembayaran berhasil dihapus!"));
+        confirmDelete(id).then(() => toast.success("Stock adjustment berhasil dihapus!"));
     };
 
     const confirmDelete = async (id: number) => {
         if (!id) return;
 
         try {
-            await pembayaranService.deletePembayaran(id);
+            await stockAdjustmentService.deleteStockAdjustment(id);
             // Refresh with current filters including search
             const filters = buildSearchFilters();
-            await adjustments(filters);
+            await loadAdjustments(filters);
         } catch (err) {
             const errorMsg =
-                err instanceof Error ? err.message : "Gagal menghapus pembayaran";
+                err instanceof Error ? err.message : "Gagal menghapus stock adjustment";
             toast.error(errorMsg);
         }
     };
@@ -166,6 +166,14 @@ export default function StockAdjustmentPage() {
                 variant: "okay" as const,
                 label: "Aktif",
             },
+            IN: {
+                variant: "okay" as const,
+                label: "In",
+            },
+            OUT: {
+                variant: "destructive" as const,
+                label: "Out",
+            },
         };
 
         const config = variants[status as keyof typeof variants] || {
@@ -173,42 +181,6 @@ export default function StockAdjustmentPage() {
             label: status,
         };
         return <Badge variant={config.variant}>{config.label}</Badge>;
-    };
-
-    // Helper function to get reference numbers from pembayaran_details
-    const getReferenceNumbers = (pembayaran: PembayaranResponse) => {
-        if (
-            !pembayaran.pembayaran_details ||
-            pembayaran.pembayaran_details.length === 0
-        ) {
-            return "-";
-        }
-
-        const references: string[] = [];
-
-        pembayaran.pembayaran_details.forEach((detail) => {
-            if (detail.pembelian_id && detail.pembelian_rel) {
-                references.push(detail.pembelian_rel.no_pembelian);
-            }
-            if (detail.penjualan_id && detail.penjualan_rel) {
-                references.push(detail.penjualan_rel.no_penjualan);
-            }
-        });
-
-        return references.length > 0 ? references.join(", ") : "-";
-    };
-
-    const getTotalPayment = (pembayaran: PembayaranResponse) => {
-        if (
-            !pembayaran.pembayaran_details ||
-            pembayaran.pembayaran_details.length === 0
-        ) {
-            return 0;
-        }
-
-        return pembayaran.pembayaran_details.reduce((total, detail) => {
-            return total + parseFloat(detail.total_paid || "0");
-        }, 0);
     };
 
     const handleRowsPerPageChange = (newRowsPerPage: number) => {
@@ -231,9 +203,9 @@ export default function StockAdjustmentPage() {
         setCurrentPage(1);
         const filters = buildAutoFilters();
         if (searchInput.trim()) {
-            filters.search_key = searchInput.trim();
+            filters.search = searchInput.trim();
         }
-        await adjustments(filters);
+        await loadAdjustments(filters);
     };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -242,15 +214,15 @@ export default function StockAdjustmentPage() {
         }
     };
 
-    const handleRollback = async (pembayaranId: number) => {
+    const handleActivate = async (adjustmentId: number) => {
         try {
-            await pembayaranService.rollbackPembayaran(pembayaranId);
-            toast.success("Pembayaran berhasil dikembalikan ke draft");
+            await stockAdjustmentService.activateStockAdjustment(adjustmentId);
+            toast.success("Entri berhasil diaktifkan");
             const filters = buildSearchFilters();
-            await adjustments(filters);
+            await loadAdjustments(filters);
         } catch (err) {
             const errorMsg =
-                err instanceof Error ? err.message : "Gagal rollback pembayaran";
+                err instanceof Error ? err.message : "Gagal mengaktifkan stock adjustment";
             toast.error(errorMsg);
         }
     };
@@ -258,13 +230,13 @@ export default function StockAdjustmentPage() {
     return (
         <div className="space-y-6">
             <SidebarHeaderBar
-                title="Pembayaran"
+                title="Stock Adjustment"
                 rightContent={
                     <HeaderActions.ActionGroup>
                         <Button size="sm" asChild>
-                            <Link href="/pembayaran/add">
+                            <Link href="/stock-adjustment/add">
                                 <Plus className="h-4 w-4 mr-2"/>
-                                Tambah Pembayaran
+                                Tambah Stock Adjustment
                             </Link>
                         </Button>
                     </HeaderActions.ActionGroup>
@@ -278,7 +250,7 @@ export default function StockAdjustmentPage() {
                         <Search
                             className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                         <Input
-                            placeholder="Cari Pembayaran..."
+                            placeholder="Cari Stock Adjustment..."
                             value={searchInput}
                             onChange={(e) => setSearchInput(e.target.value)}
                             onKeyDown={handleSearchKeyDown}
@@ -344,17 +316,17 @@ export default function StockAdjustmentPage() {
                 <div className="flex items-center space-x-2">
                     <Select value={adjustmentsType} onValueChange={setAdjustmentsType}>
                         <SelectTrigger className="w-40">
-                            <SelectValue placeholder="Tipe Pembayaran"/>
+                            <SelectValue placeholder="Tipe Adjustment"/>
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="ALL">Semua Tipe</SelectItem>
-                            <SelectItem value="PENJUALAN">PENJUALAN</SelectItem>
-                            <SelectItem value="PEMBELIAN">PEMBELIAN</SelectItem>
+                            <SelectItem value="IN">IN</SelectItem>
+                            <SelectItem value="OUT">OUT</SelectItem>
                         </SelectContent>
                     </Select>
 
                     <Select value={adjustmentsStatus} onValueChange={setAdjustmentsStatus}>
-                        <SelectTrigger className="w-70">
+                        <SelectTrigger className="w-40">
                             <SelectValue placeholder="Status"/>
                         </SelectTrigger>
                         <SelectContent>
@@ -363,65 +335,51 @@ export default function StockAdjustmentPage() {
                             <SelectItem value="ACTIVE">Aktif</SelectItem>
                         </SelectContent>
                     </Select>
-
-
                 </div>
             </div>
 
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>No Pembayaran</TableHead>
-                        <TableHead>No. Referensi</TableHead>
-                        <TableHead>Tipe Referensi</TableHead>
+                        <TableHead>No Adjustment</TableHead>
                         <TableHead>Tanggal</TableHead>
-                        <TableHead>Nama Klien</TableHead>
-                        <TableHead>Total Pembayaran</TableHead>
-                        <TableHead>Status Transaksi</TableHead>
+                        <TableHead>Tipe Adjustment</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8">
-                                <p className="text-muted-foreground">Loading...</p>
+                            <TableCell colSpan={5} className="text-center py-8">
+                                <Spinner/>
                             </TableCell>
                         </TableRow>
-                    ) : adjustments.length === 0 ? (
+                    ) : adjustmentsData.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8">
+                            <TableCell colSpan={5} className="text-center py-8">
                                 <p className="text-muted-foreground">
                                     {searchTerm || adjustmentsType || adjustmentsStatus
-                                        ? "Tidak ada pembayaran yang cocok dengan filter"
-                                        : "Belum ada data pembayaran"}
+                                        ? "Tidak ada stock adjustment yang cocok dengan filter"
+                                        : "Belum ada data stock adjustment"}
                                 </p>
                             </TableCell>
                         </TableRow>
                     ) : (
-                        adjustments.map((pembayaran) => (
-                            <TableRow key={pembayaran.id}>
+                        adjustmentsData.map((adj) => (
+                            <TableRow key={adj.id}>
                                 <TableCell className="font-medium">
-                                    <span className="font-mono">{pembayaran.no_pembayaran}</span>
+                                    <span className="font-mono">{adj.no_adjustment}</span>
                                 </TableCell>
                                 <TableCell>
-                  <span className="font-mono text-sm">
-                    {getReferenceNumbers(pembayaran)}
-                  </span>
+                                    <span className="font-mono text-sm">
+                                        {formatDate(adj.adjustment_date)}
+                                    </span>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant="okay">{pembayaran.reference_type}</Badge>
+                                    {getStatusBadge(adj.adjustment_type)}
                                 </TableCell>
-                                <TableCell>{formatDate(pembayaran.payment_date)}</TableCell>
-                                <TableCell>
-                                    {pembayaran?.vend_rel?.name ||
-                                        pembayaran?.customer_rel?.name ||
-                                        "-"}
-                                </TableCell>
-                                <TableCell>
-                                    {formatMoney(getTotalPayment(pembayaran))}
-                                </TableCell>
-                                <TableCell>{getStatusBadge(pembayaran.status)}</TableCell>
+                                <TableCell>{getStatusBadge(adj.status_adjustment)}</TableCell>
                                 <TableCell className="text-right">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -431,36 +389,36 @@ export default function StockAdjustmentPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem asChild>
-                                                <Link href={`/pembayaran/${pembayaran.id}/view`}>
+                                                <Link href={`/stock-adjustment/${adj.id}/view`}>
                                                     <Eye className="mr-2 h-4 w-4"/>
                                                     Lihat Detail
                                                 </Link>
                                             </DropdownMenuItem>
 
-                                            {pembayaran.status === "ACTIVE" && (
-                                                <DropdownMenuItem
-                                                    onClick={() => handleRollback(pembayaran.id)}
-                                                    className="text-destructive hover:text-destructive/90"
-                                                >
-                                                    <RefreshCw className="mr-2 h-4 w-4"/>
-                                                    Kembali ke Draft
-                                                </DropdownMenuItem>
+                                            {adj.status_adjustment === "DRAFT" && (
+                                                <>
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleActivate(adj.id)}
+                                                        className="text-green-600 hover:text-green-700"
+                                                    >
+                                                        <CheckCircle className="mr-2 h-4 w-4"/>
+                                                        Aktifkan
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuItem asChild>
+                                                        <Link href={`/stock-adjustment/${adj.id}/edit`}>
+                                                            <Edit className="mr-2 h-4 w-4"/>
+                                                            Edit
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                </>
                                             )}
 
-                                            {pembayaran.status === "DRAFT" && (
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={`/pembayaran/${pembayaran.id}/edit`}>
-                                                        <Edit className="mr-2 h-4 w-4"/>
-                                                        Edit
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                            )}
-                                            <AuditDialog id={pembayaran.id} type={"PEMBAYARAN"}/>
-                                            {pembayaran.status === "DRAFT" && (
+                                            <AuditDialog id={adj.id} type={"STOCK_ADJUSTMENT"}/>
+
+                                            {adj.status_adjustment === "DRAFT" && (
                                                 <DropdownMenuItem
-                                                    onClick={() =>
-                                                        handleDeleteClick(Number(pembayaran.id))
-                                                    }
+                                                    onClick={() => handleDeleteClick(Number(adj.id))}
                                                     className="text-red-600"
                                                 >
                                                     <Trash2 className="mr-2 h-4 w-4"/>

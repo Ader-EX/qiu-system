@@ -18,6 +18,11 @@ export type StockAdjustmentItemResponse = {
     item_rel?: Item;
 }
 
+export enum AdjustmentType {
+    IN = "IN",
+    OUT = "OUT"
+}
+
 
 export type StockAdjustmentCreate = {
     adjustment_type: string; // "IN" or "OUT"
@@ -69,7 +74,7 @@ export type StockAdjustmentQueryParams = {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 class StockAdjustmentService {
-    private baseUrl = `${API_BASE_URL}/stock-adjustments`;
+    private baseUrl = `${API_BASE_URL}/stock-adjustment`;
 
     /**
      * Get list of stock adjustments with filtering
@@ -173,8 +178,8 @@ class StockAdjustmentService {
      * Activate a stock adjustment (change status to ACTIVE)
      */
     async activateStockAdjustment(id: number): Promise<StockAdjustmentResponse> {
-        const response = await fetch(`${this.baseUrl}/${id}/activate`, {
-            method: "POST",
+        const response = await fetch(`${this.baseUrl}/${id}/finalize`, {
+            method: "put",
             headers: this.getAuthHeaders(),
         });
 
