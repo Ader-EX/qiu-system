@@ -47,10 +47,14 @@ export default function SearchableSelect<T extends { id: number | string }>({
     const currentSearchRef = useRef("");
     const searchInputRef = useRef<HTMLInputElement>(null);
     const initializationPromiseRef = useRef<Promise<void> | null>(null);
-    const preventCloseRef = useRef(false);
 
     // Cache TTL (5 minutes)
     const CACHE_TTL = 5 * 60 * 1000;
+
+    // Detect if device is mobile
+    const isMobile = useCallback(() => {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }, []);
 
     // Check if cache entry is still valid
     const isCacheValid = useCallback((timestamp: number) => {
@@ -131,7 +135,6 @@ export default function SearchableSelect<T extends { id: number | string }>({
         }
 
         // Fall back to searching in initial data (empty search)
-        // This might already be cached from previous calls
         try {
             const initialData = await fetchOptions("");
             const foundItem = initialData.find(
@@ -164,7 +167,6 @@ export default function SearchableSelect<T extends { id: number | string }>({
                 if (!exists) {
                     const combinedData = [preloadedItem, ...initialData];
                     setOptions(combinedData);
-
                     setCachedSearchResult("", combinedData);
                 } else {
                     setOptions(initialData);
@@ -206,7 +208,6 @@ export default function SearchableSelect<T extends { id: number | string }>({
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const newSearchTerm = e.target.value;
         setSearchTerm(newSearchTerm);
-        preventCloseRef.current = true;
 
         // Clear existing timeout
         if (debounceTimeoutRef.current) {
@@ -249,26 +250,18 @@ export default function SearchableSelect<T extends { id: number | string }>({
 
     // Handle dropdown open/close
     const handleOpenChange = useCallback((open: boolean) => {
-        if (!open && preventCloseRef.current) {
-            preventCloseRef.current = false;
-            return;
-        }
-
         setIsOpen(open);
 
         if (open) {
-            // Delay focus to prevent immediate keyboard triggering on mobile
+            // Delay focus to ensure dropdown is fully rendered
             setTimeout(() => {
-                if (searchInputRef.current) {
-                    // On mobile, don't auto-focus to prevent keyboard issues
-                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                    if (!isMobile) {
-                        searchInputRef.current.focus();
-                    }
+                if (searchInputRef.current && !isMobile()) {
+                    // Only auto-focus on desktop
+                    searchInputRef.current.focus();
                 }
-            }, 150);
+            }, 100);
         } else {
-            preventCloseRef.current = false;
+            // Reset search when closing
             if (searchTerm) {
                 setSearchTerm("");
                 // Reset to cached initial options if available
@@ -281,46 +274,32 @@ export default function SearchableSelect<T extends { id: number | string }>({
                 }
             }
         }
-    }, [searchTerm, getCachedSearchResult, fetchOptions]);
+    }, [searchTerm, getCachedSearchResult, fetchOptions, isMobile]);
 
-    const handleInputMouseDown = useCallback((e: React.MouseEvent) => {
-        e.preventDefault();
+    // Handle search input interactions
+    const handleInputClick = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        preventCloseRef.current = true;
-    }, []);
+        // On mobile, manually focus the input when clicked
+        if (isMobile() && searchInputRef.current) {
+            searchInputRef.current.focus();
+        }
+    }, [isMobile]);
 
-    const handleInputTouchStart = useCallback((e: React.TouchEvent) => {
+    const handleInputFocus = useCallback((e: React.FocusEvent) => {
         e.stopPropagation();
-        preventCloseRef.current = true;
-    }, []);
-
-    const handleInputPointerDown = useCallback((e: React.PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        preventCloseRef.current = true;
-    }, []);
-
-    const handleInputFocus = useCallback(() => {
-        preventCloseRef.current = true;
-    }, []);
-
-    const handleInputBlur = useCallback(() => {
-        // Small delay before allowing close
-        setTimeout(() => {
-            preventCloseRef.current = false;
-        }, 200);
     }, []);
 
     const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => {
         e.stopPropagation();
+        // Allow escape to close the dropdown
         if (e.key === 'Escape') {
             searchInputRef.current?.blur();
             setIsOpen(false);
         }
-    }, []);
-
-    const handleContentInteract = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-        e.stopPropagation();
+        // Prevent dropdown from processing these keys
+        if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+        }
     }, []);
 
     // Cleanup
@@ -365,18 +344,25 @@ export default function SearchableSelect<T extends { id: number | string }>({
                 <SelectContent
                     className="max-h-[300px] overflow-y-auto"
                     onCloseAutoFocus={(e) => e.preventDefault()}
+                    onInteractOutside={(e) => {
+                        // Prevent closing when interacting with the search input
+                        const target = e.target as HTMLElement;
+                        if (target === searchInputRef.current || searchInputRef.current?.contains(target)) {
+                            e.preventDefault();
+                        }
+                    }}
                     onPointerDownOutside={(e) => {
-                        if (preventCloseRef.current) {
+                        // Prevent closing when clicking on the search input
+                        const target = e.target as HTMLElement;
+                        if (target === searchInputRef.current || searchInputRef.current?.contains(target)) {
                             e.preventDefault();
                         }
                     }}
                 >
                     <div
                         className="p-2 sticky top-0 bg-background border-b z-10"
-                        onPointerDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
                     >
                         <input
                             ref={searchInputRef}
@@ -384,18 +370,17 @@ export default function SearchableSelect<T extends { id: number | string }>({
                             value={searchTerm}
                             onChange={handleSearchChange}
                             onKeyDown={handleInputKeyDown}
-                            onMouseDown={handleInputMouseDown}
-                            onTouchStart={handleInputTouchStart}
-                            onPointerDown={handleInputPointerDown}
+                            onClick={handleInputClick}
                             onFocus={handleInputFocus}
-                            onBlur={handleInputBlur}
-                            onClick={handleContentInteract}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             autoComplete="off"
                             autoCorrect="off"
                             autoCapitalize="off"
                             spellCheck="false"
-                            type="text"
+                            type="search"
+                            inputMode="search"
                         />
                         {searchTerm.length > 0 && searchTerm.length < MIN_SEARCH_LENGTH && (
                             <p className="text-xs text-muted-foreground mt-1">
