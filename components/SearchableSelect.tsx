@@ -48,6 +48,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
     const currentSearchRef = useRef("");
     const searchInputRef = useRef<HTMLInputElement>(null);
     const initializationPromiseRef = useRef<Promise<void> | null>(null);
+    const preventCloseRef = useRef(false);
 
     // Cache TTL (5 minutes)
     const CACHE_TTL = 5 * 60 * 1000;
@@ -202,9 +203,11 @@ export default function SearchableSelect<T extends { id: number | string }>({
             initializationPromiseRef.current = initialize();
         }
     }, [initialize, initialized]);
+
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const newSearchTerm = e.target.value;
         setSearchTerm(newSearchTerm);
+        preventCloseRef.current = true;
 
         // Clear existing timeout
         if (debounceTimeoutRef.current) {
@@ -247,13 +250,26 @@ export default function SearchableSelect<T extends { id: number | string }>({
 
     // Handle dropdown open/close
     const handleOpenChange = useCallback((open: boolean) => {
+        if (!open && preventCloseRef.current) {
+            preventCloseRef.current = false;
+            return;
+        }
+
         setIsOpen(open);
 
         if (open) {
+            // Delay focus to prevent immediate keyboard triggering on mobile
             setTimeout(() => {
-                searchInputRef.current?.focus();
-            }, 100);
+                if (searchInputRef.current) {
+                    // On mobile, don't auto-focus to prevent keyboard issues
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    if (!isMobile) {
+                        searchInputRef.current.focus();
+                    }
+                }
+            }, 150);
         } else {
+            preventCloseRef.current = false;
             if (searchTerm) {
                 setSearchTerm("");
                 // Reset to cached initial options if available
@@ -270,16 +286,30 @@ export default function SearchableSelect<T extends { id: number | string }>({
 
     const handleInputMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
         e.stopPropagation();
-        e.preventDefault();
+        preventCloseRef.current = true;
+    }, []);
+
+    const handleInputFocus = useCallback(() => {
+        preventCloseRef.current = true;
+    }, []);
+
+    const handleInputBlur = useCallback(() => {
+        // Small delay before allowing close
+        setTimeout(() => {
+            preventCloseRef.current = false;
+        }, 200);
     }, []);
 
     const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => {
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-            e.stopPropagation();
-        }
+        e.stopPropagation();
         if (e.key === 'Escape') {
+            searchInputRef.current?.blur();
             setIsOpen(false);
         }
+    }, []);
+
+    const handleContentInteract = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+        e.stopPropagation();
     }, []);
 
     // Cleanup
@@ -324,12 +354,17 @@ export default function SearchableSelect<T extends { id: number | string }>({
                 <SelectContent
                     className="max-h-[300px] overflow-y-auto"
                     onCloseAutoFocus={(e) => e.preventDefault()}
+                    onPointerDownOutside={(e) => {
+                        if (preventCloseRef.current) {
+                            e.preventDefault();
+                        }
+                    }}
                 >
                     <div
                         className="p-2 sticky top-0 bg-background border-b z-10"
                         onMouseDown={handleInputMouseDown}
                         onTouchStart={handleInputMouseDown}
-                        onTouchEnd={(e) => e.stopPropagation()}
+                        onClick={handleContentInteract}
                     >
                         <Input
                             ref={searchInputRef}
@@ -339,8 +374,9 @@ export default function SearchableSelect<T extends { id: number | string }>({
                             onKeyDown={handleInputKeyDown}
                             onMouseDown={handleInputMouseDown}
                             onTouchStart={handleInputMouseDown}
-                            onTouchEnd={(e) => e.stopPropagation()}
-                            onFocus={(e) => e.stopPropagation()}
+                            onFocus={handleInputFocus}
+                            onBlur={handleInputBlur}
+                            onClick={handleContentInteract}
                             className="w-full"
                             autoComplete="off"
                             autoCorrect="off"
