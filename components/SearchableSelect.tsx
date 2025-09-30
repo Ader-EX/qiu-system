@@ -349,21 +349,13 @@ export default function SearchableSelect<T extends { id: number | string }>({
                     <SelectValue placeholder={placeholder}/>
                 </SelectTrigger>
                 <SelectContent
-                    forceMount
+                    forcemount="true"
                     position={"popper"}
                     className="max-h-[300px] overflow-y-auto"
 
-                    onOpenAutoFocus={(e) => e.preventDefault()}
+                  
                     onCloseAutoFocus={(e) => e.preventDefault()}
 
-                    onInteractOutside={(e) => {
-                        // If the interaction is inside/with the input, don’t treat as outside
-                        const t = e.target as HTMLElement;
-                        if (searchInputRef.current && (t === searchInputRef.current || searchInputRef.current.contains(t))) {
-                            e.preventDefault();
-                            preventCloseRef.current = true;
-                        }
-                    }}
                     onPointerDownOutside={(e) => {
                         const t = e.target as HTMLElement;
                         if (searchInputRef.current && (t === searchInputRef.current || searchInputRef.current.contains(t))) {
@@ -372,7 +364,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
                         }
                     }}
                 >
-                    
+
                     <div
                         className="p-2 sticky top-0 bg-background border-b z-10"
                         onPointerDown={(e) => {
@@ -437,7 +429,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
                     </div>
 
                     <SelectItem
-                        disabled
+
                         className="opacity-50"
                         value={INTERNAL_ALL_VALUE}
                     >
