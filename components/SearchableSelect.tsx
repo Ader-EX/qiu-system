@@ -45,6 +45,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
     const searchCacheRef = useRef<Map<string, { data: T[]; timestamp: number }>>(new Map());
     const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const currentSearchRef = useRef("");
+    const preventCloseRef = useRef(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const initializationPromiseRef = useRef<Promise<void> | null>(null);
 
@@ -59,6 +60,13 @@ export default function SearchableSelect<T extends { id: number | string }>({
     // Check if cache entry is still valid
     const isCacheValid = useCallback((timestamp: number) => {
         return Date.now() - timestamp < CACHE_TTL;
+    }, []);
+    const markInteracting = useCallback(() => {
+        preventCloseRef.current = true;
+        // Clear after a tick so normal outside clicks can close again
+        window.setTimeout(() => {
+            preventCloseRef.current = false;
+        }, 200);
     }, []);
 
     // Get cached search results if valid
@@ -250,21 +258,21 @@ export default function SearchableSelect<T extends { id: number | string }>({
 
     // Handle dropdown open/close
     const handleOpenChange = useCallback((open: boolean) => {
+        // Ignore closes that happen while the input is interacting
+        if (!open && preventCloseRef.current) return;
+
         setIsOpen(open);
 
         if (open) {
-            // Delay focus to ensure dropdown is fully rendered
+            // Delay focus so Radix finishes opening
             setTimeout(() => {
-                if (searchInputRef.current && !isMobile()) {
-                    // Only auto-focus on desktop
-                    searchInputRef.current.focus();
-                }
+                // Don’t use UA sniffing here; focusing input on mobile triggers keyboard and may cause scroll -> close
+                if (searchInputRef.current) searchInputRef.current.focus({preventScroll: true});
             }, 100);
         } else {
-            // Reset search when closing
+            // Reset search when closing (same as you had)
             if (searchTerm) {
                 setSearchTerm("");
-                // Reset to cached initial options if available
                 const cachedInitial = getCachedSearchResult("");
                 if (cachedInitial && currentSearchRef.current !== "") {
                     setOptions(cachedInitial);
@@ -274,8 +282,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
                 }
             }
         }
-    }, [searchTerm, getCachedSearchResult, fetchOptions, isMobile]);
-
+    }, [searchTerm, getCachedSearchResult, fetchOptions]);
     // Handle search input interactions
     const handleInputClick = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
@@ -335,46 +342,86 @@ export default function SearchableSelect<T extends { id: number | string }>({
                 value={internalValue}
                 onValueChange={handleInternalChange}
                 disabled={disabled}
-                open={isOpen}
+                open={isOpen} l
                 onOpenChange={handleOpenChange}
             >
                 <SelectTrigger>
                     <SelectValue placeholder={placeholder}/>
                 </SelectTrigger>
                 <SelectContent
+                    forceMount
+                    position={"popper"}
                     className="max-h-[300px] overflow-y-auto"
+
+                    onOpenAutoFocus={(e) => e.preventDefault()}
                     onCloseAutoFocus={(e) => e.preventDefault()}
+
                     onInteractOutside={(e) => {
-                        // Prevent closing when interacting with the search input
-                        const target = e.target as HTMLElement;
-                        if (target === searchInputRef.current || searchInputRef.current?.contains(target)) {
+                        // If the interaction is inside/with the input, don’t treat as outside
+                        const t = e.target as HTMLElement;
+                        if (searchInputRef.current && (t === searchInputRef.current || searchInputRef.current.contains(t))) {
                             e.preventDefault();
+                            preventCloseRef.current = true;
                         }
                     }}
                     onPointerDownOutside={(e) => {
-                        // Prevent closing when clicking on the search input
-                        const target = e.target as HTMLElement;
-                        if (target === searchInputRef.current || searchInputRef.current?.contains(target)) {
+                        const t = e.target as HTMLElement;
+                        if (searchInputRef.current && (t === searchInputRef.current || searchInputRef.current.contains(t))) {
                             e.preventDefault();
+                            preventCloseRef.current = true;
                         }
                     }}
                 >
+                    
                     <div
                         className="p-2 sticky top-0 bg-background border-b z-10"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onTouchStart={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => {
+                            e.stopPropagation();
+                            preventCloseRef.current = true;
+                        }}
+                        onTouchStart={(e) => {
+                            e.stopPropagation();
+                            preventCloseRef.current = true;
+                        }}
+                        onWheel={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
                     >
                         <input
                             ref={searchInputRef}
                             placeholder={`Cari ${label.toLowerCase()}...`}
                             value={searchTerm}
                             onChange={handleSearchChange}
-                            onKeyDown={handleInputKeyDown}
-                            onClick={handleInputClick}
-                            onFocus={handleInputFocus}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onTouchStart={(e) => e.stopPropagation()}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            onFocus={(e) => {
+                                e.stopPropagation();
+                                markInteracting();
+                            }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                markInteracting();
+                            }}
+                            onPointerDown={(e) => {
+                                e.stopPropagation();
+                                markInteracting();
+                            }}
+                            onTouchStart={(e) => {
+                                e.stopPropagation();
+                                markInteracting();
+                            }}
+                            onKeyDown={(e) => {
+                                e.stopPropagation();
+                                markInteracting();
+                                if (e.key === 'Escape') {
+                                    searchInputRef.current?.blur();
+                                    setIsOpen(false);
+                                }
+                                if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp') e.preventDefault();
+                            }}
+
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm
+                        ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium
+                        placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2
+                        focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed
+                        disabled:opacity-50"
                             autoComplete="off"
                             autoCorrect="off"
                             autoCapitalize="off"
