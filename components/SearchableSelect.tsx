@@ -284,7 +284,19 @@ export default function SearchableSelect<T extends { id: number | string }>({
         }
     }, [searchTerm, getCachedSearchResult, fetchOptions]);
 
-    const handleInputMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    const handleInputMouseDown = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        preventCloseRef.current = true;
+    }, []);
+
+    const handleInputTouchStart = useCallback((e: React.TouchEvent) => {
+        e.stopPropagation();
+        preventCloseRef.current = true;
+    }, []);
+
+    const handleInputPointerDown = useCallback((e: React.PointerEvent) => {
+        e.preventDefault();
         e.stopPropagation();
         preventCloseRef.current = true;
     }, []);
@@ -362,9 +374,10 @@ export default function SearchableSelect<T extends { id: number | string }>({
                 >
                     <div
                         className="p-2 sticky top-0 bg-background border-b z-10"
-                        onMouseDown={handleInputMouseDown}
-                        onTouchStart={handleInputMouseDown}
-                        onClick={handleContentInteract}
+                        onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }}
                     >
                         <Input
                             ref={searchInputRef}
@@ -373,7 +386,8 @@ export default function SearchableSelect<T extends { id: number | string }>({
                             onChange={handleSearchChange}
                             onKeyDown={handleInputKeyDown}
                             onMouseDown={handleInputMouseDown}
-                            onTouchStart={handleInputMouseDown}
+                            onTouchStart={handleInputTouchStart}
+                            onPointerDown={handleInputPointerDown}
                             onFocus={handleInputFocus}
                             onBlur={handleInputBlur}
                             onClick={handleContentInteract}
