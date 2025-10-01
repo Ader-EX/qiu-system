@@ -53,6 +53,28 @@ export type DashboardData = {
     percentage_month_penjualan: number;
     status_month_penjualan: string;
 };
+
+
+export interface StockAdjustmentItem {
+    date: string;
+    no_transaksi: string;
+    item_code: string;
+    item_name: string;
+    qty_masuk: number;
+    qty_keluar: number;
+    qty_balance: number;
+    harga_masuk: number;
+    harga_keluar: number;
+    hpp: number;
+}
+
+export interface StockAdjustmentReport {
+    title: string;
+    date_from: string;
+    date_to: string;
+    data: StockAdjustmentItem[];
+}
+
 const NEXT_PUBLIC_API_URL =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -230,6 +252,65 @@ class UtilsService {
         const blob = await response.blob();
         return window.URL.createObjectURL(blob);
     }
+
+
+    async getLaporanStockAdjustment(
+        from_date: Date,
+        to_date: Date,
+        skip: number = 0,
+        limit: number = 100
+    ): Promise<PaginatedResponse<StockAdjustmentItem>> {
+        const params = new URLSearchParams({
+            from_date: from_date.toISOString().split("T")[0],
+            to_date: to_date.toISOString().split("T")[0],
+            skip: skip.toString(),
+            limit: limit.toString(),
+        });
+
+        const url = this.baseUrl + `/stock-adjustment?${params.toString()}`;
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                headers: this.getAuthHeaders(),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch laporan: ${response.statusText}`);
+            }
+
+            const result =
+                (await response.json()) as PaginatedResponse<StockAdjustmentItem>;
+            return result;
+        } catch (error) {
+            console.error("Error fetching laporan:", error);
+            throw error;
+        }
+    }
+
+    async downloadLaporanStockAdjustment(
+        from_date: Date,
+        to_date: Date
+    ): Promise<string> {
+        const params = new URLSearchParams({
+            from_date: from_date.toISOString().split("T")[0],
+            to_date: to_date.toISOString().split("T")[0],
+        });
+
+        const url = this.baseUrl + `/stock-adjustment/download?${params.toString()}`;
+
+        const response = await fetch(url, {
+            method: "GET",
+            headers: this.getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to download report: ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        return window.URL.createObjectURL(blob);
+    }
+
 
     private getAuthHeaders(): HeadersInit {
         const token = Cookies.get("access_token");
