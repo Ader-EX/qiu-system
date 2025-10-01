@@ -227,57 +227,6 @@ export default function WarehousePage() {
             className="pl-7 w-full"
           />
         </div>
-
-        <div className="flex gap-2">
-          {/* From Date */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-[140px] justify-start text-left font-normal",
-                  !fromDate && "text-muted-foreground"
-                )}
-              >
-                <Calendar className="mr-2 h-4 w-6" />
-                {fromDate ? format(fromDate, "dd/MM/yyyy") : "Tgl Mulai"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <CalendarComponent
-                mode="single"
-                selected={fromDate}
-                onSelect={setFromDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          <span className="self-center">-</span>
-          {/* To Date */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-[140px] justify-start text-left font-normal",
-                  !toDate && "text-muted-foreground"
-                )}
-              >
-                <Calendar className="mr-2 h-4 w-6" />
-                {toDate ? format(toDate, "dd/MM/yyyy") : "Tgl Selesai"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <CalendarComponent
-                mode="single"
-                selected={toDate}
-                onSelect={setToDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
         <Button onClick={handleSearch} disabled={loading}>
           <SearchIcon className="mr-2 h-4 w-4" /> Cari
         </Button>

@@ -292,57 +292,6 @@ export default function JenisPembayaranPage() {
           />
         </div>
 
-        {/* Date Range Filters */}
-        <div className="flex gap-2">
-          {/* From Date */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-[140px] justify-start text-left font-normal",
-                  !fromDate && "text-muted-foreground"
-                )}
-              >
-                <Calendar className="mr-2 h-4 w-6" />
-                {fromDate ? format(fromDate, "dd/MM/yyyy") : "Tgl Mulai"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <CalendarComponent
-                mode="single"
-                selected={fromDate}
-                onSelect={setFromDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          <span className="self-center">-</span>
-          {/* To Date */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-[140px] justify-start text-left font-normal",
-                  !toDate && "text-muted-foreground"
-                )}
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                {toDate ? format(toDate, "dd/MM/yyyy") : "Tgl Selesai"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <CalendarComponent
-                mode="single"
-                selected={toDate}
-                onSelect={setToDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
         {/* Action Buttons */}
         <Button onClick={handleSearch} disabled={loading}>
           <SearchIcon className="mr-2 h-4 w-4" />
