@@ -695,7 +695,9 @@ export default function PembelianForm({
               name="sales_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Purchase Date</FormLabel>
+                  <FormLabel>
+                    Purchase Date <span className="text-red-500">*</span>
+                  </FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -751,7 +753,9 @@ export default function PembelianForm({
               name="sales_due_date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Purchase Due Date</FormLabel>
+                  <FormLabel>
+                    Purchase Due Date <span className="text-red-500">*</span>
+                  </FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -794,6 +798,7 @@ export default function PembelianForm({
               control={form.control}
               name="vendor_id"
               type="vendor"
+              isRequired={true}
               label="Vendor"
               placeholder="Pilih Vendor"
               disabled={isViewMode}
@@ -804,6 +809,7 @@ export default function PembelianForm({
               name="warehouse_id"
               type="warehouse"
               label="Warehouse"
+              isRequired={true}
               placeholder="Pilih Warehouse"
               disabled={isViewMode}
             />
@@ -813,6 +819,7 @@ export default function PembelianForm({
               name="sumberdana_id"
               type="sumberdana"
               label="Sumber Dana"
+              isRequired={true}
               placeholder="Pilih Sumber Dana"
               disabled={isViewMode}
             />
@@ -821,7 +828,9 @@ export default function PembelianForm({
               name="currency_amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Currency</FormLabel>
+                  <FormLabel>
+                    Currency <span className="text-red-500">*</span>
+                  </FormLabel>
                   <FormControl>
                     <NumericFormat
                       customInput={Input}
@@ -852,6 +861,7 @@ export default function PembelianForm({
               control={form.control}
               name="top_id"
               type="payment_type"
+              isRequired={true}
               label="Jenis Pembayaran"
               placeholder="Pilih Jenis Pembayaran"
               disabled={isViewMode}
