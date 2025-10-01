@@ -831,6 +831,7 @@ export default function PembelianForm({
                       inputMode="decimal"
                       disabled={isViewMode}
                       placeholder="1.00"
+                      prefix="Rp"
                       value={field.value ?? ""} // Use field.value directly
                       onValueChange={(values) => {
                         // Handle the conversion properly

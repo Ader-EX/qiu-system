@@ -686,6 +686,7 @@ export default function PenjualanForm({
                       inputMode="decimal"
                       disabled={isViewMode}
                       placeholder="1.00"
+                      prefix="Rp"
                       value={field.value ?? ""} // Use field.value directly
                       onValueChange={(values) => {
                         const numericValue = Number(values.floatValue ?? 1);
