@@ -184,10 +184,7 @@ const FIELD_CONFIGS: Record<string, SearchableFieldConfig> = {
       const response = await customerService.getById(Number(id));
       return { id: response.id, code: response.code, name: response.name };
     },
-    renderLabel: (item: any) =>
-      `${item.code} - ${item.name} ${
-        item?.curr_rel?.symbol ? `(${item.curr_rel.symbol})` : ""
-      }`,
+    renderLabel: (item: any) => `${item.code} - ${item.name} }`,
   },
   warehouse: {
     fetchData: (includeDeleted) => async (search) => {

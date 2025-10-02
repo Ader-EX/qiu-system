@@ -77,6 +77,24 @@ class StockAdjustmentService {
   private baseUrl = `${API_BASE_URL}/stock-adjustment`;
 
   /**
+   * Helper function to read error body and throw a compatible error object
+   */
+  private async handleError(response: Response, action: string): Promise<void> {
+    // 1. Read the JSON body to get the detail before throwing. Use .catch to handle non-JSON responses.
+    const errorBody = await response.json().catch(() => ({}));
+
+    // 2. Create a generic Error object.
+    const error = new Error(`Error ${action}: ${response.statusText}`);
+
+    // 3. CRITICAL: Manually attach the detailed response data
+    //    using the Axios error structure (e.response.data)
+    //    so the Canvas handler can find it.
+    (error as any).response = { data: errorBody };
+
+    throw error;
+  }
+
+  /**
    * Get list of stock adjustments with filtering
    */
   async getStockAdjustments(
@@ -107,9 +125,7 @@ class StockAdjustmentService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Error fetching stock adjustments: ${response.statusText}`
-      );
+      await this.handleError(response, "fetching stock adjustments");
     }
 
     return response.json();
@@ -125,9 +141,7 @@ class StockAdjustmentService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Error fetching stock adjustment: ${response.statusText}`
-      );
+      await this.handleError(response, "fetching stock adjustment");
     }
 
     return response.json();
@@ -146,9 +160,7 @@ class StockAdjustmentService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Error creating stock adjustment: ${response.statusText}`
-      );
+      await this.handleError(response, "creating stock adjustment");
     }
 
     return response.json();
@@ -168,9 +180,7 @@ class StockAdjustmentService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Error updating stock adjustment: ${response.statusText}`
-      );
+      await this.handleError(response, "updating stock adjustment");
     }
 
     return response.json();
@@ -186,9 +196,7 @@ class StockAdjustmentService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Error deleting stock adjustment: ${response.statusText}`
-      );
+      await this.handleError(response, "deleting stock adjustment");
     }
 
     return response.json();
@@ -204,9 +212,20 @@ class StockAdjustmentService {
     });
 
     if (!response.ok) {
-      throw new Error(
+      // 1. Read the JSON body to get the detail before throwing.
+      const errorBody = await response.json().catch(() => ({}));
+
+      // 2. Create a generic Error object.
+      const error = new Error(
         `Error activating stock adjustment: ${response.statusText}`
       );
+
+      // 3. CRITICAL: Manually attach the detailed response data
+      //    using the Axios error structure (e.response.data)
+      //    so the Canvas handler can find it.
+      (error as any).response = { data: errorBody };
+
+      throw error;
     }
 
     return response.json();
@@ -219,9 +238,7 @@ class StockAdjustmentService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Error activating stock adjustment: ${response.statusText}`
-      );
+      await this.handleError(response, "rolling back stock adjustment");
     }
 
     return response.json();
@@ -249,12 +266,13 @@ class StockAdjustmentService {
     if (!response.ok) {
       // Try to get error message from response
       let errorMessage = `HTTP error! status: ${response.status}`;
+      let errorData: any; // Used to potentially attach to the error object if needed
 
       try {
         // Check if response is JSON (error response)
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
-          const errorData = await response.json();
+          errorData = await response.json();
           errorMessage = errorData.detail || errorMessage;
         } else {
           // If not JSON, get text

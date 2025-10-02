@@ -474,8 +474,11 @@ export default function SearchableSelect<T extends { id: number | string }>({
               Loading...
             </div>
           ) : options.length > 0 ? (
-            options.map((item) => (
-              <SelectItem key={item.id} value={item.id.toString()}>
+            options.map((item, index) => (
+              <SelectItem
+                key={`${item.id} + ${index}`}
+                value={item.id.toString()}
+              >
                 {renderLabel(item)}
               </SelectItem>
             ))

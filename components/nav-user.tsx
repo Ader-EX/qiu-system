@@ -45,7 +45,7 @@ export function NavUser({
               size="sm"
               onClick={() => {
                 Cookies.remove("access_token");
-
+                Cookies.remove("refresh_token");
                 Cookies.remove("token_type");
                 router.push("/login");
               }}

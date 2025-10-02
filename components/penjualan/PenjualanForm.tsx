@@ -86,9 +86,27 @@ const penjualanSchema = z.object({
   no_penjualan: z.string().optional(),
   warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
   customer_id: z
-    .union([z.string(), z.number()])
-    .transform((v) => String(v))
-    .refine((s) => s.trim().length > 0 && s !== "0", "Customer harus dipilih"),
+    .union([
+      z.string(),
+      z.number(),
+      z.object({
+        id: z.union([z.string(), z.number()]),
+        code: z.string().optional(),
+        name: z.string().optional(),
+        curr_rel: z.any().optional(),
+      }),
+    ])
+    .refine((val) => {
+      if (typeof val === "string") return val.trim().length > 0 && val !== "0";
+      if (typeof val === "number") return val > 0;
+      if (typeof val === "object" && val.id) return true;
+      return false;
+    }, "Customer harus dipilih")
+    .transform((val) => {
+      if (typeof val === "object") return String(val.id);
+      return String(val);
+    }),
+
   kode_lambung_id: z.coerce.number().min(1, "Kode Lambung harus diisi"),
   top_id: z.coerce.number().min(1, "Jenis Pembayaran harus dipilih"),
   sales_date: z.date({ required_error: "Sales Date harus diisi" }),
@@ -216,7 +234,6 @@ export default function PenjualanForm({
       }, 300),
     [form]
   );
-
   useEffect(() => {
     if ((mode !== "edit" && mode !== "view") || !penjualanId) return;
 
@@ -227,7 +244,13 @@ export default function PenjualanForm({
         const formData: PenjualanFormData = {
           no_penjualan: data.no_penjualan,
           warehouse_id: Number(data.warehouse_id),
-          customer_id: String(data.customer_id),
+          // FIX: preload customer_id as object, not just string
+          customer_id: {
+            id: data.customer_id,
+            code: data.customer_rel?.code,
+            name: data.customer_rel?.name,
+            curr_rel: data.customer_rel?.curr_rel,
+          } as any,
           top_id: Number(data.top_id),
           sales_date: new Date(data.sales_date),
           sales_due_date: new Date(data.sales_due_date),
@@ -242,20 +265,18 @@ export default function PenjualanForm({
             qty: Number(item.qty),
             unit_price: Number(item.unit_price),
             unit_price_rmb: Number(item.unit_price_rmb),
-
             discount: Number(item.discount ?? 0),
             tax_percentage: Number(item.tax_percentage ?? 10),
           })),
           attachments: [],
         } as any;
 
-        // Select list visual data
         setSelectedItems(
           data.penjualan_items.map((item: any) => ({
             id: Number(item.item_id),
             code: item.item_code ?? item.item_rel?.code ?? "",
             name: item.item_name ?? item.item_rel?.name ?? "",
-            price: Number(item.unit_price), // before tax
+            price: Number(item.unit_price),
           }))
         );
 
@@ -269,15 +290,6 @@ export default function PenjualanForm({
 
         setTimeout(() => {
           form.reset(formData);
-          console.log(
-            "typeof customer_id after reset:",
-            typeof form.getValues("customer_id")
-          );
-          console.log("Form values after reset:", form.getValues());
-          console.log(
-            "Customer ID from form after reset:",
-            form.getValues("customer_id")
-          );
         }, 400);
       } catch (error: any) {
         toast.error(error.message || "Failed to load sales data");
@@ -716,6 +728,7 @@ export default function PenjualanForm({
               name="top_id"
               type="payment_type"
               isRequired={true}
+              disabled={isViewMode}
               label="Jenis Pembayaran"
               placeholder="Pilih Jenis Pembayaran"
             />
@@ -736,6 +749,7 @@ export default function PenjualanForm({
           </FormSection>
 
           {/* Attachments Section */}
+          {/* Attachments Section */}
           <FormSection title="Lampiran">
             {(isEditMode || isViewMode) && (
               <div className="md:col-span-2 space-y-3">
@@ -750,13 +764,15 @@ export default function PenjualanForm({
                         <div className="flex items-center space-x-3 truncate">
                           <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
                           <button
-                            onClick={() =>
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               penjualanService.triggerDownload(
                                 penjualanId!,
                                 att.id,
                                 att.filename
-                              )
-                            }
+                              );
+                            }}
                             className="text-sm font-medium hover:underline truncate text-left"
                           >
                             {att.filename}
@@ -789,27 +805,63 @@ export default function PenjualanForm({
                 control={form.control}
                 name="attachments"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {isEditMode ? "Add New Attachments" : ""}
-                    </FormLabel>
-                    <FormControl>
-                      <FileUploadButton
-                        disabled={!isActive}
-                        value={field.value || []}
-                        onChangeAction={field.onChange}
-                        maxFiles={3}
-                        maxSizeMB={4}
-                        accept={{ "application/pdf": [".pdf"] }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <>
+                    <FormItem>
+                      <FormLabel>
+                        {isEditMode ? "Add New Attachments" : ""}
+                      </FormLabel>
+                      <FormControl>
+                        <FileUploadButton
+                          value={field.value || []}
+                          onChangeAction={field.onChange}
+                          maxFiles={3}
+                          maxSizeMB={4}
+                          accept={{ "application/pdf": [".pdf"] }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                    {(isEditMode || isViewMode) &&
+                      penjualanId &&
+                      field.value &&
+                      field.value.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="mt-2"
+                          disabled={isSubmitting}
+                          onClick={async () => {
+                            setIsSubmitting(true);
+                            try {
+                              await handleAttachmentUpload(
+                                field.value,
+                                Number(penjualanId)
+                              );
+                              toast.success(
+                                "Attachments uploaded successfully"
+                              );
+                              field.onChange([]);
+                              const data = await penjualanService.getById(
+                                Number(penjualanId)
+                              );
+                              setExistingAttachments(data.attachments || []);
+                            } catch (error: any) {
+                              toast.error(
+                                error.message || "Failed to upload attachments"
+                              );
+                            } finally {
+                              setIsSubmitting(false);
+                            }
+                          }}
+                        >
+                          Upload Attachments Only
+                        </Button>
+                      )}
+                  </>
                 )}
               />
             </div>
           </FormSection>
-
           {/* Item Details */}
           <div className="flex w-full justify-between items-center">
             <CardTitle className="text-lg">Detail Item</CardTitle>

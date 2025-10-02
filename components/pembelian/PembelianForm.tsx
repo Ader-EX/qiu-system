@@ -791,7 +791,6 @@ export default function PembelianForm({
               )}
             />
           </FormSection>
-
           {/* Warehouse & Vendor */}
           <FormSection title="Gudang & Vendor">
             <QuickFormSearchableField
@@ -854,7 +853,6 @@ export default function PembelianForm({
               )}
             />
           </FormSection>
-
           {/* Payment Information */}
           <FormSection title="Informasi Pembayaran">
             <QuickFormSearchableField
@@ -882,8 +880,7 @@ export default function PembelianForm({
               )}
             />
           </FormSection>
-
-          {/* Attachments Section */}
+          {/* Attachments Section */} {/* Attachments Section */}
           <FormSection title="Lampiran">
             {(isEditMode || isViewMode) && (
               <div className="md:col-span-2 space-y-3">
@@ -939,28 +936,64 @@ export default function PembelianForm({
                 control={form.control}
                 name="attachments"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {isEditMode ? "Add New Attachments" : ""}
-                    </FormLabel>
-                    <FormControl>
-                      <FileUploadButton
-                        value={field.value || []}
-                        onChangeAction={field.onChange}
-                        maxFiles={3}
-                        maxSizeMB={4}
-                        accept={{ "application/pdf": [".pdf"] }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <>
+                    <FormItem>
+                      <FormLabel>
+                        {isEditMode ? "Add New Attachments" : ""}
+                      </FormLabel>
+                      <FormControl>
+                        <FileUploadButton
+                          value={field.value || []}
+                          onChangeAction={field.onChange}
+                          maxFiles={3}
+                          maxSizeMB={4}
+                          accept={{ "application/pdf": [".pdf"] }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                    {(isEditMode || isViewMode) &&
+                      pembelianId &&
+                      field.value &&
+                      field.value.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="mt-2"
+                          disabled={isSubmitting}
+                          onClick={async () => {
+                            setIsSubmitting(true);
+                            try {
+                              await handleAttachmentUpload(
+                                field.value,
+                                Number(pembelianId)
+                              );
+                              toast.success(
+                                "Attachments uploaded successfully"
+                              );
+                              field.onChange([]);
+                              const data = await pembelianService.getById(
+                                Number(pembelianId)
+                              );
+                              setExistingAttachments(data.attachments || []);
+                            } catch (error: any) {
+                              toast.error(
+                                error.message || "Failed to upload attachments"
+                              );
+                            } finally {
+                              setIsSubmitting(false);
+                            }
+                          }}
+                        >
+                          Upload Attachments Only
+                        </Button>
+                      )}
+                  </>
                 )}
               />
             </div>
           </FormSection>
-
           {/* Item Details */}
-
           <div className="flex w-full justify-between items-center">
             <CardTitle className="text-lg">Detail Item</CardTitle>
             {!isViewMode && (
@@ -974,7 +1007,6 @@ export default function PembelianForm({
               </Button>
             )}
           </div>
-
           {fields.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Belum ada item ditambahkan
@@ -1473,7 +1505,6 @@ export default function PembelianForm({
               </div>
             </div>
           )}
-
           {!isViewMode ? (
             <div className="flex justify-end space-x-4 pt-6 border-t">
               <Button
