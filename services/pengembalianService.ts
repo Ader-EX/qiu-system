@@ -1,6 +1,6 @@
 import Cookies from "js-cookie";
 import {PaginatedResponse} from "@/types/types";
-import {Attachment} from "@/services/pembelianService";
+import {Attachment, StatusPembelianEnum} from "@/services/pembelianService";
 import {PembayaranFilters} from "./pembayaranService";
 
 export type PengembalianType = {
@@ -99,7 +99,7 @@ export type PengembalianDetail = {
 export type PengembalianResponse = {
     id: number;
     no_pengembalian: string;
-    status: string;
+    status: StatusPembelianEnum;
     created_at: string;
     payment_date: string;
     reference_type: string;

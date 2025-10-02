@@ -273,8 +273,8 @@ export default function PembayaranPage() {
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex space-x-2">
-                    <div className="relative max-w-sm">
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative min-w-[100px]">
                         <Search
                             className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                         <Input
@@ -293,7 +293,7 @@ export default function PembayaranPage() {
                                 <Button
                                     variant="outline"
                                     className={cn(
-                                        "w-[140px] justify-start text-left font-normal",
+                                        "flex w-full justify-start text-left font-normal",
                                         !fromDate && "text-muted-foreground"
                                     )}
                                 >
@@ -317,7 +317,7 @@ export default function PembayaranPage() {
                                 <Button
                                     variant="outline"
                                     className={cn(
-                                        "w-[140px] justify-start text-left font-normal",
+                                        "flex w-full justify-start text-left font-normal",
                                         !toDate && "text-muted-foreground"
                                     )}
                                 >

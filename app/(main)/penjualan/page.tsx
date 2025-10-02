@@ -118,14 +118,6 @@ export default function PenjualanPage() {
         fetchPenjualans(filters);
     }, [currentPage, statusPenjualan, statusPembayaran, rowsPerPage]);
 
-    const filteredPenjualans = pembelians.filter(
-        (penjualan) =>
-            penjualan.no_penjualan.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (penjualan.customer_name
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
-                false)
-    );
 
     const handleDeleteClick = (id: number) => {
         confirmDelete(id).then(() => toast.success("Penjualan berhasil dihapus!"));
@@ -242,8 +234,8 @@ export default function PenjualanPage() {
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex space-x-2">
-                    <div className="relative max-w-sm">
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative min-w-[100px]">
                         <Search
                             className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                         <Input
@@ -262,7 +254,7 @@ export default function PenjualanPage() {
                                 <Button
                                     variant="outline"
                                     className={cn(
-                                        "w-[140px] justify-start text-left font-normal",
+                                        "flex w-full justify-start text-left font-normal",
                                         !fromDate && "text-muted-foreground"
                                     )}
                                 >
@@ -286,7 +278,7 @@ export default function PenjualanPage() {
                                 <Button
                                     variant="outline"
                                     className={cn(
-                                        "w-[140px] justify-start text-left font-normal",
+                                        "flex w-full justify-start text-left font-normal",
                                         !toDate && "text-muted-foreground"
                                     )}
                                 >
@@ -356,7 +348,7 @@ export default function PenjualanPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredPenjualans.length === 0 ? (
+                        {pembelians.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={10} className="text-center py-8">
                                     <p className="text-muted-foreground">
@@ -367,7 +359,7 @@ export default function PenjualanPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredPenjualans.map((penjualan) => (
+                            pembelians.map((penjualan) => (
                                 <TableRow key={penjualan.id}>
                                     <TableCell className="font-medium">
                                         <span className="font-mono">{penjualan.no_penjualan}</span>

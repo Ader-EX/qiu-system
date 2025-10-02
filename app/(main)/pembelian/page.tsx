@@ -135,14 +135,6 @@ export default function PembelianPage() {
         fetchPembelians(filters);
     }, [currentPage, statusPembelian, statusPembayaran, rowsPerPage]);
 
-    const filteredPembelians = pembelians.filter(
-        (pembelian) =>
-            pembelian.no_pembelian.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (pembelian.vendor_name
-                    ?.toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ??
-                false)
-    );
 
     const handleDeleteClick = (id: number) => {
         confirmDelete(id).then((r) => toast.success("Pembelian berhasil dihapus!"));
@@ -160,18 +152,6 @@ export default function PembelianPage() {
                 err instanceof Error ? err.message : "Failed to delete pembelian";
             toast.error("Entri pembelian gagal dihapus");
         }
-    };
-
-    // Refresh data
-    const handleRefresh = () => {
-        fetchPembelians();
-    };
-
-    const clearFilters = () => {
-        setStatusPembelian("");
-        setStatusPembayaran("");
-        setSearchTerm("");
-        setCurrentPage(1);
     };
 
 
@@ -269,8 +249,8 @@ export default function PembelianPage() {
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex space-x-2">
-                    <div className="relative max-w-sm">
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative min-w-[100px]">
                         <Search
                             className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                         <Input
@@ -289,7 +269,7 @@ export default function PembelianPage() {
                                 <Button
                                     variant="outline"
                                     className={cn(
-                                        "w-[140px] justify-start text-left font-normal",
+                                        "flex w-full justify-start text-left font-normal",
                                         !fromDate && "text-muted-foreground"
                                     )}
                                 >
@@ -313,7 +293,7 @@ export default function PembelianPage() {
                                 <Button
                                     variant="outline"
                                     className={cn(
-                                        "w-[140px] justify-start text-left font-normal",
+                                        "flex w-full justify-start text-left font-normal",
                                         !toDate && "text-muted-foreground"
                                     )}
                                 >
@@ -384,7 +364,7 @@ export default function PembelianPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredPembelians.length === 0 ? (
+                        {pembelians.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={10} className="text-center py-8">
                                     <p className="text-muted-foreground">
@@ -395,7 +375,7 @@ export default function PembelianPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredPembelians.map((pembelian) => (
+                            pembelians.map((pembelian) => (
                                 <TableRow key={pembelian.id}>
                                     <TableCell className="font-medium">
                                         <span className="font-mono">{pembelian.no_pembelian}</span>
