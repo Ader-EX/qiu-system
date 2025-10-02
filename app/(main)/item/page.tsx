@@ -46,6 +46,7 @@ import {vendorService} from "@/services/vendorService";
 import {kategoriService} from "@/services/kategoriService";
 import SearchableSelect from "@/components/SearchableSelect";
 import CSVImportDialog from "@/components/Product/CSVImportDialog";
+import {Spinner} from "@/components/ui/spinner";
 
 export interface TOPUnit {
     id: string;
@@ -79,6 +80,7 @@ const ProdukPage = () => {
     const searchParams = useSearchParams();
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [state, setState] = useState<ProdukPageState>({
         items: [],
@@ -92,7 +94,7 @@ const ProdukPage = () => {
         filterVendor: "all",
         viewMode: "grid",
         currentPage: 1,
-        rowsPerPage: 5,
+        rowsPerPage: 10,
         sortBy: "",
         sortOrder: "asc",
         isAddEditDialogOpen: false,
@@ -382,18 +384,23 @@ const ProdukPage = () => {
         setIsDialogOpen(!isDialogOpen);
     };
 
+
     return (
         <div className="space-y-6">
             <CSVImportDialog
                 isOpen={isDialogOpen}
+                isUploading={isLoading}
                 onClose={() => setIsDialogOpen(false)}
                 onFileUpload={async (file: any) => {
+                    setIsLoading(true)
                     try {
                         await itemService.uploadItem(file);
 
                         toast.success("File berhasil diunggah");
+                        setIsLoading(false);
                     } catch (error: any) {
                         const fixedErrormsg = error.message.split(":");
+                        setIsLoading(false);
                         toast.error(fixedErrormsg[1]);
                     }
                     fetchItems();
