@@ -86,27 +86,9 @@ const penjualanSchema = z.object({
   no_penjualan: z.string().optional(),
   warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
   customer_id: z
-    .union([
-      z.string(),
-      z.number(),
-      z.object({
-        id: z.union([z.string(), z.number()]),
-        code: z.string().optional(),
-        name: z.string().optional(),
-        curr_rel: z.any().optional(),
-      }),
-    ])
-    .refine((val) => {
-      if (typeof val === "string") return val.trim().length > 0 && val !== "0";
-      if (typeof val === "number") return val > 0;
-      if (typeof val === "object" && val.id) return true;
-      return false;
-    }, "Customer harus dipilih")
-    .transform((val) => {
-      if (typeof val === "object") return String(val.id);
-      return String(val);
-    }),
-
+    .union([z.string(), z.number()])
+    .transform((v) => String(v))
+    .refine((s) => s.trim().length > 0 && s !== "0", "Customer harus dipilih"),
   kode_lambung_id: z.coerce.number().min(1, "Kode Lambung harus diisi"),
   top_id: z.coerce.number().min(1, "Jenis Pembayaran harus dipilih"),
   sales_date: z.date({ required_error: "Sales Date harus diisi" }),
@@ -234,6 +216,7 @@ export default function PenjualanForm({
       }, 300),
     [form]
   );
+
   useEffect(() => {
     if ((mode !== "edit" && mode !== "view") || !penjualanId) return;
 
@@ -244,13 +227,7 @@ export default function PenjualanForm({
         const formData: PenjualanFormData = {
           no_penjualan: data.no_penjualan,
           warehouse_id: Number(data.warehouse_id),
-          // FIX: preload customer_id as object, not just string
-          customer_id: {
-            id: data.customer_id,
-            code: data.customer_rel?.code,
-            name: data.customer_rel?.name,
-            curr_rel: data.customer_rel?.curr_rel,
-          } as any,
+          customer_id: data.customer_id,
           top_id: Number(data.top_id),
           sales_date: new Date(data.sales_date),
           sales_due_date: new Date(data.sales_due_date),
@@ -265,18 +242,20 @@ export default function PenjualanForm({
             qty: Number(item.qty),
             unit_price: Number(item.unit_price),
             unit_price_rmb: Number(item.unit_price_rmb),
+
             discount: Number(item.discount ?? 0),
             tax_percentage: Number(item.tax_percentage ?? 10),
           })),
           attachments: [],
         } as any;
 
+        // Select list visual data
         setSelectedItems(
           data.penjualan_items.map((item: any) => ({
             id: Number(item.item_id),
             code: item.item_code ?? item.item_rel?.code ?? "",
             name: item.item_name ?? item.item_rel?.name ?? "",
-            price: Number(item.unit_price),
+            price: Number(item.unit_price), // before tax
           }))
         );
 
@@ -288,9 +267,7 @@ export default function PenjualanForm({
         );
         setExistingAttachments(data.attachments || []);
 
-        setTimeout(() => {
-          form.reset(formData);
-        }, 400);
+        form.reset(formData);
       } catch (error: any) {
         toast.error(error.message || "Failed to load sales data");
       }
