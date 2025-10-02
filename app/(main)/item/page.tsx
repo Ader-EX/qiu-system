@@ -329,8 +329,9 @@ const ProdukPage = () => {
             fetchItems();
         } catch (error) {
             const errorMessage =
-                error instanceof Error ? error.message : "Failed to save item";
-            toast.error("Gagal menyimpan Item");
+                error instanceof Error ? error.message : "Gagal menyimpan item";
+
+            toast.error(errorMessage || "Gagal menyimpan Item");
         }
     };
 
