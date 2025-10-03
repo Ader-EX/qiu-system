@@ -58,7 +58,7 @@ export default function SearchableSelect<T extends { id: number | string }>({
 
     // Detect if device is mobile
     const isMobile = useCallback(() => {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        return /Android|webOS|iPhone|iPad|iPodq|BlackBerry|IEMobile|Opera Mini/i.test(
             navigator.userAgent
         );
     }, []);
@@ -308,13 +308,9 @@ export default function SearchableSelect<T extends { id: number | string }>({
             if (!open && preventCloseRef.current) return;
 
             setIsOpen(open);
-
-            if (open) {
-                // Delay focus so Radix finishes opening
+            if (open && !isMobile()) {
                 setTimeout(() => {
-                    // Don’t use UA sniffing here; focusing input on mobile triggers keyboard and may cause scroll -> close
-                    if (searchInputRef.current)
-                        searchInputRef.current.focus({preventScroll: true});
+                    searchInputRef.current?.focus({preventScroll: true});
                 }, 100);
             } else {
                 // Reset search when closing (same as you had)
