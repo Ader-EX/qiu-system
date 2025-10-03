@@ -45,6 +45,6 @@ jobs:
             --build-arg NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL}" \
             -t qiu-frontend .
 
-          # Map host port 3001 -> container 80 (avoid colliding with any existing Nginx)
-          docker run -d --name qiu-frontend -p 3001:80 qiu-frontend
+          # Map host port 3000 -> container 80 (avoid colliding with any existing Nginx)
+          docker run -d --name qiu-frontend -p 3000:3000 qiu-frontend
           EOF
