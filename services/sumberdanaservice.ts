@@ -13,7 +13,7 @@ export interface SumberdanaCreate {
 
 export interface SumberdanaUpdate {
     name?: string;
-    isActive?: boolean;
+    is_active?: boolean;
 }
 
 export type SumberdanaListResponse = {
