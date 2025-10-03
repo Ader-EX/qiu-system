@@ -103,6 +103,7 @@ const FIELD_CONFIGS: Record<string, SearchableFieldConfig> = {
             `${item.id} - ${item.name} ${
                 item?.curr_rel?.symbol ? `(${item.curr_rel.symbol})` : ""
             }`,
+        transform: (val: any) => String(val),
     },
     category_one: {
         fetchData: (includeDeleted) => async (search) => {
@@ -172,19 +173,25 @@ const FIELD_CONFIGS: Record<string, SearchableFieldConfig> = {
     },
     customer: {
         fetchData: (includeDeleted) => async (search) => {
-            return await customerService.getAllCustomers({
+            const params: any = {
                 page: 0,
                 rowsPerPage: 3,
-                contains_deleted: includeDeleted,
-                is_active: !includeDeleted,
                 search_key: search,
-            });
+            };
+
+            if (!includeDeleted) {
+                params.is_active = true;
+                params.contains_deleted = false;
+            }
+
+            return await customerService.getAllCustomers(params);
         },
         fetchById: async (id) => {
             const response = await customerService.getById(Number(id));
             return {id: response.id, code: response.code, name: response.name};
         },
         renderLabel: (item: any) => `${item.code} - ${item.name}`,
+        transform: (val: any) => String(val),
     },
     warehouse: {
         fetchData: (includeDeleted) => async (search) => {
@@ -253,6 +260,7 @@ interface QuickFormSearchableFieldProps<T extends FieldValues> {
     type: keyof typeof FIELD_CONFIGS;
     label: string;
     placeholder: string;
+
     disabled?: boolean;
     isRequired?: boolean;
     dynamicParam?: any; // New prop for dynamic parameters
@@ -298,7 +306,7 @@ export function QuickFormSearchableField<T extends FieldValues>({
             label={label}
             placeholder={placeholder}
             disabled={disabled}
-            fetchData={config.fetchData(disabled)}
+            fetchData={config.fetchData(false)}
             fetchById={config.fetchById}
             renderLabel={config.renderLabel}
             transform={config.transform}

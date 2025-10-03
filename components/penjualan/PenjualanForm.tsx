@@ -85,12 +85,9 @@ const FormSection = ({
 const penjualanSchema = z.object({
     no_penjualan: z.string().optional(),
     warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
-    customer_id: z
-        .union([z.string(), z.number()])
-        .transform((v) => String(v))
-        .refine((s) => s.trim().length > 0 && s !== "0", "Customer harus dipilih"),
-    kode_lambung_id: z.coerce.number().min(1, "Kode Lambung harus diisi"),
-    top_id: z.coerce.number().min(1, "Jenis Pembayaran harus dipilih"),
+    customer_id: z.number().min(1, "Customer harus dipilih"),
+    kode_lambung_id: z.number().min(1, "Kode Lambung harus diisi"),
+    top_id: z.number().min(1, "Jenis Pembayaran harus dipilih"),
     sales_date: z.date({required_error: "Sales Date harus diisi"}),
     sales_due_date: z.date({required_error: "Sales Due Date harus diisi"}),
     currency_amount: z
@@ -136,6 +133,18 @@ export default function PenjualanForm({
         []
     );
     const [isActive, setIsActive] = useState<boolean>(true);
+    const [activeFields, setActiveFields] = useState({
+        customer_id: false,
+        warehouse_id: false,
+        top_id: false,
+    });
+    const [loadedData, setLoadedData] = useState({
+        customer_name: "",
+        customer_code: "",
+        warehouse_name: "",
+        top_name: "",
+        top_code: ""
+    });
 
     const router = useRouter();
 
@@ -146,15 +155,14 @@ export default function PenjualanForm({
         resolver: zodResolver(penjualanSchema),
         defaultValues: {
             no_penjualan: isEditMode ? "" : `-`,
-            warehouse_id: undefined,
-            customer_id: "",
+            warehouse_id: 0,
+            customer_id: 0,
             kode_lambung_id: 0,
             top_id: 0,
             currency_amount: 1,
             additional_discount: 0,
             expense: 0,
             items: [],
-
             attachments: [],
         },
         mode: "onChange",
@@ -227,12 +235,12 @@ export default function PenjualanForm({
                 const formData: PenjualanFormData = {
                     no_penjualan: data.no_penjualan,
                     warehouse_id: Number(data.warehouse_id),
-                    customer_id: data.customer_id,
+                    customer_id: Number(data.customer_id),
                     top_id: Number(data.top_id),
                     sales_date: new Date(data.sales_date),
                     sales_due_date: new Date(data.sales_due_date),
                     currency_amount: Number(data.currency_amount),
-                    kode_lambung_id: data.kode_lambung.id,
+                    kode_lambung_id: Number(data.kode_lambung?.id || 0),
                     additional_discount: Number(data.additional_discount ?? 0),
                     expense: Number(data.expense ?? 0),
                     status_pembayaran: data.status_pembayaran || "UNPAID",
@@ -242,20 +250,19 @@ export default function PenjualanForm({
                         qty: Number(item.qty),
                         unit_price: Number(item.unit_price),
                         unit_price_rmb: Number(item.unit_price_rmb),
-
                         discount: Number(item.discount ?? 0),
                         tax_percentage: Number(item.tax_percentage ?? 10),
                     })),
                     attachments: [],
-                } as any;
+                };
 
                 // Select list visual data
                 setSelectedItems(
                     data.penjualan_items.map((item: any) => ({
                         id: Number(item.item_id),
-                        code: item.item_code ?? item.item_rel?.code ?? "",
+                        code: item.item_code ?? item.item_rel?.code ?? item.code ?? "",
                         name: item.item_name ?? item.item_rel?.name ?? "",
-                        price: Number(item.unit_price), // before tax
+                        price: Number(item.unit_price),
                     }))
                 );
 
@@ -266,6 +273,15 @@ export default function PenjualanForm({
                     data.status_penjualan === "DRAFT"
                 );
                 setExistingAttachments(data.attachments || []);
+
+                // Store loaded names for display
+                setLoadedData({
+                    customer_name: data.customer_name || "",
+                    customer_code: data.customer_rel.code || "",
+                    warehouse_name: data.warehouse_name || "",
+                    top_code: data.top_rel.symbol || "",
+                    top_name: data.top_name || "",
+                });
 
                 form.reset(formData);
             } catch (error: any) {
@@ -279,9 +295,9 @@ export default function PenjualanForm({
     const watchedItems = form.watch("items") || [];
     const rows = watchedItems.map((it) => {
         const qty = Number(it?.qty ?? 0);
-        const unit = Number(it?.unit_price ?? 0); // pre-tax unit price
+        const unit = Number(it?.unit_price ?? 0);
         const taxPct = Number(it?.tax_percentage ?? 0);
-        const discount = Number(it?.discount ?? 0); // nominal per-row discount
+        const discount = Number(it?.discount ?? 0);
 
         const {
             subTotal: rowSubTotal,
@@ -318,7 +334,6 @@ export default function PenjualanForm({
     const total = Math.max(subTotal - totalItemDiscounts, 0);
     const grandTotal = finalTotalBeforeTax + totalTax + expense;
 
-    const grandTotalItems = rows.reduce((s, r) => s + r.rowTotal, 0);
 
     const remaining = grandTotal - (totalPaid + totalReturn);
 
@@ -370,9 +385,6 @@ export default function PenjualanForm({
         setSelectedItems(newSelectedItems);
     };
 
-    // -----------------
-    // Attachments helpers
-    // -----------------
     const handleRemoveExistingAttachment = async (attachmentId: number) => {
         if (!penjualanId) return;
         try {
@@ -416,9 +428,6 @@ export default function PenjualanForm({
         }
     };
 
-    // -----------------
-    // Submit
-    // -----------------
     const handleSubmit = async (data: PenjualanFormData, finalize = false) => {
         setIsSubmitting(true);
         try {
@@ -431,9 +440,9 @@ export default function PenjualanForm({
             const apiPayload = {
                 no_penjualan: data.no_penjualan || `-`,
                 warehouse_id: Number(data.warehouse_id),
-                customer_id: data.customer_id,
+                customer_id: Number(data.customer_id),
                 top_id: Number(data.top_id),
-                kode_lambung_id: data.kode_lambung_id,
+                kode_lambung_id: Number(data.kode_lambung_id),
                 sales_date: formatDateForAPI(data.sales_date),
                 sales_due_date: formatDateForAPI(data.sales_due_date),
                 additional_discount: Number(data.additional_discount || 0),
@@ -442,9 +451,8 @@ export default function PenjualanForm({
                 items: data.items.map((item) => ({
                     item_id: Number(item.item_id),
                     qty: Number(item.qty),
-                    unit_price: Number(item.unit_price), // BEFORE tax
-                    unit_price_rmb: Number(item.unit_price_rmb), // BEFORE tax
-
+                    unit_price: Number(item.unit_price),
+                    unit_price_rmb: Number(item.unit_price_rmb),
                     tax_percentage: Number(item.tax_percentage),
                     discount: Number(item.discount || 0),
                 })),
@@ -494,6 +502,7 @@ export default function PenjualanForm({
             }
         });
     };
+
     return (
         <div className="space-y-6">
             <SidebarHeaderBar
@@ -513,7 +522,6 @@ export default function PenjualanForm({
 
             <Form {...form}>
                 <form className="space-y-6">
-                    {/* Sales Information */}
                     <FormSection title="Informasi Penjualan">
                         <FormField
                             control={form.control}
@@ -631,17 +639,37 @@ export default function PenjualanForm({
                         />
                     </FormSection>
 
-                    {/* Warehouse & Customer */}
                     <FormSection title="Gudang & Customer">
-                        <QuickFormSearchableField
-                            control={form.control}
-                            name="customer_id"
-                            type="customer"
-                            isRequired={true}
-                            label="Customer"
-                            placeholder="Pilih Customer"
-                            disabled={isViewMode}
-                        />
+                        {!activeFields.customer_id && (isEditMode || isViewMode) ? (
+                            <div>
+                                <Label>Customer <span className="text-red-500">*</span></Label>
+                                <div
+                                    className={cn(
+                                        "mt-2 p-2 bg-background border rounded-md min-h-10 flex items-center",
+                                        !isViewMode && "cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                                    )}
+                                    onClick={() => !isViewMode && setActiveFields(prev => ({
+                                        ...prev,
+                                        customer_id: true
+                                    }))}
+                                >
+                                    <span className="text-sm">
+                                        {loadedData.customer_code || "-"} - {loadedData.customer_name || "-"}
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <QuickFormSearchableField
+                                control={form.control}
+                                name="customer_id"
+                                type="customer"
+                                isRequired={true}
+                                label="Customer"
+                                placeholder="Pilih Customer"
+                                disabled={isViewMode}
+                            />
+                        )}
+
                         <QuickFormSearchableField
                             control={form.control}
                             name="kode_lambung_id"
@@ -653,34 +681,69 @@ export default function PenjualanForm({
                             dynamicParam={form.watch("customer_id")}
                             watchField="customer_id"
                             showCondition={(customerId) =>
-                                customerId && customerId !== "0" && customerId !== ""
-                            } // Show only if customer_id has value
+                                customerId && customerId !== 0
+                            }
                         />
 
-                        <QuickFormSearchableField
-                            control={form.control}
-                            name="warehouse_id"
-                            type="warehouse"
-                            isRequired={true}
-                            label="Warehouse"
-                            placeholder="Pilih Warehouse"
-                            disabled={isViewMode}
-                        />
-
-
+                        {!activeFields.warehouse_id && (isEditMode || isViewMode) ? (
+                            <div>
+                                <Label>Warehouse <span className="text-red-500">*</span></Label>
+                                <div
+                                    className={cn(
+                                        "mt-2 p-2 bg-background border rounded-md min-h-10 flex items-center",
+                                        !isViewMode && "cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                                    )}
+                                    onClick={() => !isViewMode && setActiveFields(prev => ({
+                                        ...prev,
+                                        warehouse_id: true
+                                    }))}
+                                >
+                                    <span className="text-sm">
+                                        {loadedData.warehouse_name || "-"}
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <QuickFormSearchableField
+                                control={form.control}
+                                name="warehouse_id"
+                                type="warehouse"
+                                isRequired={true}
+                                label="Warehouse"
+                                placeholder="Pilih Warehouse"
+                                disabled={isViewMode}
+                            />
+                        )}
                     </FormSection>
 
-                    {/* Payment Information */}
                     <FormSection title="Informasi Pembayaran">
-                        <QuickFormSearchableField
-                            control={form.control}
-                            name="top_id"
-                            type="payment_type"
-                            isRequired={true}
-                            disabled={isViewMode}
-                            label="Jenis Pembayaran"
-                            placeholder="Pilih Jenis Pembayaran"
-                        />
+                        {!activeFields.top_id && (isEditMode || isViewMode) ? (
+                            <div>
+                                <Label>Jenis Pembayaran <span className="text-red-500">*</span></Label>
+                                <div
+                                    className={cn(
+                                        "mt-2 p-2 bg-background border rounded-md min-h-10 flex items-center",
+                                        !isViewMode && "cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                                    )}
+                                    onClick={() => !isViewMode && setActiveFields(prev => ({...prev, top_id: true}))}
+                                >
+                                    <span className="text-sm">
+                                        {loadedData.top_code || ""} - {loadedData.top_name || ""}
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <QuickFormSearchableField
+                                control={form.control}
+                                name="top_id"
+                                type="payment_type"
+                                isRequired={true}
+                                disabled={isViewMode}
+                                label="Jenis Pembayaran"
+                                placeholder="Pilih Jenis Pembayaran"
+                            />
+                        )}
+
                         <FormField
                             control={form.control}
                             name="status_pembayaran"
@@ -713,7 +776,7 @@ export default function PenjualanForm({
                                             disabled={isViewMode}
                                             placeholder="1.00"
                                             prefix="Rp"
-                                            value={field.value ?? ""} // Use field.value directly
+                                            value={field.value ?? ""}
                                             onValueChange={(values) => {
                                                 const numericValue = Number(values.floatValue ?? 1);
                                                 field.onChange(numericValue);
@@ -726,8 +789,6 @@ export default function PenjualanForm({
                         />
                     </FormSection>
 
-                    {/* Attachments Section */}
-                    {/* Attachments Section */}
                     <FormSection title="Lampiran">
                         {(isEditMode || isViewMode) && (
                             <div className="md:col-span-2 space-y-3">
@@ -777,7 +838,6 @@ export default function PenjualanForm({
                             </div>
                         )}
 
-                        {/* Upload new attachments */}
                         <div className="md:col-span-2">
                             <FormField
                                 control={form.control}
@@ -840,7 +900,7 @@ export default function PenjualanForm({
                             />
                         </div>
                     </FormSection>
-                    {/* Item Details */}
+
                     <div className="flex w-full justify-between items-center">
                         <CardTitle className="text-lg">Detail Item</CardTitle>
                         {!isViewMode && (
@@ -961,8 +1021,6 @@ export default function PenjualanForm({
                                                                                 values.floatValue ?? 0
                                                                             );
                                                                             field.onChange(idrPrice);
-
-                                                                            // Debounced conversion to RMB
                                                                             debouncedConvertIDRToRMB(
                                                                                 index,
                                                                                 idrPrice,
@@ -1154,7 +1212,6 @@ export default function PenjualanForm({
                                 </div>
                             </div>
 
-                            {/* Totals */}
                             <div className="flex w-full justify-end mt-4">
                                 <div className="flex flex-col space-y-2 gap-2 w-full max-w-sm">
                                     <div className="flex justify-between">
@@ -1177,81 +1234,6 @@ export default function PenjualanForm({
                                             value={formatMoney(totalItemDiscounts) || 0}
                                         />
                                     </div>
-
-                                    {/* <div className="flex justify-between items-start">
-                    <span className="mt-2">Additional Discount</span>
-                    <div className="flex flex-col space-y-2">
-                  
-                      <div className="flex items-center justify-end">
-                        <span className="text-sm text-muted-foreground w-4">
-                          %
-                        </span>
-                        <Input
-                          type="number"
-                          disabled={isViewMode}
-                          className="w-[70%] text-right"
-                          placeholder="0"
-                          min={0}
-                          max={100}
-                          value={
-                            Number.isFinite(additionalDiscountPercentage)
-                              ? additionalDiscountPercentage
-                              : 0
-                          }
-                          onKeyDown={(e) =>
-                            e.key === "Enter" && e.preventDefault()
-                          }
-                          onChange={(e) => {
-                            const percentage = Math.max(
-                              0,
-                              Math.min(100, Number(e.target.value) || 0)
-                            );
-                            const amount = roundToPrecision(
-                              (baseForAdditionalDiscount * percentage) / 100
-                            );
-                            form.setValue("additional_discount", amount, {
-                              shouldDirty: true,
-                              shouldValidate: true,
-                            });
-                          }}
-                        />
-                      </div>
-
-                
-                      <div className="flex items-center justify-end space-x-1">
-                        <FormField
-                          control={form.control}
-                          name="additional_discount"
-                          render={({ field }) => (
-                            <NumericFormat
-                              customInput={Input}
-                              thousandSeparator="."
-                              decimalSeparator=","
-                              allowNegative={false}
-                              inputMode="decimal"
-                              disabled={isViewMode}
-                              className="w-[70%] text-right"
-                              placeholder="0"
-                              value={field.value ?? ""}
-                              onValueChange={(v) => {
-                                const raw = Number(v.floatValue ?? 0);
-                                const clamped = Math.min(
-                                  Math.max(raw, 0),
-                                  baseForAdditionalDiscount
-                                );
-                                field.onChange(clamped);
-                              }}
-                              onKeyDown={(
-                                e: React.KeyboardEvent<HTMLInputElement>
-                              ) => {
-                                if (e.key === "Enter") e.preventDefault();
-                              }}
-                            />
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </div> */}
 
                                     <div className="flex justify-between ">
                                         <span className={"mr-4"}>Total</span>
