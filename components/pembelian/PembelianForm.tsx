@@ -351,7 +351,7 @@ export default function PembelianForm({
         const ongkir = Number(item?.ongkir) || 0;
         return sum + (ongkir * qty);
     }, 0);
-    
+
     form.setValue(`expense`, totalOngkir);
 
     const recalcRow = (index: number) => {
@@ -816,6 +816,34 @@ export default function PembelianForm({
                             disabled={isViewMode}
                         />
 
+
+                    </FormSection>
+                    {/* Payment Information */}
+                    <FormSection title="Informasi Pembayaran">
+                        <QuickFormSearchableField
+                            control={form.control}
+                            name="top_id"
+                            type="payment_type"
+                            isRequired={true}
+                            label="Jenis Pembayaran"
+                            placeholder="Pilih Jenis Pembayaran"
+                            disabled={isViewMode}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="status_pembayaran"
+                            render={({field}) => (
+                                <div>
+                                    <Label>Status Pembayaran</Label>
+                                    <div className="mt-2 p-2 bg-muted rounded">
+                    <span className="text-sm text-muted-foreground">
+                      {field.value || "UNPAID"}
+                    </span>
+                                    </div>
+                                </div>
+                            )}
+                        />
                         <QuickFormSearchableField
                             control={form.control}
                             name="sumberdana_id"
@@ -853,33 +881,6 @@ export default function PembelianForm({
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>
-                            )}
-                        />
-                    </FormSection>
-                    {/* Payment Information */}
-                    <FormSection title="Informasi Pembayaran">
-                        <QuickFormSearchableField
-                            control={form.control}
-                            name="top_id"
-                            type="payment_type"
-                            isRequired={true}
-                            label="Jenis Pembayaran"
-                            placeholder="Pilih Jenis Pembayaran"
-                            disabled={isViewMode}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="status_pembayaran"
-                            render={({field}) => (
-                                <div>
-                                    <Label>Status Pembayaran</Label>
-                                    <div className="mt-2 p-2 bg-muted rounded">
-                    <span className="text-sm text-muted-foreground">
-                      {field.value || "UNPAID"}
-                    </span>
-                                    </div>
-                                </div>
                             )}
                         />
                     </FormSection>
