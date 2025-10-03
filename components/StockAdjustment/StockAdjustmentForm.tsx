@@ -395,13 +395,10 @@ export default function StockAdjustmentForm({
             console.log("Full Error Object:", e); // Crucial for debugging the structure!
 
             // Check for standard server response structure
-            const responseData = e?.response?.data;
-
+        
             // 1. Try to find the specific detail field
             const detailedMessage =
-                responseData?.detail ||
-                responseData?.message || // Sometimes the backend uses 'message' instead of 'detail'
-                responseData?.error; // Sometimes the backend uses 'error'
+                e?.detail || e?.message || e?.error;
 
             // 2. Fall back to the general error message or a default
             const errorMessage =
