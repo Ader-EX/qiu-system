@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { formatISO } from "date-fns";
+import z from "zod";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -72,3 +73,11 @@ export const formatDatesForAPI = (dates: { [key: string]: Date }) => {
 
   return formatted;
 };
+
+export const isBrowser = typeof File !== "undefined";
+
+export const FileSchema = z
+  .any()
+  .refine((f) => isBrowser && f instanceof File, {
+    message: "Attachment must be a file",
+  });

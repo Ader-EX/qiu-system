@@ -70,7 +70,15 @@ const pengembalianSchema = z
     warehouse_name: z.string().optional(),
     customer_name: z.string().optional(),
     currency_name: z.string().optional(),
-    attachments: z.array(z.instanceof(File)).optional(),
+    attachments: z
+      .array(
+        z
+          .any()
+          .refine((f) => typeof File !== "undefined" && f instanceof File, {
+            message: "Attachment must be a file",
+          })
+      )
+      .optional(),
     customer_id: z.union([z.string(), z.number()]).optional().transform(String),
     vendor_id: z.coerce.string().optional(),
     status: z.string().optional(),

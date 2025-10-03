@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout code (not strictly needed, but fine)
         uses: actions/checkout@v4
 
       - name: Set up SSH
@@ -20,31 +20,33 @@ jobs:
       - name: Deploy via SSH
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
-          # Optional: pass public env vars used at build-time
           NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
         run: |
-          ssh -o StrictHostKeyChecking=no root@$VPS_HOST << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@$VPS_HOST <<EOF
           set -e
 
-          # 1) ensure folder exists and pull latest
+          # 1) Ensure folder exists & clone/pull the repo
           mkdir -p /root/frontend
-          cd /root/frontend
-          if [ ! -d .git ]; then
-            git init
-            git remote add origin $(git config --get remote.origin.url || echo "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git")
+          if [ ! -d /root/frontend/qiu-system/.git ]; then
+            # fresh clone
+            git clone ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git /root/frontend/qiu-system
           fi
+
+          cd /root/frontend/qiu-system
           git fetch origin master
           git reset --hard origin/master
 
-          # 2) build & run container
+          # 2) Build & run container
           docker stop qiu-frontend || true
           docker rm qiu-frontend || true
 
-          # Build args for NEXT_PUBLIC_* envs (add more as needed)
+          # Build in the CURRENT directory (note the dot)
           docker build \
             --build-arg NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL}" \
             -t qiu-frontend .
 
-          # Map host port 3000 -> container 80 (avoid colliding with any existing Nginx)
+          # Map host 3000 -> container 3000
           docker run -d --name qiu-frontend -p 3000:3000 qiu-frontend
           EOF

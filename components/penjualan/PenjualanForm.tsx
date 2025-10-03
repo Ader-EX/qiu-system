@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import {
   cn,
+  FileSchema,
   formatDateForAPI,
   formatMoney,
   roundToPrecision,
@@ -108,7 +109,7 @@ const penjualanSchema = z.object({
       })
     )
     .min(1),
-  attachments: z.array(z.instanceof(File)).optional(),
+  attachments: z.array(FileSchema).optional(),
   status_pembayaran: z.string().optional(),
   status_penjualan: z.string().optional(),
 });

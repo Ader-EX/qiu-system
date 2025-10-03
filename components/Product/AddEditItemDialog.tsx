@@ -35,6 +35,7 @@ import { ItemTypeEnum } from "@/services/itemService";
 import { NumericFormat } from "react-number-format";
 import toast from "react-hot-toast";
 import { QuickFormSearchableField } from "@/components/form/FormSearchableField";
+import { FileSchema } from "@/lib/utils";
 
 const itemSchema = z.object({
   is_active: z.boolean().default(true),
@@ -55,7 +56,7 @@ const itemSchema = z.object({
     .min(1, "Please select a satuan"),
   category_one: z.coerce.number().optional(),
   category_two: z.coerce.number().optional(),
-  images: z.array(z.instanceof(File)),
+  images: z.array(FileSchema).optional(),
 });
 
 type ItemFormData = z.infer<typeof itemSchema>;

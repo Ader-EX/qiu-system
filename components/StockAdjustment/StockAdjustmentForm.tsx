@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2, X } from "lucide-react";
-import { cn, formatDateForAPI, formatMoney } from "@/lib/utils";
+import { cn, FileSchema, formatDateForAPI, formatMoney } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +84,8 @@ const stockAdjustmentSchema = z.object({
   adjustment_date: z.date({ required_error: "Tanggal adjustment harus diisi" }),
   warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
   status_adjustment: z.string().optional(),
-  attachments: z.array(z.instanceof(File)).optional(),
+
+  attachments: z.array(FileSchema).optional(),
   stock_adjustment_items: z
     .array(
       z.object({
