@@ -347,9 +347,12 @@ export default function PembelianForm({
     const watchedItems = form.watch("items") || [];
 
     const totalOngkir = watchedItems.reduce((sum, item) => {
-        form.setValue(`expense`, sum + (Number(item?.ongkir) || 0) * (Number(item?.qty) || 1));
-        return sum + (Number(item?.ongkir) || 0);
+        const qty = Number(item?.qty) || 1;
+        const ongkir = Number(item?.ongkir) || 0;
+        return sum + (ongkir * qty);
     }, 0);
+    
+    form.setValue(`expense`, totalOngkir);
 
     const recalcRow = (index: number) => {
         const rate = Number(form.getValues("currency_amount") || 1);
