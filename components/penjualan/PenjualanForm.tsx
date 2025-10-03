@@ -197,34 +197,6 @@ export default function PenjualanForm({
     return roundToPrecision(idrPrice / currencyRate);
   };
 
-  const debouncedConvertIDRToRMB = useMemo(
-    () =>
-      debounce((index: number, idrPrice: number, currencyRate: number) => {
-        if (currencyRate > 0) {
-          const rmbPrice = convertIDRToRMB(idrPrice, currencyRate);
-          form.setValue(`items.${index}.unit_price_rmb`, rmbPrice, {
-            shouldValidate: false,
-            shouldDirty: true,
-          });
-        }
-      }, 300),
-    [form]
-  );
-
-  const debouncedConvertRMBToIDR = useMemo(
-    () =>
-      debounce((index: number, rmbPrice: number, currencyRate: number) => {
-        if (currencyRate > 0) {
-          const idrPrice = convertRMBToIDR(rmbPrice, currencyRate);
-          form.setValue(`items.${index}.unit_price`, idrPrice, {
-            shouldValidate: false,
-            shouldDirty: true,
-          });
-        }
-      }, 300),
-    [form]
-  );
-
   useEffect(() => {
     if ((mode !== "edit" && mode !== "view") || !penjualanId) return;
 
@@ -342,13 +314,34 @@ export default function PenjualanForm({
     Math.max(additionalDiscount, 0),
     baseForAdditionalDiscount
   );
-  const additionalDiscountPercentage =
-    baseForAdditionalDiscount > 0
-      ? roundToPrecision(
-          (clampedAdditionalDiscount / baseForAdditionalDiscount) * 100
-        )
-      : 0;
 
+  const lastEditedField = React.useRef<{ [key: number]: "idr" | "rmb" | null }>(
+    {}
+  );
+
+  const handleIDRPriceChange = (index: number, idrPrice: number) => {
+    const currentCurrency = currencyAmount || 1;
+    if (currentCurrency > 0 && idrPrice >= 0) {
+      lastEditedField.current[index] = "idr";
+      const rmbPrice = convertIDRToRMB(idrPrice, currentCurrency);
+      form.setValue(`items.${index}.unit_price_rmb`, rmbPrice, {
+        shouldValidate: false,
+        shouldDirty: true,
+      });
+    }
+  };
+
+  const handleRMBPriceChange = (index: number, rmbPrice: number) => {
+    const currentCurrency = currencyAmount || 1;
+    if (currentCurrency > 0 && rmbPrice >= 0) {
+      lastEditedField.current[index] = "rmb";
+      const idrPrice = convertRMBToIDR(rmbPrice, currentCurrency);
+      form.setValue(`items.${index}.unit_price`, idrPrice, {
+        shouldValidate: false,
+        shouldDirty: true,
+      });
+    }
+  };
   const handleAddItem = (pickedItem: Item) => {
     const existingItemIndex = fields.findIndex(
       (field) => field.item_id === pickedItem.id
@@ -1008,12 +1001,25 @@ export default function PenjualanForm({
                                       const rmbPrice = Number(
                                         values.floatValue ?? 0
                                       );
-                                      field.onChange(rmbPrice);
-                                      debouncedConvertRMBToIDR(
-                                        index,
-                                        rmbPrice,
-                                        currencyAmount
-                                      );
+
+                                      // Only process if this was a user edit (not a programmatic change from IDR)
+                                      if (
+                                        lastEditedField.current[index] === "idr"
+                                      ) {
+                                        // This change came from IDR conversion, just update the field
+                                        field.onChange(rmbPrice);
+                                        lastEditedField.current[index] = null;
+                                      } else if (
+                                        values.floatValue !== undefined
+                                      ) {
+                                        // This is a real user edit of RMB field
+                                        field.onChange(rmbPrice);
+                                        handleRMBPriceChange(index, rmbPrice);
+                                      }
+                                    }}
+                                    onFocus={() => {
+                                      // Clear the flag when user focuses on this field
+                                      lastEditedField.current[index] = null;
                                     }}
                                   />
                                 )}
@@ -1036,12 +1042,25 @@ export default function PenjualanForm({
                                       const idrPrice = Number(
                                         values.floatValue ?? 0
                                       );
-                                      field.onChange(idrPrice);
-                                      debouncedConvertIDRToRMB(
-                                        index,
-                                        idrPrice,
-                                        currencyAmount
-                                      );
+
+                                      // Only process if this was a user edit (not a programmatic change from RMB)
+                                      if (
+                                        lastEditedField.current[index] === "rmb"
+                                      ) {
+                                        // This change came from RMB conversion, just update the field
+                                        field.onChange(idrPrice);
+                                        lastEditedField.current[index] = null;
+                                      } else if (
+                                        values.floatValue !== undefined
+                                      ) {
+                                        // This is a real user edit of IDR field
+                                        field.onChange(idrPrice);
+                                        handleIDRPriceChange(index, idrPrice);
+                                      }
+                                    }}
+                                    onFocus={() => {
+                                      // Clear the flag when user focuses on this field
+                                      lastEditedField.current[index] = null;
                                     }}
                                   />
                                 )}

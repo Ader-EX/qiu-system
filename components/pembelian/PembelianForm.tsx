@@ -1,1398 +1,1399 @@
 "use client";
 
 import * as React from "react";
-import {useForm, useFieldArray} from "react-hook-form";
-import {zodResolver} from "@hookform/resolvers/zod";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import {format} from "date-fns";
+import { format } from "date-fns";
 import {
-    CalendarIcon,
-    Plus,
-    Trash2,
-    FileText,
-    X,
-    RefreshCw,
+  CalendarIcon,
+  Plus,
+  Trash2,
+  FileText,
+  X,
+  RefreshCw,
 } from "lucide-react";
 import {
-    cn,
-    formatDateForAPI,
-    formatMoney,
-    roundToPrecision,
+  cn,
+  formatDateForAPI,
+  formatMoney,
+  roundToPrecision,
 } from "@/lib/utils";
-import {useMemo} from "react";
-import {debounce} from "lodash";
+import { useMemo } from "react";
+import { debounce } from "lodash";
 
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@/components/ui/popover";
-import {CardTitle} from "@/components/ui/card";
+import { CardTitle } from "@/components/ui/card";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import {Calendar} from "@/components/ui/calendar";
-import {SidebarHeaderBar} from "@/components/ui/SidebarHeaderBar";
+import { Calendar } from "@/components/ui/calendar";
+import { SidebarHeaderBar } from "@/components/ui/SidebarHeaderBar";
 import CustomBreadcrumb from "@/components/custom-breadcrumb";
 import ItemSelectorDialog from "@/components/ItemSelectorDialog";
-import {FileUploadButton} from "@/components/ImageUpload";
+import { FileUploadButton } from "@/components/ImageUpload";
 
 import {
-    pembelianService,
-    PembelianUpdate,
-    Attachment,
-    calcRowTotalData,
+  pembelianService,
+  PembelianUpdate,
+  Attachment,
+  calcRowTotalData,
 } from "@/services/pembelianService";
-import {warehouseService} from "@/services/warehouseService";
-import {jenisPembayaranService} from "@/services/mataUangService";
-import {imageService, ParentType} from "@/services/imageService";
-import {Item} from "@/types/types";
-import {useState, useEffect} from "react";
+import { warehouseService } from "@/services/warehouseService";
+import { jenisPembayaranService } from "@/services/mataUangService";
+import { imageService, ParentType } from "@/services/imageService";
+import { Item } from "@/types/types";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import {useRouter} from "next/navigation";
-import {vendorService} from "@/services/vendorService";
-import {usePrintInvoice} from "@/hooks/usePrintInvoice";
-import {NumericFormat} from "react-number-format";
-import {sumberdanaService} from "@/services/sumberdanaservice";
-import {QuickFormSearchableField} from "@/components/form/FormSearchableField";
+import { useRouter } from "next/navigation";
+import { vendorService } from "@/services/vendorService";
+import { usePrintInvoice } from "@/hooks/usePrintInvoice";
+import { NumericFormat } from "react-number-format";
+import { sumberdanaService } from "@/services/sumberdanaservice";
+import { QuickFormSearchableField } from "@/components/form/FormSearchableField";
 
 const FormSection = ({
-                         title,
-                         children,
-                     }: {
-    title: string;
-    children: React.ReactNode;
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
 }) => (
-    <div className="flex flex-col md:flex-row w-full justify-between pt-6 border-t first:pt-0 first:border-none">
-        <h4 className="text-lg font-semibold mb-4 md:mb-0 md:w-[30%]">{title}</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:w-[70%]">
-            {children}
-        </div>
+  <div className="flex flex-col md:flex-row w-full justify-between pt-6 border-t first:pt-0 first:border-none">
+    <h4 className="text-lg font-semibold mb-4 md:mb-0 md:w-[30%]">{title}</h4>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:w-[70%]">
+      {children}
     </div>
+  </div>
 );
 const pembelianSchema = z.object({
-    no_pembelian: z.string().optional(),
-    warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
-    vendor_id: z.string().min(1, "Vendor harus dipilih"),
-    top_id: z.number().min(1, "Jenis Pembayaran harus dipilih"),
-    sumberdana_id: z.number().min(1, "Sumber Dana harus dipilih"),
-    sales_date: z.date({required_error: "Purchase Date harus diisi"}),
-    sales_due_date: z.date({required_error: "Purchase Due Date harus diisi"}),
-    price_source: z.enum(["IDR", "RMB"]).default("IDR"),
-    additional_discount: z.number().min(0).default(0),
-    expense: z.number().min(0).default(0),
-    currency_amount: z
-        .number({required_error: "Currency harus diisi"})
-        .min(0.01)
-        .default(1),
-    items: z
-        .array(
-            z.object({
-                item_id: z.number().min(1),
-                qty: z.number().min(1),
-                unit_price: z.number().min(0),
-                unit_price_rmb: z.number().min(0),
-                tax_percentage: z.number().min(0).max(100).default(10),
-                discount: z.number().min(0).default(0),
-                ongkir: z.number().min(0).optional(),
-            })
-        )
-        .min(1),
-    attachments: z.array(z.instanceof(File)).optional(),
-    status_pembayaran: z.string().optional(),
-    status_pembelian: z.string().optional(),
+  no_pembelian: z.string().optional(),
+  warehouse_id: z.number().min(1, "Warehouse harus dipilih"),
+  vendor_id: z.string().min(1, "Vendor harus dipilih"),
+  top_id: z.number().min(1, "Jenis Pembayaran harus dipilih"),
+  sumberdana_id: z.number().min(1, "Sumber Dana harus dipilih"),
+  sales_date: z.date({ required_error: "Purchase Date harus diisi" }),
+  sales_due_date: z.date({ required_error: "Purchase Due Date harus diisi" }),
+  price_source: z.enum(["IDR", "RMB"]).default("IDR"),
+  additional_discount: z.number().min(0).default(0),
+  expense: z.number().min(0).default(0),
+  currency_amount: z
+    .number({ required_error: "Currency harus diisi" })
+    .min(0.01)
+    .default(1),
+  items: z
+    .array(
+      z.object({
+        item_id: z.number().min(1),
+        qty: z.number().min(1),
+        unit_price: z.number().min(0),
+        unit_price_rmb: z.number().min(0),
+        tax_percentage: z.number().min(0).max(100).default(10),
+        discount: z.number().min(0).default(0),
+        ongkir: z.number().min(0).optional(),
+      })
+    )
+    .min(1),
+  attachments: z.array(z.instanceof(File)).optional(),
+  status_pembayaran: z.string().optional(),
+  status_pembelian: z.string().optional(),
 });
 
 type PembelianFormData = z.infer<typeof pembelianSchema>;
 
 interface PembelianFormProps {
-    mode: "add" | "edit" | "view";
-    pembelianId?: string;
+  mode: "add" | "edit" | "view";
+  pembelianId?: string;
 }
 
 export default function PembelianForm({
-                                          mode,
-                                          pembelianId,
-                                      }: PembelianFormProps) {
-    const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [selectedItems, setSelectedItems] = useState<any[]>([]);
-    const [totalPaid, setTotalPaid] = useState<number>(0);
-    const [totalReturn, setTotalReturn] = useState<number>(0);
-    const [existingAttachments, setExistingAttachments] = useState<Attachment[]>(
-        []
-    );
-    const [isActive, setIsActive] = useState<boolean>(true);
+  mode,
+  pembelianId,
+}: PembelianFormProps) {
+  const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  const [totalPaid, setTotalPaid] = useState<number>(0);
+  const [totalReturn, setTotalReturn] = useState<number>(0);
+  const [existingAttachments, setExistingAttachments] = useState<Attachment[]>(
+    []
+  );
+  const [isActive, setIsActive] = useState<boolean>(true);
 
-    const router = useRouter();
+  const router = useRouter();
 
-    const isEditMode = mode === "edit";
-    const isViewMode = mode === "view";
+  const isEditMode = mode === "edit";
+  const isViewMode = mode === "view";
 
-    const form = useForm<PembelianFormData>({
-        resolver: zodResolver(pembelianSchema),
-        defaultValues: {
-            no_pembelian: isEditMode ? "" : `-`,
-            warehouse_id: 0,
-            vendor_id: "",
-            sumberdana_id: 0,
-            top_id: 0,
-            currency_amount: 1,
+  const form = useForm<PembelianFormData>({
+    resolver: zodResolver(pembelianSchema),
+    defaultValues: {
+      no_pembelian: isEditMode ? "" : `-`,
+      warehouse_id: 0,
+      vendor_id: "",
+      sumberdana_id: 0,
+      top_id: 0,
+      currency_amount: 1,
 
-            additional_discount: 0,
-            expense: 0,
-            items: [],
-            attachments: [],
-        },
-        mode: "onChange",
-    });
-    useEffect(() => {
-        if (isEditMode) {
-            const subscription = form.watch((value, {name, type}) => {
-                if (name?.includes("tax_percentage")) {
-                    console.log(`[Form Watch] ${name} changed:`, value);
-                }
-            });
-            return () => subscription.unsubscribe();
+      additional_discount: 0,
+      expense: 0,
+      items: [],
+      attachments: [],
+    },
+    mode: "onChange",
+  });
+  useEffect(() => {
+    if (isEditMode) {
+      const subscription = form.watch((value, { name, type }) => {
+        if (name?.includes("tax_percentage")) {
+          console.log(`[Form Watch] ${name} changed:`, value);
         }
-    }, [form.watch, isEditMode]);
-    const {fields, append, remove} = useFieldArray({
-        control: form.control,
-        name: "items",
-    });
-    const {simplePrint, previewInvoice, advancedPrint, isPrinting} =
-        usePrintInvoice();
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [form.watch, isEditMode]);
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "items",
+  });
+  const { simplePrint, previewInvoice, advancedPrint, isPrinting } =
+    usePrintInvoice();
 
-    const currencyAmount = form.watch("currency_amount") || 1;
+  const currencyAmount = form.watch("currency_amount") || 1;
 
-    const convertRMBToIDR = (rmbPrice: number, currencyRate: number) => {
-        return roundToPrecision(rmbPrice * currencyRate);
-    };
+  const convertRMBToIDR = (rmbPrice: number, currencyRate: number) => {
+    return roundToPrecision(rmbPrice * currencyRate);
+  };
 
-    const convertIDRToRMB = (idrPrice: number, currencyRate: number) => {
-        return roundToPrecision(idrPrice / currencyRate);
-    };
+  const convertIDRToRMB = (idrPrice: number, currencyRate: number) => {
+    return roundToPrecision(idrPrice / currencyRate);
+  };
 
-    const debouncedConvertIDRToRMB = useMemo(
-        () =>
-            debounce((index: number, idrPrice: number, currencyRate: number) => {
-                if (currencyRate > 0) {
-                    const rmbPrice = convertIDRToRMB(idrPrice, currencyRate);
-                    form.setValue(`items.${index}.unit_price_rmb`, rmbPrice, {
-                        shouldValidate: false,
-                        shouldDirty: true,
-                    });
-                }
-            }, 300),
-        [form]
-    );
+  useEffect(() => {
+    if ((mode !== "edit" && mode !== "view") || !pembelianId) return;
 
-    const debouncedConvertRMBToIDR = useMemo(
-        () =>
-            debounce((index: number, rmbPrice: number, currencyRate: number) => {
-                if (currencyRate > 0) {
-                    const idrPrice = convertRMBToIDR(rmbPrice, currencyRate);
-                    form.setValue(`items.${index}.unit_price`, idrPrice, {
-                        shouldValidate: false,
-                        shouldDirty: true,
-                    });
-                }
-            }, 300),
-        [form]
-    );
+    const loadPembelianData = async () => {
+      try {
+        const data = await pembelianService.getById(Number(pembelianId));
 
-    useEffect(() => {
-        if ((mode !== "edit" && mode !== "view") || !pembelianId) return;
+        const formData = {
+          no_pembelian: data.no_pembelian,
+          warehouse_id: data.warehouse_id ? Number(data.warehouse_id) : 0,
+          vendor_id: data.vendor_id ? String(data.vendor_id) : "",
+          top_id: data.top_id ? Number(data.top_id) : 0,
 
-        const loadPembelianData = async () => {
-            try {
-                const data = await pembelianService.getById(Number(pembelianId));
-
-                const formData = {
-                    no_pembelian: data.no_pembelian,
-                    warehouse_id: data.warehouse_id ? Number(data.warehouse_id) : 0,
-                    vendor_id: data.vendor_id ? String(data.vendor_id) : "",
-                    top_id: data.top_id ? Number(data.top_id) : 0,
-
-                    sumberdana_id: data.sumberdana_id ? Number(data.sumberdana_id) : 0,
-                    currency_amount: Number(data.currency_amount ?? 1),
-                    sales_date: new Date(data.sales_date),
-                    sales_due_date: new Date(data.sales_due_date),
-                    additional_discount: Number(data.additional_discount ?? 0),
-                    expense: Number(data.expense ?? 0),
-                    status_pembayaran: data.status_pembayaran || "UNPAID",
-                    status_pembelian: data.status_pembelian || "DRAFT",
-                    items: data.pembelian_items.map((item) => ({
-                        item_id: Number(item.item_id),
-                        qty: Number(item.qty),
-                        unit_price: Number(item.unit_price),
-                        unit_price_rmb: Number(item.unit_price_rmb),
-                        discount: Number(item.discount ?? 0),
-                        ongkir: Number(item.ongkir ?? 0),
-                        tax_percentage: Number(item.tax_percentage ?? 10),
-                    })),
-                    attachments: [],
-                };
-
-                setSelectedItems(
-                    data.pembelian_items.map((item) => ({
-                        id: Number(item.item_id),
-                        code: item.item?.code ?? "",
-                        name: item.item?.name ?? "",
-                        price: Number(item.unit_price),
-                    }))
-                );
-
-                setTotalPaid(Number(data.total_paid || 0));
-                setTotalReturn(Number(data.total_return || 0));
-                setIsActive(data.status_pembelian === "ACTIVE");
-                setExistingAttachments(data.attachments || []);
-
-                // Reset the form with the prepared data
-                form.reset(formData);
-
-                // Wait a bit longer and check multiple times
-                setTimeout(() => {
-                    const currentValues = form.getValues();
-
-                    if (
-                        currentValues.warehouse_id !== formData.warehouse_id &&
-                        typeof formData.warehouse_id === "number"
-                    ) {
-                        form.setValue("warehouse_id", formData.warehouse_id, {
-                            shouldValidate: true,
-                            shouldDirty: false,
-                        });
-                    }
-                    if (currentValues.vendor_id !== formData.vendor_id) {
-                        form.setValue("vendor_id", formData.vendor_id, {
-                            shouldValidate: true,
-                            shouldDirty: false,
-                        });
-                    }
-                    if (
-                        currentValues.sumberdana_id !== formData.sumberdana_id &&
-                        typeof formData.sumberdana_id === "number"
-                    ) {
-                        form.setValue("sumberdana_id", formData.sumberdana_id, {
-                            shouldValidate: true,
-                            shouldDirty: false,
-                        });
-                    }
-                    if (
-                        currentValues.top_id !== formData.top_id &&
-                        typeof formData.top_id === "number"
-                    ) {
-                        form.setValue("top_id", formData.top_id, {
-                            shouldValidate: true,
-                            shouldDirty: false,
-                        });
-                    }
-                }, 500);
-            } catch (error: any) {
-                console.error("Error loading pembelian data:", error);
-                toast.error(error.message || "Failed to load purchase data");
-            }
+          sumberdana_id: data.sumberdana_id ? Number(data.sumberdana_id) : 0,
+          currency_amount: Number(data.currency_amount ?? 1),
+          sales_date: new Date(data.sales_date),
+          sales_due_date: new Date(data.sales_due_date),
+          additional_discount: Number(data.additional_discount ?? 0),
+          expense: Number(data.expense ?? 0),
+          status_pembayaran: data.status_pembayaran || "UNPAID",
+          status_pembelian: data.status_pembelian || "DRAFT",
+          items: data.pembelian_items.map((item) => ({
+            item_id: Number(item.item_id),
+            qty: Number(item.qty),
+            unit_price: Number(item.unit_price),
+            unit_price_rmb: Number(item.unit_price_rmb),
+            discount: Number(item.discount ?? 0),
+            ongkir: Number(item.ongkir ?? 0),
+            tax_percentage: Number(item.tax_percentage ?? 10),
+          })),
+          attachments: [],
         };
 
-        loadPembelianData();
-    }, [isEditMode, isViewMode, pembelianId, form]);
-
-    useEffect(() => {
-        const subscription = form.watch((value, {name, type}) => {
-            // Only react to currency_amount changes
-            if (name === "currency_amount" && type === "change") {
-                const newCurrencyRate = Number(value.currency_amount || 1);
-                const currentItems = form.getValues("items");
-
-                if (newCurrencyRate > 0 && currentItems.length > 0) {
-                    currentItems.forEach((item, index) => {
-                        const currentIDRPrice = Number(item.unit_price || 0);
-                        const currentRMBPrice = Number(item.unit_price_rmb || 0);
-
-                        if (currentIDRPrice > 0) {
-                            const newRMBPrice = convertIDRToRMB(
-                                currentIDRPrice,
-                                newCurrencyRate
-                            );
-                            form.setValue(`items.${index}.unit_price_rmb`, newRMBPrice, {
-                                shouldValidate: false,
-                                shouldDirty: true,
-                            });
-                        }
-                    });
-                }
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, [form, convertIDRToRMB]);
-
-    const watchedItems = form.watch("items") || [];
-
-    const totalOngkir = watchedItems.reduce((sum, item) => {
-        const qty = Number(item?.qty) || 1;
-        const ongkir = Number(item?.ongkir) || 0;
-        return sum + (ongkir * qty);
-    }, 0);
-
-    form.setValue(`expense`, totalOngkir);
-
-    const recalcRow = (index: number) => {
-        const rate = Number(form.getValues("currency_amount") || 1);
-        if (rate <= 0) return;
-
-        const src = form.getValues(`items.${index}.price_source`);
-        const idr = Number(form.getValues(`items.${index}.unit_price`) || 0);
-        const rmb = Number(form.getValues(`items.${index}.unit_price_rmb`) || 0);
-
-        if (src === "IDR") {
-            const nextRMB = convertIDRToRMB(idr, rate);
-            form.setValue(`items.${index}.unit_price_rmb`, nextRMB, {
-                shouldDirty: true,
-                shouldValidate: false,
-            });
-        } else {
-            const nextIDR = convertRMBToIDR(rmb, rate);
-            form.setValue(`items.${index}.unit_price`, nextIDR, {
-                shouldDirty: true,
-                shouldValidate: false,
-            });
-        }
-    };
-
-    const rows = watchedItems.map((it) => {
-        const qty = Number(it?.qty ?? 0);
-        const unit = Number(it?.unit_price ?? 0);
-        const taxPct = Number(it?.tax_percentage ?? 0);
-        const discount = Number(it?.discount ?? 0);
-
-        const {
-            subTotal: rowSubTotal,
-            taxableBase,
-            tax: rowTax,
-            total: rowTotal,
-        } = calcRowTotalData(qty, unit, taxPct, discount);
-
-        return {
-            qty,
-            unit,
-            taxPct,
-            discount,
-            rowSubTotal, // shown as "Sub Total" per row
-            taxableBase, // base after row discount (for tax)
-            rowTax, // tax on taxableBase
-            rowTotal, // row grand total (after discount + tax)
-        };
-    });
-
-    const additionalDiscountRaw = Number(form.watch("additional_discount") || 0);
-    const additionalDiscount = Math.max(additionalDiscountRaw, 0);
-    const expense = totalOngkir;
-    const subTotal = rows.reduce((s, r) => s + r.rowSubTotal, 0); // Σ pre-discount bases
-    const totalItemDiscounts = rows.reduce((s, r) => s + r.discount, 0); // Σ row discounts
-    const subtotalAfterItemDiscounts = Math.max(subTotal - totalItemDiscounts, 0);
-
-    // "Additional" (header) discount DOES NOT reduce the tax base in this policy
-    const maxAdditional = Math.min(
-        additionalDiscount,
-        subtotalAfterItemDiscounts
-    );
-    const finalTotalBeforeTax = Math.max(
-        subtotalAfterItemDiscounts - maxAdditional,
-        0
-    );
-
-    const totalTax = rows.reduce((s, r) => s + r.rowTax, 0);
-
-    const grandTotal = finalTotalBeforeTax + totalTax + expense;
-
-    const grandTotalItems = rows.reduce((s, r) => s + r.rowTotal, 0);
-
-    const paid = Number(totalPaid || 0);
-    const ret = Number(totalReturn || 0);
-    const remaining = grandTotal - (paid + ret);
-
-    // If you need this for UI/help text:
-    const totalBeforeDiscount = subtotalAfterItemDiscounts; // same value/name you had
-    const baseForAdditionalDiscount = subtotalAfterItemDiscounts; // what header discount applies to
-
-    const clampedAdditionalDiscount = Math.min(
-        Math.max(additionalDiscount, 0),
-        baseForAdditionalDiscount
-    );
-
-    const handleAddItem = (pickedItem: Item) => {
-        const existingItemIndex = fields.findIndex(
-            (field) => field.item_id === pickedItem.id
+        setSelectedItems(
+          data.pembelian_items.map((item) => ({
+            id: Number(item.item_id),
+            code: item.item?.code ?? "",
+            name: item.item?.name ?? "",
+            price: Number(item.unit_price),
+          }))
         );
 
-        if (existingItemIndex >= 0) {
-            const currentQty = form.getValues(`items.${existingItemIndex}.qty`);
-            form.setValue(`items.${existingItemIndex}.qty`, currentQty + 1);
-        } else {
-            setSelectedItems([...selectedItems, pickedItem]);
+        setTotalPaid(Number(data.total_paid || 0));
+        setTotalReturn(Number(data.total_return || 0));
+        setIsActive(data.status_pembelian === "ACTIVE");
+        setExistingAttachments(data.attachments || []);
 
-            // Use current currency rate, defaulting to 1 if not set
-            const currentCurrency = currencyAmount || 1;
-            const rmbPrice =
-                currentCurrency > 0
-                    ? convertIDRToRMB(pickedItem.price, currentCurrency)
-                    : 0;
+        // Reset the form with the prepared data
+        form.reset(formData);
 
-            append({
-                item_id: pickedItem.id,
-                qty: 1,
-                unit_price: pickedItem.price,
-                unit_price_rmb: rmbPrice,
-                ongkir: 0,
-                discount: 0,
-                tax_percentage: 10,
+        // Wait a bit longer and check multiple times
+        setTimeout(() => {
+          const currentValues = form.getValues();
+
+          if (
+            currentValues.warehouse_id !== formData.warehouse_id &&
+            typeof formData.warehouse_id === "number"
+          ) {
+            form.setValue("warehouse_id", formData.warehouse_id, {
+              shouldValidate: true,
+              shouldDirty: false,
             });
-        }
+          }
+          if (currentValues.vendor_id !== formData.vendor_id) {
+            form.setValue("vendor_id", formData.vendor_id, {
+              shouldValidate: true,
+              shouldDirty: false,
+            });
+          }
+          if (
+            currentValues.sumberdana_id !== formData.sumberdana_id &&
+            typeof formData.sumberdana_id === "number"
+          ) {
+            form.setValue("sumberdana_id", formData.sumberdana_id, {
+              shouldValidate: true,
+              shouldDirty: false,
+            });
+          }
+          if (
+            currentValues.top_id !== formData.top_id &&
+            typeof formData.top_id === "number"
+          ) {
+            form.setValue("top_id", formData.top_id, {
+              shouldValidate: true,
+              shouldDirty: false,
+            });
+          }
+        }, 500);
+      } catch (error: any) {
+        console.error("Error loading pembelian data:", error);
+        toast.error(error.message || "Failed to load purchase data");
+      }
     };
 
-    const handleRemoveItem = (index: number) => {
-        remove(index);
-        const newSelectedItems = [...selectedItems];
-        newSelectedItems.splice(index, 1);
-        setSelectedItems(newSelectedItems);
-    };
+    loadPembelianData();
+  }, [isEditMode, isViewMode, pembelianId, form]);
 
-    const handleSubmit = async (
-        data: PembelianFormData,
-        finalize: boolean = false
-    ) => {
-        setIsSubmitting(true);
-
-        try {
-            const isValid = await form.trigger();
-
-            if (!isValid) {
-                toast.error("Data Anda belum lengkap");
-                return;
-            }
-
-            const apiPayload = {
-                warehouse_id: Number(data.warehouse_id),
-                vendor_id: String(data.vendor_id),
-                top_id: Number(data.top_id),
-                sumberdana_id: Number(data.sumberdana_id),
-                sales_date: formatDateForAPI(data.sales_date),
-                sales_due_date: formatDateForAPI(data.sales_due_date),
-                additional_discount: Number(data.additional_discount || 0),
-                currency_amount: Number(data.currency_amount || 0),
-                expense: Number(data.expense || 0),
-                items: data.items.map((item) => ({
-                    item_id: Number(item.item_id),
-                    qty: Number(item.qty),
-                    unit_price: Number(item.unit_price),
-                    unit_price_rmb: Number(item.unit_price_rmb),
-                    tax_percentage: Number(item.tax_percentage),
-                    discount: Number(item.discount || 0),
-                    ongkir: Number(item.ongkir || 0),
-                })),
-            };
-            let resultId: any;
-
-            if ((isViewMode || isEditMode) && pembelianId) {
-                const updateResult = await pembelianService.updatePembelian(
-                    pembelianId,
-                    apiPayload as PembelianUpdate
-                );
-
-                resultId = pembelianId;
-
-                await handleAttachmentUpload(data.attachments, resultId);
-
-                toast.success("Purchase berhasil diperbarui.");
-                if (finalize) {
-                    await pembelianService.finalizePembelian(resultId);
-                }
-                router.back();
-            } else {
-                const result = await pembelianService.createPembelian(apiPayload);
-
-                console.log("Create result:", result);
-                resultId = result.id;
-                if (!resultId) throw new Error("Failed to get ID from response.");
-
-                // Handle attachment upload for CREATE mode
-                await handleAttachmentUpload(data.attachments, resultId);
-
-                if (finalize) {
-                    await pembelianService.finalizePembelian(resultId);
-                }
-
-                toast.success("Pembelian Berhasil dibuat");
-                router.back();
-            }
-        } catch (e: any) {
-            console.error("Submit error:", e);
-            toast.error(e.detail || e.message || "Something went wrong");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-    const handleTaxPercentageChange = (index: number, newValue: number) => {
-        form.setValue(`items.${index}.tax_percentage`, newValue);
-
+  useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      // Only react to currency_amount changes
+      if (name === "currency_amount" && type === "change") {
+        const newCurrencyRate = Number(value.currency_amount || 1);
         const currentItems = form.getValues("items");
-        currentItems.forEach((_, itemIndex) => {
-            if (itemIndex !== index) {
-                form.setValue(`items.${itemIndex}.tax_percentage`, newValue);
+
+        if (newCurrencyRate > 0 && currentItems.length > 0) {
+          currentItems.forEach((item, index) => {
+            const currentIDRPrice = Number(item.unit_price || 0);
+            const currentRMBPrice = Number(item.unit_price_rmb || 0);
+
+            if (currentIDRPrice > 0) {
+              const newRMBPrice = convertIDRToRMB(
+                currentIDRPrice,
+                newCurrencyRate
+              );
+              form.setValue(`items.${index}.unit_price_rmb`, newRMBPrice, {
+                shouldValidate: false,
+                shouldDirty: true,
+              });
             }
-        });
+          });
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, convertIDRToRMB]);
+
+  const watchedItems = form.watch("items") || [];
+
+  const totalOngkir = watchedItems.reduce((sum, item) => {
+    const qty = Number(item?.qty) || 1;
+    const ongkir = Number(item?.ongkir) || 0;
+    return sum + ongkir * qty;
+  }, 0);
+
+  form.setValue(`expense`, totalOngkir);
+
+  const rows = watchedItems.map((it) => {
+    const qty = Number(it?.qty ?? 0);
+    const unit = Number(it?.unit_price ?? 0);
+    const taxPct = Number(it?.tax_percentage ?? 0);
+    const discount = Number(it?.discount ?? 0);
+
+    const {
+      subTotal: rowSubTotal,
+      taxableBase,
+      tax: rowTax,
+      total: rowTotal,
+    } = calcRowTotalData(qty, unit, taxPct, discount);
+
+    return {
+      qty,
+      unit,
+      taxPct,
+      discount,
+      rowSubTotal, // shown as "Sub Total" per row
+      taxableBase, // base after row discount (for tax)
+      rowTax, // tax on taxableBase
+      rowTotal, // row grand total (after discount + tax)
     };
+  });
 
-    const handleAttachmentUpload = async (attachments: any, parentId: number) => {
-        if (!attachments) {
-            console.log("No attachments to upload");
-            return;
-        }
+  const additionalDiscountRaw = Number(form.watch("additional_discount") || 0);
+  const additionalDiscount = Math.max(additionalDiscountRaw, 0);
+  const expense = totalOngkir;
+  const subTotal = rows.reduce((s, r) => s + r.rowSubTotal, 0); // Σ pre-discount bases
+  const totalItemDiscounts = rows.reduce((s, r) => s + r.discount, 0); // Σ row discounts
+  const subtotalAfterItemDiscounts = Math.max(subTotal - totalItemDiscounts, 0);
 
-        try {
-            // Handle different attachment data structures
-            let filesToUpload: File[] = [];
+  // "Additional" (header) discount DOES NOT reduce the tax base in this policy
+  const maxAdditional = Math.min(
+    additionalDiscount,
+    subtotalAfterItemDiscounts
+  );
+  const finalTotalBeforeTax = Math.max(
+    subtotalAfterItemDiscounts - maxAdditional,
+    0
+  );
 
-            if (attachments instanceof File) {
-                // Single file
-                filesToUpload = [attachments];
-            } else if (attachments instanceof FileList) {
-                // FileList from input
-                filesToUpload = Array.from(attachments);
-            } else if (Array.isArray(attachments)) {
-                // Array of files
-                filesToUpload = attachments.filter((file) => file instanceof File);
-            } else {
-                console.warn("Unsupported attachment format:", attachments);
-                return;
-            }
+  const totalTax = rows.reduce((s, r) => s + r.rowTax, 0);
 
-            console.log("Files to upload:", filesToUpload);
+  const grandTotal = finalTotalBeforeTax + totalTax + expense;
 
-            // Upload each file
-            const uploadPromises = filesToUpload.map(async (file, index) => {
-                try {
-                    console.log(`Uploading file ${index + 1}:`, file.name);
+  const grandTotalItems = rows.reduce((s, r) => s + r.rowTotal, 0);
 
-                    const validationError = imageService.validateFile(file);
-                    if (validationError) {
-                        throw new Error(`File "${file.name}": ${validationError}`);
-                    }
+  const paid = Number(totalPaid || 0);
+  const ret = Number(totalReturn || 0);
+  const remaining = grandTotal - (paid + ret);
 
-                    const uploadResult = await imageService.uploadImage({
-                        file: file,
-                        parent_type: ParentType.PEMBELIANS,
-                        parent_id: parentId,
-                    });
+  // If you need this for UI/help text:
+  const totalBeforeDiscount = subtotalAfterItemDiscounts; // same value/name you had
+  const baseForAdditionalDiscount = subtotalAfterItemDiscounts; // what header discount applies to
 
-                    console.log(`Upload result for ${file.name}:`, uploadResult);
-                    return uploadResult;
-                } catch (error: any) {
-                    console.error(`Error uploading file ${file.name}:`, error);
-                    // Instead of throwing, we'll collect the error
-                    return {error: error.detail, fileName: file.name};
-                }
-            });
+  const clampedAdditionalDiscount = Math.min(
+    Math.max(additionalDiscount, 0),
+    baseForAdditionalDiscount
+  );
 
-            const uploadResults = await Promise.allSettled(uploadPromises);
-        } catch (error: any) {
-            console.error("Attachment upload error:", error);
-            toast.error(`Attachment upload failed: ${error.detail}`);
-        }
-    };
-
-    const handleExistingAttachments = async (pembelianId: string) => {
-        try {
-            console.log("Fetching existing attachments for pembelian:", pembelianId);
-            const existingAttachments = await imageService.getAttachmentsByParent(
-                ParentType.PEMBELIANS,
-                pembelianId
-            );
-
-            console.log("Existing attachments:", existingAttachments);
-            return existingAttachments;
-        } catch (error) {
-            console.error("Error fetching existing attachments:", error);
-            return [];
-        }
-    };
-
-    const handleRemoveExistingAttachment = async (attachmentId: number) => {
-        if (!pembelianId) return;
-
-        try {
-            await pembelianService.deleteAttachment(pembelianId, attachmentId);
-            setExistingAttachments((prev) =>
-                prev.filter((att) => att.id !== attachmentId)
-            );
-            toast.success("Attachment berhasil dihapus");
-        } catch (error: any) {
-            toast.error(error.message || "Failed to remove attachment");
-        }
-    };
-
-    const onDraftClick = form.handleSubmit(
-        (data) => {
-            handleSubmit(data, false);
-        },
-        (errors) => {
-            toast.error("Silahkan penuhi data Anda terlebih dahulu");
-        }
+  const handleAddItem = (pickedItem: Item) => {
+    const existingItemIndex = fields.findIndex(
+      (field) => field.item_id === pickedItem.id
     );
 
-    return (
-        <div className="space-y-6">
-            <SidebarHeaderBar
-                leftContent={
-                    <CustomBreadcrumb
-                        listData={[
-                            "Pembelian",
-                            isEditMode ? "Edit Pembelian" : "Tambah Pembelian",
-                        ]}
-                        linkData={[
-                            "pembelian",
-                            isEditMode ? `pembelian/edit/${pembelianId}` : "/pembelian/add",
-                        ]}
-                    />
-                }
+    if (existingItemIndex >= 0) {
+      const currentQty = form.getValues(`items.${existingItemIndex}.qty`);
+      form.setValue(`items.${existingItemIndex}.qty`, currentQty + 1);
+    } else {
+      setSelectedItems([...selectedItems, pickedItem]);
+
+      // Use current currency rate, defaulting to 1 if not set
+      const currentCurrency = currencyAmount || 1;
+      const rmbPrice =
+        currentCurrency > 0
+          ? convertIDRToRMB(pickedItem.price, currentCurrency)
+          : 0;
+
+      append({
+        item_id: pickedItem.id,
+        qty: 1,
+        unit_price: pickedItem.price,
+        unit_price_rmb: rmbPrice,
+        ongkir: 0,
+        discount: 0,
+        tax_percentage: 10,
+      });
+    }
+  };
+
+  const lastEditedField = React.useRef<{ [key: number]: "idr" | "rmb" | null }>(
+    {}
+  );
+
+  const handleIDRPriceChange = (index: number, idrPrice: number) => {
+    const currentCurrency = currencyAmount || 1;
+    if (currentCurrency > 0 && idrPrice >= 0) {
+      lastEditedField.current[index] = "idr";
+      const rmbPrice = convertIDRToRMB(idrPrice, currentCurrency);
+      form.setValue(`items.${index}.unit_price_rmb`, rmbPrice, {
+        shouldValidate: false,
+        shouldDirty: true,
+      });
+    }
+  };
+
+  const handleRMBPriceChange = (index: number, rmbPrice: number) => {
+    const currentCurrency = currencyAmount || 1;
+    if (currentCurrency > 0 && rmbPrice >= 0) {
+      lastEditedField.current[index] = "rmb";
+      const idrPrice = convertRMBToIDR(rmbPrice, currentCurrency);
+      form.setValue(`items.${index}.unit_price`, idrPrice, {
+        shouldValidate: false,
+        shouldDirty: true,
+      });
+    }
+  };
+
+  const handleRemoveItem = (index: number) => {
+    remove(index);
+    const newSelectedItems = [...selectedItems];
+    newSelectedItems.splice(index, 1);
+    setSelectedItems(newSelectedItems);
+  };
+
+  const handleSubmit = async (
+    data: PembelianFormData,
+    finalize: boolean = false
+  ) => {
+    setIsSubmitting(true);
+
+    try {
+      const isValid = await form.trigger();
+
+      if (!isValid) {
+        toast.error("Data Anda belum lengkap");
+        return;
+      }
+
+      const apiPayload = {
+        warehouse_id: Number(data.warehouse_id),
+        vendor_id: String(data.vendor_id),
+        top_id: Number(data.top_id),
+        sumberdana_id: Number(data.sumberdana_id),
+        sales_date: formatDateForAPI(data.sales_date),
+        sales_due_date: formatDateForAPI(data.sales_due_date),
+        additional_discount: Number(data.additional_discount || 0),
+        currency_amount: Number(data.currency_amount || 0),
+        expense: Number(data.expense || 0),
+        items: data.items.map((item) => ({
+          item_id: Number(item.item_id),
+          qty: Number(item.qty),
+          unit_price: Number(item.unit_price),
+          unit_price_rmb: Number(item.unit_price_rmb),
+          tax_percentage: Number(item.tax_percentage),
+          discount: Number(item.discount || 0),
+          ongkir: Number(item.ongkir || 0),
+        })),
+      };
+      let resultId: any;
+
+      if ((isViewMode || isEditMode) && pembelianId) {
+        const updateResult = await pembelianService.updatePembelian(
+          pembelianId,
+          apiPayload as PembelianUpdate
+        );
+
+        resultId = pembelianId;
+
+        await handleAttachmentUpload(data.attachments, resultId);
+
+        toast.success("Purchase berhasil diperbarui.");
+        if (finalize) {
+          await pembelianService.finalizePembelian(resultId);
+        }
+        router.back();
+      } else {
+        const result = await pembelianService.createPembelian(apiPayload);
+
+        console.log("Create result:", result);
+        resultId = result.id;
+        if (!resultId) throw new Error("Failed to get ID from response.");
+
+        // Handle attachment upload for CREATE mode
+        await handleAttachmentUpload(data.attachments, resultId);
+
+        if (finalize) {
+          await pembelianService.finalizePembelian(resultId);
+        }
+
+        toast.success("Pembelian Berhasil dibuat");
+        router.back();
+      }
+    } catch (e: any) {
+      console.error("Submit error:", e);
+      toast.error(e.detail || e.message || "Something went wrong");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  const handleTaxPercentageChange = (index: number, newValue: number) => {
+    form.setValue(`items.${index}.tax_percentage`, newValue);
+
+    const currentItems = form.getValues("items");
+    currentItems.forEach((_, itemIndex) => {
+      if (itemIndex !== index) {
+        form.setValue(`items.${itemIndex}.tax_percentage`, newValue);
+      }
+    });
+  };
+
+  const handleAttachmentUpload = async (attachments: any, parentId: number) => {
+    if (!attachments) {
+      console.log("No attachments to upload");
+      return;
+    }
+
+    try {
+      // Handle different attachment data structures
+      let filesToUpload: File[] = [];
+
+      if (attachments instanceof File) {
+        // Single file
+        filesToUpload = [attachments];
+      } else if (attachments instanceof FileList) {
+        // FileList from input
+        filesToUpload = Array.from(attachments);
+      } else if (Array.isArray(attachments)) {
+        // Array of files
+        filesToUpload = attachments.filter((file) => file instanceof File);
+      } else {
+        console.warn("Unsupported attachment format:", attachments);
+        return;
+      }
+
+      console.log("Files to upload:", filesToUpload);
+
+      // Upload each file
+      const uploadPromises = filesToUpload.map(async (file, index) => {
+        try {
+          console.log(`Uploading file ${index + 1}:`, file.name);
+
+          const validationError = imageService.validateFile(file);
+          if (validationError) {
+            throw new Error(`File "${file.name}": ${validationError}`);
+          }
+
+          const uploadResult = await imageService.uploadImage({
+            file: file,
+            parent_type: ParentType.PEMBELIANS,
+            parent_id: parentId,
+          });
+
+          console.log(`Upload result for ${file.name}:`, uploadResult);
+          return uploadResult;
+        } catch (error: any) {
+          console.error(`Error uploading file ${file.name}:`, error);
+          // Instead of throwing, we'll collect the error
+          return { error: error.detail, fileName: file.name };
+        }
+      });
+
+      const uploadResults = await Promise.allSettled(uploadPromises);
+    } catch (error: any) {
+      console.error("Attachment upload error:", error);
+      toast.error(`Attachment upload failed: ${error.detail}`);
+    }
+  };
+
+  const handleExistingAttachments = async (pembelianId: string) => {
+    try {
+      console.log("Fetching existing attachments for pembelian:", pembelianId);
+      const existingAttachments = await imageService.getAttachmentsByParent(
+        ParentType.PEMBELIANS,
+        pembelianId
+      );
+
+      console.log("Existing attachments:", existingAttachments);
+      return existingAttachments;
+    } catch (error) {
+      console.error("Error fetching existing attachments:", error);
+      return [];
+    }
+  };
+
+  const handleRemoveExistingAttachment = async (attachmentId: number) => {
+    if (!pembelianId) return;
+
+    try {
+      await pembelianService.deleteAttachment(pembelianId, attachmentId);
+      setExistingAttachments((prev) =>
+        prev.filter((att) => att.id !== attachmentId)
+      );
+      toast.success("Attachment berhasil dihapus");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to remove attachment");
+    }
+  };
+
+  const onDraftClick = form.handleSubmit(
+    (data) => {
+      handleSubmit(data, false);
+    },
+    (errors) => {
+      toast.error("Silahkan penuhi data Anda terlebih dahulu");
+    }
+  );
+
+  return (
+    <div className="space-y-6">
+      <SidebarHeaderBar
+        leftContent={
+          <CustomBreadcrumb
+            listData={[
+              "Pembelian",
+              isEditMode ? "Edit Pembelian" : "Tambah Pembelian",
+            ]}
+            linkData={[
+              "pembelian",
+              isEditMode ? `pembelian/edit/${pembelianId}` : "/pembelian/add",
+            ]}
+          />
+        }
+      />
+      <Form {...form}>
+        <form className="space-y-6">
+          {/* Purchase Information */}
+          <FormSection title="Informasi Pembelian">
+            <FormField
+              control={form.control}
+              name="no_pembelian"
+              disabled
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>No. Pembelian</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={true} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <Form {...form}>
-                <form className="space-y-6">
-                    {/* Purchase Information */}
-                    <FormSection title="Informasi Pembelian">
-                        <FormField
-                            control={form.control}
-                            name="no_pembelian"
-                            disabled
-                            render={({field}) => (
-                                <FormItem>
-                                    <FormLabel>No. Pembelian</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} disabled={true}/>
-                                    </FormControl>
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
-                        />
 
-                        <FormField
-                            control={form.control}
-                            name="sales_date"
-                            render={({field}) => (
-                                <FormItem>
-                                    <FormLabel>
-                                        Purchase Date <span className="text-red-500">*</span>
-                                    </FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                    disabled={isViewMode}
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "w-full pl-3 text-left font-normal",
-                                                        !field.value && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    {field.value ? (
-                                                        format(field.value, "PPP")
-                                                    ) : (
-                                                        <span>Purchase Date</span>
-                                                    )}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50"/>
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                selected={field.value}
-                                                onSelect={field.onChange}
-                                                disabled={(date: Date) => date < new Date("1900-01-01")}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
-                        />
+            <FormField
+              control={form.control}
+              name="sales_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Purchase Date <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          disabled={isViewMode}
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Purchase Date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date: Date) => date < new Date("1900-01-01")}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                        <FormField
-                            control={form.control}
-                            name="status_pembelian"
-                            render={({field}) => (
-                                <div>
-                                    <Label>Status</Label>
-                                    <div className="mt-2 p-2 bg-muted rounded">
+            <FormField
+              control={form.control}
+              name="status_pembelian"
+              render={({ field }) => (
+                <div>
+                  <Label>Status</Label>
+                  <div className="mt-2 p-2 bg-muted rounded">
                     <span className="text-sm text-muted-foreground">
                       {field.value || "DRAFT / ACTIVE"}
                     </span>
-                                    </div>
-                                </div>
-                            )}
-                        />
+                  </div>
+                </div>
+              )}
+            />
 
-                        <FormField
-                            control={form.control}
-                            name="sales_due_date"
-                            render={({field}) => (
-                                <FormItem>
-                                    <FormLabel>
-                                        Purchase Due Date <span className="text-red-500">*</span>
-                                    </FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                    disabled={isViewMode}
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "w-full pl-3 text-left font-normal",
-                                                        !field.value && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    {field.value ? (
-                                                        format(field.value, "PPP")
-                                                    ) : (
-                                                        <span>Purchase Due Date</span>
-                                                    )}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50"/>
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                selected={field.value}
-                                                onSelect={field.onChange}
-                                                disabled={(date: Date) => date < new Date("1900-01-01")}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
-                        />
-                    </FormSection>
-                    {/* Warehouse & Vendor */}
-                    <FormSection title="Gudang & Vendor">
-                        <QuickFormSearchableField
-                            control={form.control}
-                            name="vendor_id"
-                            type="vendor"
-                            isRequired={true}
-                            label="Vendor"
-                            placeholder="Pilih Vendor"
-                            disabled={isViewMode}
-                        />
+            <FormField
+              control={form.control}
+              name="sales_due_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Purchase Due Date <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          disabled={isViewMode}
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Purchase Due Date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date: Date) => date < new Date("1900-01-01")}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </FormSection>
+          {/* Warehouse & Vendor */}
+          <FormSection title="Gudang & Vendor">
+            <QuickFormSearchableField
+              control={form.control}
+              name="vendor_id"
+              type="vendor"
+              isRequired={true}
+              label="Vendor"
+              placeholder="Pilih Vendor"
+              disabled={isViewMode}
+            />
 
-                        <QuickFormSearchableField
-                            control={form.control}
-                            name="warehouse_id"
-                            type="warehouse"
-                            label="Warehouse"
-                            isRequired={true}
-                            placeholder="Pilih Warehouse"
-                            disabled={isViewMode}
-                        />
+            <QuickFormSearchableField
+              control={form.control}
+              name="warehouse_id"
+              type="warehouse"
+              label="Warehouse"
+              isRequired={true}
+              placeholder="Pilih Warehouse"
+              disabled={isViewMode}
+            />
+          </FormSection>
+          {/* Payment Information */}
+          <FormSection title="Informasi Pembayaran">
+            <QuickFormSearchableField
+              control={form.control}
+              name="top_id"
+              type="payment_type"
+              isRequired={true}
+              label="Jenis Pembayaran"
+              placeholder="Pilih Jenis Pembayaran"
+              disabled={isViewMode}
+            />
 
-
-                    </FormSection>
-                    {/* Payment Information */}
-                    <FormSection title="Informasi Pembayaran">
-                        <QuickFormSearchableField
-                            control={form.control}
-                            name="top_id"
-                            type="payment_type"
-                            isRequired={true}
-                            label="Jenis Pembayaran"
-                            placeholder="Pilih Jenis Pembayaran"
-                            disabled={isViewMode}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="status_pembayaran"
-                            render={({field}) => (
-                                <div>
-                                    <Label>Status Pembayaran</Label>
-                                    <div className="mt-2 p-2 bg-muted rounded">
+            <FormField
+              control={form.control}
+              name="status_pembayaran"
+              render={({ field }) => (
+                <div>
+                  <Label>Status Pembayaran</Label>
+                  <div className="mt-2 p-2 bg-muted rounded">
                     <span className="text-sm text-muted-foreground">
                       {field.value || "UNPAID"}
                     </span>
-                                    </div>
-                                </div>
-                            )}
-                        />
-                        <QuickFormSearchableField
-                            control={form.control}
-                            name="sumberdana_id"
-                            type="sumberdana"
-                            label="Sumber Dana"
-                            isRequired={true}
-                            placeholder="Pilih Sumber Dana"
-                            disabled={isViewMode}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="currency_amount"
-                            render={({field}) => (
-                                <FormItem>
-                                    <FormLabel>
-                                        Currency <span className="text-red-500">*</span>
-                                    </FormLabel>
-                                    <FormControl>
-                                        <NumericFormat
-                                            customInput={Input}
-                                            thousandSeparator="."
-                                            decimalSeparator=","
-                                            allowNegative={false}
-                                            inputMode="decimal"
-                                            disabled={isViewMode}
-                                            placeholder="1.00"
-                                            prefix="Rp"
-                                            value={field.value ?? ""} // Use field.value directly
-                                            onValueChange={(values) => {
-                                                // Handle the conversion properly
-                                                const numericValue = Number(values.floatValue ?? 1);
-                                                field.onChange(numericValue);
-                                            }}
-                                        />
-                                    </FormControl>
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
-                        />
-                    </FormSection>
-                    {/* Attachments Section */} {/* Attachments Section */}
-                    <FormSection title="Lampiran">
-                        {(isEditMode || isViewMode) && (
-                            <div className="md:col-span-2 space-y-3">
-                                <Label>Existing Attachments</Label>
-                                {existingAttachments.length > 0 ? (
-                                    <div className="space-y-2">
-                                        {existingAttachments.map((att) => (
-                                            <div
-                                                key={att.id}
-                                                className="flex items-center justify-between p-2 bg-muted rounded-lg"
-                                            >
-                                                <div className="flex items-center space-x-3 truncate">
-                                                    <FileText className="h-5 w-5 text-gray-500 flex-shrink-0"/>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            pembelianService.triggerDownload(
-                                                                pembelianId!,
-                                                                att.id,
-                                                                att.filename
-                                                            );
-                                                        }}
-                                                        className="text-sm font-medium hover:underline truncate text-left"
-                                                    >
-                                                        {att.filename}
-                                                    </button>
-                                                </div>
+                  </div>
+                </div>
+              )}
+            />
+            <QuickFormSearchableField
+              control={form.control}
+              name="sumberdana_id"
+              type="sumberdana"
+              label="Sumber Dana"
+              isRequired={true}
+              placeholder="Pilih Sumber Dana"
+              disabled={isViewMode}
+            />
+            <FormField
+              control={form.control}
+              name="currency_amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Currency <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <NumericFormat
+                      customInput={Input}
+                      thousandSeparator="."
+                      decimalSeparator=","
+                      allowNegative={false}
+                      inputMode="decimal"
+                      disabled={isViewMode}
+                      placeholder="1.00"
+                      prefix="Rp"
+                      value={field.value ?? ""} // Use field.value directly
+                      onValueChange={(values) => {
+                        // Handle the conversion properly
+                        const numericValue = Number(values.floatValue ?? 1);
+                        field.onChange(numericValue);
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </FormSection>
+          {/* Attachments Section */} {/* Attachments Section */}
+          <FormSection title="Lampiran">
+            {(isEditMode || isViewMode) && (
+              <div className="md:col-span-2 space-y-3">
+                <Label>Existing Attachments</Label>
+                {existingAttachments.length > 0 ? (
+                  <div className="space-y-2">
+                    {existingAttachments.map((att) => (
+                      <div
+                        key={att.id}
+                        className="flex items-center justify-between p-2 bg-muted rounded-lg"
+                      >
+                        <div className="flex items-center space-x-3 truncate">
+                          <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              pembelianService.triggerDownload(
+                                pembelianId!,
+                                att.id,
+                                att.filename
+                              );
+                            }}
+                            className="text-sm font-medium hover:underline truncate text-left"
+                          >
+                            {att.filename}
+                          </button>
+                        </div>
 
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    type={"button"}
-                                                    onClick={() => handleRemoveExistingAttachment(att.id)}
-                                                    className="text-red-500 hover:text-red-700"
-                                                >
-                                                    <X className="h-4 w-4"/>
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        No existing attachments.
-                                    </p>
-                                )}
-                            </div>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type={"button"}
+                          onClick={() => handleRemoveExistingAttachment(att.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No existing attachments.
+                  </p>
+                )}
+              </div>
+            )}
 
-                        {/* Upload new attachments */}
-                        <div className="md:col-span-2">
-                            <FormField
+            {/* Upload new attachments */}
+            <div className="md:col-span-2">
+              <FormField
+                control={form.control}
+                name="attachments"
+                render={({ field }) => (
+                  <>
+                    <FormItem>
+                      <FormLabel>
+                        {isEditMode ? "Add New Attachments" : ""}
+                      </FormLabel>
+                      <FormControl>
+                        <FileUploadButton
+                          value={field.value || []}
+                          onChangeAction={field.onChange}
+                          maxFiles={3}
+                          maxSizeMB={4}
+                          accept={{ "application/pdf": [".pdf"] }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                    {(isEditMode || isViewMode) &&
+                      pembelianId &&
+                      field.value &&
+                      field.value.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="mt-2"
+                          disabled={isSubmitting}
+                          onClick={async () => {
+                            setIsSubmitting(true);
+                            try {
+                              await handleAttachmentUpload(
+                                field.value,
+                                Number(pembelianId)
+                              );
+                              toast.success(
+                                "Attachments uploaded successfully"
+                              );
+                              field.onChange([]);
+                              const data = await pembelianService.getById(
+                                Number(pembelianId)
+                              );
+                              setExistingAttachments(data.attachments || []);
+                            } catch (error: any) {
+                              toast.error(
+                                error.message || "Failed to upload attachments"
+                              );
+                            } finally {
+                              setIsSubmitting(false);
+                            }
+                          }}
+                        >
+                          Upload Attachments Only
+                        </Button>
+                      )}
+                  </>
+                )}
+              />
+            </div>
+          </FormSection>
+          {/* Item Details */}
+          <div className="flex w-full justify-between items-center">
+            <CardTitle className="text-lg">Detail Item</CardTitle>
+            {!isViewMode && (
+              <Button
+                type="button"
+                onClick={() => setIsItemDialogOpen(true)}
+                className=""
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Tambah Item
+              </Button>
+            )}
+          </div>
+          {fields.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Belum ada item ditambahkan
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="w-full overflow-x-auto ">
+                <div className="min-w-max">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item Code</TableHead>
+                        <TableHead>Nama Item</TableHead>
+                        <TableHead>Qty</TableHead>
+                        <TableHead>Harga (RMB)</TableHead>
+                        <TableHead>Harga (IDR)</TableHead>
+                        <TableHead>Sub Total</TableHead>
+                        <TableHead>Discount</TableHead>
+                        <TableHead>DPP</TableHead>
+                        <TableHead>Pajak (%)</TableHead>
+                        <TableHead>
+                          Harga pajak (
+                          {Number(form.watch(`items.0.tax_percentage`)) || 0}%)
+                        </TableHead>
+                        <TableHead>Grand Total</TableHead>
+                        <TableHead className="bg-gray-400/10">
+                          Harga Ongkir Satuan
+                        </TableHead>
+                        <TableHead className="bg-gray-400/10">
+                          Total Ongkir
+                        </TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {fields.map((field, index) => {
+                        return (
+                          <TableRow key={field.id}>
+                            <TableCell>
+                              {selectedItems[index]?.code || ""}
+                            </TableCell>
+                            <TableCell>
+                              {selectedItems[index]?.name || ""}
+                            </TableCell>
+                            <TableCell>
+                              <FormField
                                 control={form.control}
-                                name="attachments"
-                                render={({field}) => (
-                                    <>
-                                        <FormItem>
-                                            <FormLabel>
-                                                {isEditMode ? "Add New Attachments" : ""}
-                                            </FormLabel>
-                                            <FormControl>
-                                                <FileUploadButton
-                                                    value={field.value || []}
-                                                    onChangeAction={field.onChange}
-                                                    maxFiles={3}
-                                                    maxSizeMB={4}
-                                                    accept={{"application/pdf": [".pdf"]}}
-                                                />
-                                            </FormControl>
-                                            <FormMessage/>
-                                        </FormItem>
-                                        {(isEditMode || isViewMode) &&
-                                            pembelianId &&
-                                            field.value &&
-                                            field.value.length > 0 && (
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    className="mt-2"
-                                                    disabled={isSubmitting}
-                                                    onClick={async () => {
-                                                        setIsSubmitting(true);
-                                                        try {
-                                                            await handleAttachmentUpload(
-                                                                field.value,
-                                                                Number(pembelianId)
-                                                            );
-                                                            toast.success(
-                                                                "Attachments uploaded successfully"
-                                                            );
-                                                            field.onChange([]);
-                                                            const data = await pembelianService.getById(
-                                                                Number(pembelianId)
-                                                            );
-                                                            setExistingAttachments(data.attachments || []);
-                                                        } catch (error: any) {
-                                                            toast.error(
-                                                                error.message || "Failed to upload attachments"
-                                                            );
-                                                        } finally {
-                                                            setIsSubmitting(false);
-                                                        }
-                                                    }}
-                                                >
-                                                    Upload Attachments Only
-                                                </Button>
-                                            )}
-                                    </>
+                                name={`items.${index}.qty`}
+                                render={({ field }) => (
+                                  <Input
+                                    disabled={isViewMode || false}
+                                    type="number"
+                                    className="w-20"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                      }
+                                    }}
+                                    {...field}
+                                    onChange={(e) =>
+                                      field.onChange(Number(e.target.value))
+                                    }
+                                  />
                                 )}
-                            />
-                        </div>
-                    </FormSection>
-                    {/* Item Details */}
-                    <div className="flex w-full justify-between items-center">
-                        <CardTitle className="text-lg">Detail Item</CardTitle>
-                        {!isViewMode && (
-                            <Button
-                                type="button"
-                                onClick={() => setIsItemDialogOpen(true)}
-                                className=""
-                            >
-                                <Plus className="h-4 w-4 mr-2"/>
-                                Tambah Item
-                            </Button>
-                        )}
-                    </div>
-                    {fields.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            Belum ada item ditambahkan
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="w-full overflow-x-auto ">
-                                <div className="min-w-max">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Item Code</TableHead>
-                                                <TableHead>Nama Item</TableHead>
-                                                <TableHead>Qty</TableHead>
-                                                <TableHead>Harga (RMB)</TableHead>
-                                                <TableHead>Harga (IDR)</TableHead>
-                                                <TableHead>Sub Total</TableHead>
-                                                <TableHead>Discount</TableHead>
-                                                <TableHead>DPP</TableHead>
-                                                <TableHead>Pajak (%)</TableHead>
-                                                <TableHead>
-                                                    Harga pajak (
-                                                    {Number(form.watch(`items.0.tax_percentage`)) || 0}%)
-                                                </TableHead>
-                                                <TableHead>Grand Total</TableHead>
-                                                <TableHead className="bg-gray-400/10">
-                                                    Harga Ongkir Satuan
-                                                </TableHead>
-                                                <TableHead className="bg-gray-400/10">
-                                                    Total Ongkir
-                                                </TableHead>
-                                                <TableHead></TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {fields.map((field, index) => {
-                                                return (
-                                                    <TableRow key={field.id}>
-                                                        <TableCell>
-                                                            {selectedItems[index]?.code || ""}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            {selectedItems[index]?.name || ""}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <FormField
-                                                                control={form.control}
-                                                                name={`items.${index}.qty`}
-                                                                render={({field}) => (
-                                                                    <Input
-                                                                        disabled={isViewMode || false}
-                                                                        type="number"
-                                                                        className="w-20"
-                                                                        onKeyDown={(e) => {
-                                                                            if (e.key === "Enter") {
-                                                                                e.preventDefault();
-                                                                            }
-                                                                        }}
-                                                                        {...field}
-                                                                        onChange={(e) =>
-                                                                            field.onChange(Number(e.target.value))
-                                                                        }
-                                                                    />
-                                                                )}
-                                                            />
-                                                        </TableCell>
+                              />
+                            </TableCell>
 
-                                                        <TableCell>
-                                                            <FormField
-                                                                control={form.control}
-                                                                name={`items.${index}.unit_price_rmb`}
-                                                                render={({field}) => (
-                                                                    <NumericFormat
-                                                                        customInput={Input}
-                                                                        thousandSeparator="."
-                                                                        decimalSeparator=","
-                                                                        allowNegative={false}
-                                                                        inputMode="decimal"
-                                                                        disabled={isViewMode}
-                                                                        className="w-20"
-                                                                        value={field.value ?? ""}
-                                                                        onValueChange={(v) => {
-                                                                            const rmb = Number(v.floatValue ?? 0);
-                                                                            field.onChange(rmb);
-                                                                            form.setValue(
-                                                                                `items.${index}.price_source`,
-                                                                                "RMB",
-                                                                                {shouldDirty: true}
-                                                                            );
-                                                                            recalcRow(index);
-                                                                        }}
-                                                                    />
-                                                                )}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <FormField
-                                                                control={form.control}
-                                                                name={`items.${index}.unit_price`}
-                                                                render={({field}) => (
-                                                                    <NumericFormat
-                                                                        customInput={Input}
-                                                                        thousandSeparator="."
-                                                                        decimalSeparator=","
-                                                                        allowNegative={false}
-                                                                        inputMode="decimal"
-                                                                        disabled={isViewMode}
-                                                                        className="w-20"
-                                                                        value={field.value ?? ""}
-                                                                        onValueChange={(v) => {
-                                                                            const idr = Number(v.floatValue ?? 0);
-                                                                            field.onChange(idr);
-                                                                            form.setValue(
-                                                                                `items.${index}.price_source`,
-                                                                                "IDR",
-                                                                                {shouldDirty: true}
-                                                                            );
-                                                                            recalcRow(index);
-                                                                        }}
-                                                                    />
-                                                                )}
-                                                            />
-                                                        </TableCell>
+                            <TableCell>
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.unit_price_rmb`}
+                                render={({ field }) => (
+                                  <NumericFormat
+                                    customInput={Input}
+                                    thousandSeparator="."
+                                    decimalSeparator=","
+                                    allowNegative={false}
+                                    inputMode="decimal"
+                                    disabled={isViewMode}
+                                    value={field.value ?? ""}
+                                    onValueChange={(values) => {
+                                      const rmbPrice = Number(
+                                        values.floatValue ?? 0
+                                      );
 
-                                                        <TableCell>
+                                      // Only process if this was a user edit (not a programmatic change from IDR)
+                                      if (
+                                        lastEditedField.current[index] === "idr"
+                                      ) {
+                                        // This change came from IDR conversion, just update the field
+                                        field.onChange(rmbPrice);
+                                        lastEditedField.current[index] = null;
+                                      } else if (
+                                        values.floatValue !== undefined
+                                      ) {
+                                        // This is a real user edit of RMB field
+                                        field.onChange(rmbPrice);
+                                        handleRMBPriceChange(index, rmbPrice);
+                                      }
+                                    }}
+                                    onFocus={() => {
+                                      // Clear the flag when user focuses on this field
+                                      lastEditedField.current[index] = null;
+                                    }}
+                                  />
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.unit_price`}
+                                render={({ field }) => (
+                                  <NumericFormat
+                                    customInput={Input}
+                                    thousandSeparator="."
+                                    decimalSeparator=","
+                                    allowNegative={false}
+                                    inputMode="decimal"
+                                    disabled={isViewMode}
+                                    value={field.value ?? ""}
+                                    onValueChange={(values) => {
+                                      const idrPrice = Number(
+                                        values.floatValue ?? 0
+                                      );
+
+                                      // Only process if this was a user edit (not a programmatic change from RMB)
+                                      if (
+                                        lastEditedField.current[index] === "rmb"
+                                      ) {
+                                        // This change came from RMB conversion, just update the field
+                                        field.onChange(idrPrice);
+                                        lastEditedField.current[index] = null;
+                                      } else if (
+                                        values.floatValue !== undefined
+                                      ) {
+                                        // This is a real user edit of IDR field
+                                        field.onChange(idrPrice);
+                                        handleIDRPriceChange(index, idrPrice);
+                                      }
+                                    }}
+                                    onFocus={() => {
+                                      // Clear the flag when user focuses on this field
+                                      lastEditedField.current[index] = null;
+                                    }}
+                                  />
+                                )}
+                              />
+                            </TableCell>
+
+                            <TableCell>
                               <span>
                                 {(() => {
-                                    const qty =
-                                        Number(form.watch(`items.${index}.qty`)) ||
-                                        0;
-                                    const unitPrice =
-                                        Number(
-                                            form.watch(`items.${index}.unit_price`)
-                                        ) || 0;
-                                    return formatMoney(
-                                        qty * unitPrice,
-                                        "IDR",
-                                        "id-ID",
-                                        "nosymbol"
-                                    );
+                                  const qty =
+                                    Number(form.watch(`items.${index}.qty`)) ||
+                                    0;
+                                  const unitPrice =
+                                    Number(
+                                      form.watch(`items.${index}.unit_price`)
+                                    ) || 0;
+                                  return formatMoney(
+                                    qty * unitPrice,
+                                    "IDR",
+                                    "id-ID",
+                                    "nosymbol"
+                                  );
                                 })()}
                               </span>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <FormField
-                                                                control={form.control}
-                                                                name={`items.${index}.discount`}
-                                                                render={({field}) => (
-                                                                    <NumericFormat
-                                                                        customInput={Input}
-                                                                        thousandSeparator="."
-                                                                        className="w-20"
-                                                                        decimalSeparator=","
-                                                                        allowNegative={false}
-                                                                        inputMode="decimal"
-                                                                        disabled={isViewMode || false}
-                                                                        value={field.value ?? ""}
-                                                                        onValueChange={(e) =>
-                                                                            field.onChange(Number(e.floatValue ?? 0))
-                                                                        }
-                                                                    />
-                                                                )}
-                                                            />
-                                                        </TableCell>
+                            </TableCell>
+                            <TableCell>
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.discount`}
+                                render={({ field }) => (
+                                  <NumericFormat
+                                    customInput={Input}
+                                    thousandSeparator="."
+                                    className="w-20"
+                                    decimalSeparator=","
+                                    allowNegative={false}
+                                    inputMode="decimal"
+                                    disabled={isViewMode || false}
+                                    value={field.value ?? ""}
+                                    onValueChange={(e) =>
+                                      field.onChange(Number(e.floatValue ?? 0))
+                                    }
+                                  />
+                                )}
+                              />
+                            </TableCell>
 
-                                                        <TableCell>
+                            <TableCell>
                               <span>
                                 {(() => {
-                                    const qty =
-                                        Number(form.watch(`items.${index}.qty`)) ||
-                                        0;
-                                    const discount =
-                                        Number(
-                                            form.watch(`items.${index}.discount`)
-                                        ) || 0;
-                                    const unitPrice =
-                                        Number(
-                                            form.watch(`items.${index}.unit_price`)
-                                        ) || 0;
-                                    return formatMoney(
-                                        qty * unitPrice - discount,
-                                        "IDR",
-                                        "id-ID",
-                                        "nosymbol"
-                                    );
+                                  const qty =
+                                    Number(form.watch(`items.${index}.qty`)) ||
+                                    0;
+                                  const discount =
+                                    Number(
+                                      form.watch(`items.${index}.discount`)
+                                    ) || 0;
+                                  const unitPrice =
+                                    Number(
+                                      form.watch(`items.${index}.unit_price`)
+                                    ) || 0;
+                                  return formatMoney(
+                                    qty * unitPrice - discount,
+                                    "IDR",
+                                    "id-ID",
+                                    "nosymbol"
+                                  );
                                 })()}
                               </span>
-                                                        </TableCell>
+                            </TableCell>
 
-                                                        <TableCell>
-                                                            <FormField
-                                                                control={form.control}
-                                                                name={`items.${index}.tax_percentage`}
-                                                                render={({field}) => (
-                                                                    <Input
-                                                                        disabled={isViewMode || false}
-                                                                        type="number"
-                                                                        onKeyDown={(e) => {
-                                                                            if (e.key === "Enter") {
-                                                                                e.preventDefault();
-                                                                            }
-                                                                        }}
-                                                                        className="w-20"
-                                                                        {...field}
-                                                                        onChange={(e) => {
-                                                                            const newTaxPercentage =
-                                                                                Number(e.target.value) || 0;
-                                                                            handleTaxPercentageChange(
-                                                                                index,
-                                                                                newTaxPercentage
-                                                                            );
-                                                                        }}
-                                                                    />
-                                                                )}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell>
+                            <TableCell>
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.tax_percentage`}
+                                render={({ field }) => (
+                                  <Input
+                                    disabled={isViewMode || false}
+                                    type="number"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                      }
+                                    }}
+                                    className="w-20"
+                                    {...field}
+                                    onChange={(e) => {
+                                      const newTaxPercentage =
+                                        Number(e.target.value) || 0;
+                                      handleTaxPercentageChange(
+                                        index,
+                                        newTaxPercentage
+                                      );
+                                    }}
+                                  />
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell>
                               <span>
                                 {(() => {
-                                    const unitPrice =
-                                        Number(
-                                            form.watch(`items.${index}.unit_price`)
-                                        ) || 0;
-                                    const qty =
-                                        Number(form.watch(`items.${index}.qty`)) ||
-                                        0;
-                                    const discount =
-                                        Number(
-                                            form.watch(`items.${index}.discount`)
-                                        ) || 0;
-                                    const taxPercentage =
-                                        Number(
-                                            form.watch(
-                                                `items.${index}.tax_percentage`
-                                            )
-                                        ) || 0;
+                                  const unitPrice =
+                                    Number(
+                                      form.watch(`items.${index}.unit_price`)
+                                    ) || 0;
+                                  const qty =
+                                    Number(form.watch(`items.${index}.qty`)) ||
+                                    0;
+                                  const discount =
+                                    Number(
+                                      form.watch(`items.${index}.discount`)
+                                    ) || 0;
+                                  const taxPercentage =
+                                    Number(
+                                      form.watch(
+                                        `items.${index}.tax_percentage`
+                                      )
+                                    ) || 0;
 
-                                    const subtotalAfterDiscount =
-                                        unitPrice * qty - discount;
-                                    const taxAmount =
-                                        subtotalAfterDiscount *
-                                        (taxPercentage / 100);
+                                  const subtotalAfterDiscount =
+                                    unitPrice * qty - discount;
+                                  const taxAmount =
+                                    subtotalAfterDiscount *
+                                    (taxPercentage / 100);
 
-                                    return formatMoney(
-                                        taxAmount,
-                                        "IDR",
-                                        "id-ID",
-                                        "nosymbol"
-                                    );
+                                  return formatMoney(
+                                    taxAmount,
+                                    "IDR",
+                                    "id-ID",
+                                    "nosymbol"
+                                  );
                                 })()}
                               </span>
-                                                        </TableCell>
+                            </TableCell>
 
-                                                        <TableCell>
-                                                            {/* Total Price - includes tax and discount */}
-                                                            <span>
-                                {(() => {
-                                    const unitPrice =
-                                        Number(
-                                            form.watch(`items.${index}.unit_price`)
-                                        ) || 0;
-                                    const qty =
-                                        Number(form.watch(`items.${index}.qty`)) ||
-                                        0;
-                                    const taxPercentage =
-                                        Number(
-                                            form.watch(
-                                                `items.${index}.tax_percentage`
-                                            )
-                                        ) || 0;
-                                    const discount =
-                                        Number(
-                                            form.watch(`items.${index}.discount`)
-                                        ) || 0;
-                                    const priceBeforeTax =
-                                        unitPrice * qty - discount;
-
-                                    const grandTotal =
-                                        priceBeforeTax * (1 + taxPercentage / 100);
-                                    return formatMoney(
-                                        grandTotal,
-                                        "IDR",
-                                        "id-ID",
-                                        "nosymbol"
-                                    );
-                                })()}
-                              </span>
-                                                        </TableCell>
-
-                                                        <TableCell className="bg-gray-400/10">
-                                                            <FormField
-                                                                control={form.control}
-                                                                name={`items.${index}.ongkir`}
-                                                                render={({field}) => (
-                                                                    <NumericFormat
-                                                                        customInput={Input}
-                                                                        thousandSeparator="."
-                                                                        decimalSeparator=","
-                                                                        allowNegative={false}
-                                                                        inputMode="decimal"
-                                                                        disabled={isViewMode || false}
-                                                                        value={field.value ?? ""}
-                                                                        onValueChange={(e) =>
-                                                                            field.onChange(Number(e.floatValue ?? 0))
-                                                                        }
-                                                                    />
-                                                                )}
-                                                            />
-                                                        </TableCell>
-
-                                                        <TableCell className="bg-gray-400/10">
+                            <TableCell>
+                              {/* Total Price - includes tax and discount */}
                               <span>
                                 {(() => {
-                                    const qty =
-                                        Number(form.watch(`items.${index}.qty`)) ||
-                                        0;
-                                    const ongkir =
-                                        Number(
-                                            form.watch(`items.${index}.ongkir`)
-                                        ) || 0;
-                                    const lineOngkir = qty * ongkir;
+                                  const unitPrice =
+                                    Number(
+                                      form.watch(`items.${index}.unit_price`)
+                                    ) || 0;
+                                  const qty =
+                                    Number(form.watch(`items.${index}.qty`)) ||
+                                    0;
+                                  const taxPercentage =
+                                    Number(
+                                      form.watch(
+                                        `items.${index}.tax_percentage`
+                                      )
+                                    ) || 0;
+                                  const discount =
+                                    Number(
+                                      form.watch(`items.${index}.discount`)
+                                    ) || 0;
+                                  const priceBeforeTax =
+                                    unitPrice * qty - discount;
 
-                                    return formatMoney(
-                                        lineOngkir,
-                                        "IDR",
-                                        "id-ID",
-                                        "nosymbol"
-                                    );
+                                  const grandTotal =
+                                    priceBeforeTax * (1 + taxPercentage / 100);
+                                  return formatMoney(
+                                    grandTotal,
+                                    "IDR",
+                                    "id-ID",
+                                    "nosymbol"
+                                  );
                                 })()}
                               </span>
-                                                        </TableCell>
+                            </TableCell>
 
-                                                        <TableCell>
-                                                            <Button
-                                                                disabled={isViewMode}
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => handleRemoveItem(index)}
-                                                            >
-                                                                <Trash2 className="h-4 w-4"/>
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </div>
-                            {/* Totals */}
-                            <div className="flex w-full justify-end mt-4">
-                                <div className="flex flex-col space-y-2 gap-2 w-full max-w-sm">
-                                    <div className="flex justify-between">
-                                        <span className={"mr-4"}>Sub Total</span>
-                                        <Input
-                                            type="text"
-                                            disabled={true}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                            className="w-[40%] text-right"
-                                            value={formatMoney(subTotal) || 0}
-                                        />
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className={"mr-4"}>Discount</span>{" "}
-                                        <Input
-                                            type="text"
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                            disabled={true}
-                                            className="w-[40%] text-right"
-                                            value={formatMoney(totalItemDiscounts) || 0}
-                                        />
-                                    </div>
+                            <TableCell className="bg-gray-400/10">
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.ongkir`}
+                                render={({ field }) => (
+                                  <NumericFormat
+                                    customInput={Input}
+                                    thousandSeparator="."
+                                    decimalSeparator=","
+                                    allowNegative={false}
+                                    inputMode="decimal"
+                                    disabled={isViewMode || false}
+                                    value={field.value ?? ""}
+                                    onValueChange={(e) =>
+                                      field.onChange(Number(e.floatValue ?? 0))
+                                    }
+                                  />
+                                )}
+                              />
+                            </TableCell>
 
-                                    {/* <div className="flex justify-between items-start">
+                            <TableCell className="bg-gray-400/10">
+                              <span>
+                                {(() => {
+                                  const qty =
+                                    Number(form.watch(`items.${index}.qty`)) ||
+                                    0;
+                                  const ongkir =
+                                    Number(
+                                      form.watch(`items.${index}.ongkir`)
+                                    ) || 0;
+                                  const lineOngkir = qty * ongkir;
+
+                                  return formatMoney(
+                                    lineOngkir,
+                                    "IDR",
+                                    "id-ID",
+                                    "nosymbol"
+                                  );
+                                })()}
+                              </span>
+                            </TableCell>
+
+                            <TableCell>
+                              <Button
+                                disabled={isViewMode}
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveItem(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+              {/* Totals */}
+              <div className="flex w-full justify-end mt-4">
+                <div className="flex flex-col space-y-2 gap-2 w-full max-w-sm">
+                  <div className="flex justify-between">
+                    <span className={"mr-4"}>Sub Total</span>
+                    <Input
+                      type="text"
+                      disabled={true}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                        }
+                      }}
+                      className="w-[40%] text-right"
+                      value={formatMoney(subTotal) || 0}
+                    />
+                  </div>
+                  <div className="flex justify-between">
+                    <span className={"mr-4"}>Discount</span>{" "}
+                    <Input
+                      type="text"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                        }
+                      }}
+                      disabled={true}
+                      className="w-[40%] text-right"
+                      value={formatMoney(totalItemDiscounts) || 0}
+                    />
+                  </div>
+
+                  {/* <div className="flex justify-between items-start">
                     <span className="mt-2">Additional Discount</span>
                     <div className="flex flex-col space-y-2">
                       <div className="flex items-center justify-end">
@@ -1472,116 +1473,122 @@ export default function PembelianForm({
                   </div> 
                   */}
 
-                                    <div className="flex justify-between ">
-                                        <span className={"mr-4"}>Total</span>
-                                        <Input
-                                            type="text"
-                                            disabled={true}
-                                            className="w-[40%] text-right"
-                                            value={formatMoney(grandTotal) || 0}
-                                        />
-                                    </div>
+                  <div className="flex justify-between ">
+                    <span className={"mr-4"}>Total</span>
+                    <Input
+                      type="text"
+                      disabled={true}
+                      className="w-[40%] text-right"
+                      value={formatMoney(grandTotal) || 0}
+                    />
+                  </div>
 
-                                    <div className="flex justify-between">
-                                        <span className={"mr-4"}>Tax</span>
-                                        <Input
-                                            type="text"
-                                            disabled={true}
-                                            className="w-[40%] text-right"
-                                            value={formatMoney(totalTax) || 0}
-                                        />
-                                    </div>
+                  <div className="flex justify-between">
+                    <span className={"mr-4"}>Tax</span>
+                    <Input
+                      type="text"
+                      disabled={true}
+                      className="w-[40%] text-right"
+                      value={formatMoney(totalTax) || 0}
+                    />
+                  </div>
 
-                                    <div className="flex justify-between border-t pt-2 font-semibold">
-                                        <span>Expense</span>
-                                        <span>{formatMoney(expense || 0)}</span>
-                                    </div>
+                  <div className="flex justify-between border-t pt-2 font-semibold">
+                    <span>Expense</span>
+                    <span>{formatMoney(expense || 0)}</span>
+                  </div>
 
-                                    <div className="flex justify-between border-t pt-2 font-semibold">
-                                        <span>Grand Total</span>
-                                        <span>{formatMoney(grandTotal)}</span>
-                                    </div>
-                                    <div className="flex justify-between border-t pt-2 font-semibold">
-                                        <span>Remaining</span>
-                                        <span>{formatMoney(remaining)}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    {!isViewMode ? (
-                        <div className="flex justify-end space-x-4 pt-6 border-t">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    router.back();
-                                }}
-                            >
-                                Batal
-                            </Button>
-                            <Button
-                                type="button"
-                                onClick={onDraftClick}
-                                disabled={isSubmitting}
-                            >
-                                Simpan Sebagai Draft
-                            </Button>
-                            <Button
-                                type="button"
-                                className="bg-orange-500 hover:bg-orange-600"
-                                disabled={isSubmitting}
-                                onClick={() => {
-                                    form.handleSubmit((data) => {
-                                        handleSubmit(data, true);
-                                    })();
-                                }}
-                            >
-                                {isSubmitting
-                                    ? isEditMode
-                                        ? "Finalizing..."
-                                        : "Memfinalisasi..."
-                                    : isEditMode
-                                        ? "Update & Finalize"
-                                        : "Buat Invoice"}
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="flex justify-end space-x-4 pt-6 border-t">
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                onClick={async () => {
-                                    try {
-                                        await pembelianService.rollbackPembelian(Number(pembelianId));
-                                        toast.success("Status pembelian berhasil terupdate");
-                                        router.back();
-                                    } catch (error) {
-                                        toast.error(error instanceof Error ? error.message : "Gagal rollback pembelian");
-                                    }
-                                }}
-                            >
-                                <RefreshCw/>
-                                Rollback Pembelian
-                            </Button>
-                            <Button
-                                type="button"
-                                onClick={onDraftClick}
-                                disabled={isSubmitting}
-                            >
-                                Simpan
-                            </Button>
-                        </div>
-                    )}
-                </form>
-            </Form>
+                  <div className="flex justify-between border-t pt-2 font-semibold">
+                    <span>Grand Total</span>
+                    <span>{formatMoney(grandTotal)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2 font-semibold">
+                    <span>Remaining</span>
+                    <span>{formatMoney(remaining)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {!isViewMode ? (
+            <div className="flex justify-end space-x-4 pt-6 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  router.back();
+                }}
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                onClick={onDraftClick}
+                disabled={isSubmitting}
+              >
+                Simpan Sebagai Draft
+              </Button>
+              <Button
+                type="button"
+                className="bg-orange-500 hover:bg-orange-600"
+                disabled={isSubmitting}
+                onClick={() => {
+                  form.handleSubmit((data) => {
+                    handleSubmit(data, true);
+                  })();
+                }}
+              >
+                {isSubmitting
+                  ? isEditMode
+                    ? "Finalizing..."
+                    : "Memfinalisasi..."
+                  : isEditMode
+                  ? "Update & Finalize"
+                  : "Buat Invoice"}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end space-x-4 pt-6 border-t">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={async () => {
+                  try {
+                    await pembelianService.rollbackPembelian(
+                      Number(pembelianId)
+                    );
+                    toast.success("Status pembelian berhasil terupdate");
+                    router.back();
+                  } catch (error) {
+                    toast.error(
+                      error instanceof Error
+                        ? error.message
+                        : "Gagal rollback pembelian"
+                    );
+                  }
+                }}
+              >
+                <RefreshCw />
+                Rollback Pembelian
+              </Button>
+              <Button
+                type="button"
+                onClick={onDraftClick}
+                disabled={isSubmitting}
+              >
+                Simpan
+              </Button>
+            </div>
+          )}
+        </form>
+      </Form>
 
-            <ItemSelectorDialog
-                open={isItemDialogOpen}
-                onOpenChange={setIsItemDialogOpen}
-                onSelect={handleAddItem}
-                canDisabledBePicked={true}
-            />
-        </div>
-    );
+      <ItemSelectorDialog
+        open={isItemDialogOpen}
+        onOpenChange={setIsItemDialogOpen}
+        onSelect={handleAddItem}
+        canDisabledBePicked={true}
+      />
+    </div>
+  );
 }
