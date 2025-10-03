@@ -44,7 +44,7 @@ jobs:
 
           # Build in the CURRENT directory (note the dot)
           docker build \
-            --build-arg NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL}" \
+            --build-arg NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL}" \
             -t qiu-frontend .
 
           # Map host 3000 -> container 3000
