@@ -361,15 +361,14 @@ export default function StockAdjustmentForm({
                 resultId = adjustmentId;
                 await handleAttachmentUpload(data.attachments, resultId);
 
-                toast.success("Stock Adjustment berhasil diperbarui.");
 
                 if (finalize) {
                     await stockAdjustmentService.activateStockAdjustment(
                         Number(resultId)
                     );
-                    toast.success("Stock Adjustment berhasil diaktifkan.");
                 }
-
+                toast.success("Stock Adjustment berhasil diperbarui.");
+                    
                 router.back();
             } else {
                 const result = await stockAdjustmentService.createStockAdjustment(
@@ -395,7 +394,7 @@ export default function StockAdjustmentForm({
             console.log("Full Error Object:", e); // Crucial for debugging the structure!
 
             // Check for standard server response structure
-        
+
             // 1. Try to find the specific detail field
             const detailedMessage =
                 e?.detail || e?.message || e?.error;
