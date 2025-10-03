@@ -151,8 +151,8 @@ export default function VendorPage() {
     try {
       setLoading(true);
       const filters = {
-        page: currentPage,
-        rowsPerPage,
+        skip: currentPage,
+        limit: rowsPerPage,
         ...(searchTerm && { search_key: searchTerm }),
         ...(filterStatus !== "all" && { is_active: filterStatus === "active" }),
       };

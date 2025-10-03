@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "next build",
+    "export": "next export",
     "output": "export",
     "dev": "next dev",
     "lint": "next lint",
