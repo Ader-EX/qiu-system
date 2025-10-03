@@ -1,36 +1,46 @@
 import * as React from "react";
-
-import { cn } from "@/lib/utils";
+import {cn} from "@/lib/utils";
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
-    return (
-      <input
-        type={type}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-          }
-        }}
-        onInput={(e) => {
-          if (type === "number") {
-            const input = e.currentTarget;
-            const value = Number(input.value);
-            if (!isNaN(value)) {
-              input.value = Math.abs(value).toString();
-            }
-          }
-        }}
-        className={cn(
-          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
+    ({className, type, ...props}, ref) => {
+        return (
+            <input
+                type={type}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                    }
+
+                    // Prevent arrow up/down from incrementing number inputs
+                    if (type === "number" && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+                        e.preventDefault();
+                    }
+                }}
+                onWheel={(e) => {
+                    // Prevent scroll from changing number inputs
+                    if (type === "number") {
+                        e.preventDefault();
+                    }
+                }}
+                onInput={(e) => {
+                    if (type === "number") {
+                        const input = e.currentTarget;
+                        const value = Number(input.value);
+                        if (!isNaN(value)) {
+                            input.value = Math.abs(value).toString();
+                        }
+                    }
+                }}
+                className={cn(
+                    "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                    className
+                )}
+                ref={ref}
+                {...props}
+            />
+        );
+    }
 );
 Input.displayName = "Input";
 
-export { Input };
+export {Input};

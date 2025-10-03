@@ -17,8 +17,13 @@ const CSVImportDialog = ({
                              onClose,
                              onFileUpload,
                              isUploading = false,
-                         }) => {
-    const fileInputRef = useRef(null);
+                         }: {
+    isOpen: any,
+    onClose: any,
+    onFileUpload: any,
+    isUploading?: boolean
+}) => {
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const handleFileUpload = async (files: any) => {
         const file = files[0];
@@ -53,7 +58,7 @@ const CSVImportDialog = ({
         }
     };
 
-    const handleManualFileUpload = async (e) => {
+    const handleManualFileUpload = async (e: any) => {
         const input = e.currentTarget;
         const file = input.files?.[0];
         if (!file) return;
