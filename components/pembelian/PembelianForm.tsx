@@ -1551,13 +1551,14 @@ export default function PembelianForm({
                             <Button
                                 type="button"
                                 variant="destructive"
-                                onClick={() => {
-                                    pembelianService
-                                        .rollbackPembelian(Number(pembelianId))
-                                        .then(() => {
-                                            toast.success("Status pembelian berhasil terupdate");
-                                            router.back();
-                                        });
+                                onClick={async () => {
+                                    try {
+                                        await pembelianService.rollbackPembelian(Number(pembelianId));
+                                        toast.success("Status pembelian berhasil terupdate");
+                                        router.back();
+                                    } catch (error) {
+                                        toast.error(error instanceof Error ? error.message : "Gagal rollback pembelian");
+                                    }
                                 }}
                             >
                                 <RefreshCw/>
