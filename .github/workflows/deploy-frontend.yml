@@ -2,7 +2,7 @@ name: CI/CD to VPS (Next.js → Nginx)
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
   deploy:
