@@ -91,6 +91,11 @@ export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
                                 Harga Jual (Rp)
                             </p>
                             <p className="mt-1">{formatMoney(Number(product.price))}</p>
+
+                            <p className="text-sm font-medium text-gray-500 mt-4">
+                                Harga Jual Minimum (Rp)
+                            </p>
+                            <p className="mt-1">{formatMoney(Number(product.modal_price))}</p>
                         </div>
 
                         {/* Column 2 */}
@@ -118,6 +123,14 @@ export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
                             </p>
                             <p className="mt-1">
                                 {product.total_item.toLocaleString()}{" "}
+                                {product.satuan_rel?.symbol || "unit"}
+                            </p>
+
+                            <p className="text-sm font-medium text-gray-500 mt-4">
+                                Jumlah Minimum Item
+                            </p>
+                            <p className="mt-1">
+                                {product.min_item.toLocaleString()}{" "}
                                 {product.satuan_rel?.symbol || "unit"}
                             </p>
 

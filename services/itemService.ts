@@ -14,6 +14,8 @@ export interface ItemCreate {
     type: string;
     name: string;
     total_item: number;
+    min_item: number;
+    modal_price: number;
     price: number;
     sku: string;
     vendor_id: number;
@@ -28,8 +30,10 @@ export interface ItemUpdate {
     type?: string;
     sku?: string;
     total_item?: number;
+    min_item?: number;
     address?: string;
     price?: number;
+    modal_price?: number;
     satuan_id?: number;
     vendor_id?: number;
     category_one_id?: number;
@@ -166,7 +170,6 @@ class ItemService {
         return response.json();
     }
 
-    // Keep existing JSON methods for backward compatibility
     async createItem(itemData: ItemCreate): Promise<Item> {
         const response = await fetch(this.baseUrl, {
             method: "POST",
@@ -214,6 +217,7 @@ class ItemService {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
     }
+
 
     private getAuthHeaders(): HeadersInit {
         const token = Cookies.get("access_token");

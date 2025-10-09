@@ -115,9 +115,7 @@ export default function ProductListView({
                                             </div>
                                             <Badge
                                                 className="text-sm  mb-1"
-                                                variant={
-                                                    product.total_item <= 10 ? `secondary` : `destructive`
-                                                }
+                                                variant={product.total_item <= product.min_item ? `secondary` : `okay`}
                                             >
                                                 {product.total_item} unit tersisa
                                             </Badge>

@@ -170,7 +170,7 @@ export const ProductGridView: React.FC<{
                         />
                         <Badge
                             className="text-xs absolute top-4 right-4"
-                            variant={product.total_item <= 10 ? `secondary` : `okay`}
+                            variant={product.total_item <= product.min_item ? `secondary` : `okay`}
                         >
                             {product.total_item} unit tersisa
                         </Badge>

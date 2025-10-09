@@ -62,7 +62,9 @@ export interface Item {
     sku: string;
     is_active: boolean;
     total_item: number;
+    min_item: number;
     price: number;
+    modal_price: number;
     price_rmb?: number;
     created_at: string | null;
     satuan_rel: SatuanOut | null;

@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
-// No import needed for static asset
 
 const CSVImportDialog = ({
                              isOpen,
@@ -75,14 +74,14 @@ const CSVImportDialog = ({
 
     const handleDownloadTemplate = async () => {
         try {
-            const response = await fetch("/titem_new.csv");
+            const response = await fetch("/titem_new.xlsx");
             if (!response.ok) throw new Error("Failed to fetch template file");
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
 
             const link = document.createElement("a");
             link.href = url;
-            link.download = "Template_Item.csv";
+            link.download = "Template_Item.xlsx";
             document.body.appendChild(link);
             link.click();
 
