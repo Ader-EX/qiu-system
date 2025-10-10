@@ -3,7 +3,6 @@
 import {useEffect, useState, useCallback, useRef} from "react";
 import {
     Plus,
-    Search,
     Grid3X3,
     List,
     Upload,
@@ -37,8 +36,6 @@ import {
     itemService,
     ItemFilters,
     ItemTypeEnum,
-    ItemCreate,
-    ItemUpdate,
 } from "@/services/itemService";
 import GlobalPaginationFunction from "@/components/pagination-global";
 import {satuanService} from "@/services/mataUangService";
@@ -46,7 +43,6 @@ import {vendorService} from "@/services/vendorService";
 import {kategoriService} from "@/services/kategoriService";
 import SearchableSelect from "@/components/SearchableSelect";
 import CSVImportDialog from "@/components/Product/CSVImportDialog";
-import {Spinner} from "@/components/ui/spinner";
 
 export interface TOPUnit {
     id: string;
@@ -452,21 +448,21 @@ const ProdukPage = () => {
                         </Button>
                     </div>
 
-                    <SearchableSelect<TOPUnit>
-                        label=""
-                        placeholder="Semua vendor"
-                        value={state.filterVendor}
-                        onChange={handleVendorChange}
-                        fetchData={(search: string) =>
-                            vendorService.getAllVendors({
-                                skip: 0,
-                                limit: 5,
-                                is_active: true,
-                                search_key: search,
-                            })
-                        }
-                        renderLabel={(item: any) => `${item.name}`}
-                    />
+                    {/*<SearchableSelect<TOPUnit>*/}
+                    {/*    label=""*/}
+                    {/*    placeholder="Semua vendor"*/}
+                    {/*    value={state.filterVendor}*/}
+                    {/*    onChange={handleVendorChange}*/}
+                    {/*    fetchData={(search: string) =>*/}
+                    {/*        vendorService.getAllVendors({*/}
+                    {/*            skip: 0,*/}
+                    {/*            limit: 5,*/}
+                    {/*            is_active: true,*/}
+                    {/*            search_key: search,*/}
+                    {/*        })*/}
+                    {/*    }*/}
+                    {/*    renderLabel={(item: any) => `${item.name}`}*/}
+                    {/*/>*/}
 
                     <Select
                         value={state.filterItemType}
