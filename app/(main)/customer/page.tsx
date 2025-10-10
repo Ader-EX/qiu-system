@@ -169,7 +169,7 @@ export default function CustomerPage() {
                 title="Customer"
                 rightContent={
                     <HeaderActions.ActionGroup>
-                        <Link href={`/customer/add`} className={"flex gap-x-2"}>
+                        <Link href={`/customer/add`} className={"flex gap-x-2 w-full"}>
                             <Button size="sm" disabled={loading}>
                                 <Plus className="h-4 w-4 mr-2"/>
                                 Tambah Customer
@@ -262,7 +262,7 @@ export default function CustomerPage() {
                                             <DropdownMenuItem>
                                                 <Link
                                                     href={`/customer/${cust.id}/view`}
-                                                    className={"flex gap-x-2"}
+                                                    className={"flex gap-x-2 w-full"}
                                                 >
                                                     <Eye className="mr-2 h-4 w-4"/>
                                                     Lihat Detail
@@ -271,7 +271,7 @@ export default function CustomerPage() {
                                             <DropdownMenuItem>
                                                 <Link
                                                     href={`/customer/${cust.id}/edit`}
-                                                    className={"flex gap-x-2"}
+                                                    className={"flex gap-x-2 w-full "}
                                                 >
                                                     <Edit className="mr-2 h-4 w-4"/>
                                                     Edit
