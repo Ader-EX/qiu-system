@@ -71,51 +71,33 @@ const LabaRugiReport = () => {
           .slice(0, 10)
       : "";
 
-  const handleDownload = () => {
-    if (!reportData) {
-      toast.error("Tidak ada data untuk didownload");
-      return;
+  const handleDownload = async () => {
+    let downloadUrl = "";
+    try {
+      downloadUrl = await utilsService.downloadLaporanLabaRugi(
+        dateFrom,
+        dateTo
+      );
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `laporan-labarugi-${format(dateFrom, "yyyy-MM-dd")}-${format(
+        dateTo,
+        "yyyy-MM-dd"
+      )}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success("Report downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to download report");
+      console.error("Download error:", error);
+    } finally {
+      if (downloadUrl) {
+        window.URL.revokeObjectURL(downloadUrl);
+      }
     }
-
-    // Create report content as text
-    const reportContent = `
-LAPORAN LABA RUGI
-Periode: ${formatDate(dateFrom)} - ${formatDate(dateTo)}
-Generated: ${new Date().toLocaleString("id-ID")}
-================================================================
-
-RINGKASAN KEUANGAN:
-================================================================
-
-Penjualan       : ${formatMoney(reportData.total_penjualan)}
-Pembelian       : ${formatMoney(reportData.total_pembelian)}
-Profit/Loss     : ${formatMoney(reportData.profit_or_loss)}
-
-================================================================
-${reportData.profit_or_loss > 0 ? "PROFIT" : "LOSS"}: ${formatMoney(
-      Math.abs(reportData.profit_or_loss)
-    )}
-================================================================
-    `.trim();
-
-    // Create and download the file
-    const blob = new Blob([reportContent], {
-      type: "text/plain;charset=utf-8",
-    });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `laba-rugi-${format(dateFrom, "yyyy-MM-dd")}-${format(
-      dateTo,
-      "yyyy-MM-dd"
-    )}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-
-    toast.success("Laporan berhasil didownload!");
   };
+
   if (!showForm && reportData) {
     const isProfit = reportData.profit_or_loss > 0;
 

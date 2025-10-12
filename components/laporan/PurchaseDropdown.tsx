@@ -85,7 +85,7 @@ const PurchaseDropdown = () => {
       a.download = `laporan-pembelian-${format(
         dateFrom,
         "yyyy-MM-dd"
-      )}-${format(dateTo, "yyyy-MM-dd")}.csv`;
+      )}-${format(dateTo, "yyyy-MM-dd")}.xlsx`;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("Report downloaded successfully");
@@ -234,7 +234,7 @@ const PurchaseDropdown = () => {
               disabled={!reportData?.data?.length}
             >
               <Download className="mr-2 h-4 w-4" />
-              Download CSV
+              Download XLSX
             </Button>
           </div>
         </div>

@@ -67,11 +67,16 @@ export interface StockAdjustmentItem {
   hpp: number;
 }
 
+export interface ParentStockAdjustmentItem<T> {
+  item_name: string;
+  data: T[];
+}
+
 export interface StockAdjustmentReport {
   title: string;
   date_from: string;
   date_to: string;
-  data: StockAdjustmentItem[];
+  data: ParentStockAdjustmentItem<StockAdjustmentItem>[];
 }
 
 const NEXT_PUBLIC_API_URL =
@@ -203,6 +208,7 @@ class UtilsService {
       throw error;
     }
   }
+
   async downloadLaporanPenjualan(
     from_date: Date,
     to_date: Date,
@@ -223,6 +229,30 @@ class UtilsService {
     }
 
     const url = this.baseUrl + `/penjualan/download?${params.toString()}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to download report: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
+  }
+
+  async downloadLaporanLabaRugi(
+    from_date: Date,
+    to_date: Date
+  ): Promise<string> {
+    const params = new URLSearchParams({
+      from_date: from_date.toISOString().split("T")[0],
+      to_date: to_date.toISOString().split("T")[0],
+    });
+
+    const url = this.baseUrl + `/laba-rugi/download?${params.toString()}`;
 
     const response = await fetch(url, {
       method: "GET",
@@ -264,15 +294,21 @@ class UtilsService {
   async getLaporanStockAdjustment(
     from_date: Date,
     to_date: Date,
+    item_id?: number,
     skip: number = 0,
     limit: number = 100
-  ): Promise<PaginatedResponse<StockAdjustmentItem>> {
+  ): Promise<
+    PaginatedResponse<ParentStockAdjustmentItem<StockAdjustmentItem>>
+  > {
     const params = new URLSearchParams({
       from_date: from_date.toISOString().split("T")[0],
       to_date: to_date.toISOString().split("T")[0],
       skip: skip.toString(),
       limit: limit.toString(),
     });
+    if (item_id !== undefined) {
+      params.set("item_id", item_id.toString());
+    }
 
     const url = this.baseUrl + `/stock-adjustment?${params.toString()}`;
     try {
@@ -285,8 +321,9 @@ class UtilsService {
         throw new Error(`Failed to fetch laporan: ${response.statusText}`);
       }
 
-      const result =
-        (await response.json()) as PaginatedResponse<StockAdjustmentItem>;
+      const result = (await response.json()) as PaginatedResponse<
+        ParentStockAdjustmentItem<StockAdjustmentItem>
+      >;
       return result;
     } catch (error) {
       console.error("Error fetching laporan:", error);
@@ -296,12 +333,16 @@ class UtilsService {
 
   async downloadLaporanStockAdjustment(
     from_date: Date,
-    to_date: Date
+    to_date: Date,
+    item_id?: number
   ): Promise<string> {
     const params = new URLSearchParams({
       from_date: from_date.toISOString().split("T")[0],
       to_date: to_date.toISOString().split("T")[0],
     });
+    if (item_id !== undefined) {
+      params.set("item_id", item_id.toString());
+    }
 
     const url =
       this.baseUrl + `/stock-adjustment/download?${params.toString()}`;

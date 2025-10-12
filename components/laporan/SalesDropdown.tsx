@@ -109,7 +109,7 @@ const SalesDropdown = () => {
       a.download = `laporan-penjualan-${format(
         dateFrom,
         "yyyy-MM-dd"
-      )}-${format(dateTo, "yyyy-MM-dd")}.csv`;
+      )}-${format(dateTo, "yyyy-MM-dd")}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -237,7 +237,7 @@ const SalesDropdown = () => {
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
-              Customer
+              Customer (Opsional)
             </label>
             <SearchableSelect
               label=""
@@ -344,7 +344,7 @@ const SalesDropdown = () => {
               disabled={!reportData?.data?.length || isLoading}
             >
               <Download className="mr-2 h-4 w-4" />
-              Download CSV
+              Download XLSX
             </Button>
           </div>
         </div>
