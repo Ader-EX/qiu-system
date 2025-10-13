@@ -448,22 +448,21 @@ const ProdukPage = () => {
               <SearchIcon />
             </Button>
           </div>
-
-          {/*<SearchableSelect<TOPUnit>*/}
-          {/*    label=""*/}
-          {/*    placeholder="Semua vendor"*/}
-          {/*    value={state.filterVendor}*/}
-          {/*    onChange={handleVendorChange}*/}
-          {/*    fetchData={(search: string) =>*/}
-          {/*        vendorService.getAllVendors({*/}
-          {/*            skip: 0,*/}
-          {/*            limit: 5,*/}
-          {/*            is_active: true,*/}
-          {/*            search_key: search,*/}
-          {/*        })*/}
-          {/*    }*/}
-          {/*    renderLabel={(item: any) => `${item.name}`}*/}
-          {/*/>*/}
+          <SearchableSelect<TOPUnit>
+            label=""
+            placeholder="Semua vendor"
+            value={state.filterVendor}
+            onChange={handleVendorChange}
+            fetchData={(search: string) =>
+              vendorService.getAllVendors({
+                skip: 0,
+                limit: 5,
+                is_active: true,
+                search_key: search,
+              })
+            }
+            renderLabel={(item: any) => `${item.name}`}
+          />
 
           <Select
             value={state.filterItemType}
