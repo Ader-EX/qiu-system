@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/SidebarHeaderBar";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import UsersPage from "@/components/user/UsersPage";
+import {getRole} from "@/lib/utils";
 
 const settingsItems = [
     {
@@ -83,6 +84,7 @@ const settingsItems = [
     },
 ];
 export default function PengaturanPage() {
+
     return (
         <div className="flex w-full flex-1 flex-col space-y-6">
             <SidebarHeaderBar
@@ -94,7 +96,7 @@ export default function PengaturanPage() {
                 <Tabs defaultValue="master" className="w-full"> {/* add className */}
                     <TabsList>
                         <TabsTrigger value="master">Master Data</TabsTrigger>
-                        <TabsTrigger value="akses">Akses Pengguna</TabsTrigger>
+                        {getRole() !== "SUPERVISOR" && <TabsTrigger value="akses">Akses Pengguna</TabsTrigger>}
                     </TabsList>
 
                     <TabsContent value="master">

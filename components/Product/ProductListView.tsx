@@ -8,7 +8,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {formatMoney, getStockStatus} from "@/lib/utils";
+import {formatMoney, getRole, getStockStatus} from "@/lib/utils";
 import Image from "next/image";
 import carouselone from "@/public/not-found.png";
 import {Item, AttachmentResponse} from "@/types/types";
@@ -84,24 +84,26 @@ export default function ProductListView({
                                                         <Eye className="mr-2 h-4 w-4"/>
                                                         Lihat Detail
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() => {
-                                                            if (onEdit && product) onEdit(product);
-                                                        }}
-                                                    >
-                                                        <Edit className="mr-2 h-4 w-4"/>
-                                                        Edit
-                                                    </DropdownMenuItem>
+                                                    {
+                                                        getRole() !== "STAFF" && <><DropdownMenuItem
+                                                            onClick={() => {
+                                                                if (onEdit && product) onEdit(product);
+                                                            }}
+                                                        >
+                                                            <Edit className="mr-2 h-4 w-4"/> Edit
+                                                        </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onClick={() => {
+                                                                    if (onDelete && product) onDelete(product.id);
+                                                                }}
+                                                                className="text-red-600"
+                                                            >
+                                                                <Trash2 className="mr-2 h-4 w-4"/> Hapus
+                                                            </DropdownMenuItem> </>
+                                                    }
+
                                                     <AuditDialog id={product.id} type={"ITEM"}/>
-                                                    <DropdownMenuItem
-                                                        onClick={() => {
-                                                            if (onDelete && product) onDelete(product.id);
-                                                        }}
-                                                        className="text-red-600"
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4"/>
-                                                        Hapus
-                                                    </DropdownMenuItem>
+                                                  
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>

@@ -47,7 +47,7 @@ import {
 
 import GlobalPaginationFunction from "@/components/pagination-global";
 import toast from "react-hot-toast";
-import {cn} from "@/lib/utils";
+import {cn, getRole} from "@/lib/utils";
 
 import {
     StockAdjustmentQueryParams,
@@ -244,12 +244,15 @@ export default function StockAdjustmentPage() {
                 title="Stock Adjustment"
                 rightContent={
                     <HeaderActions.ActionGroup>
-                        <Button size="sm" asChild>
-                            <Link href="/stock-adjustment/add">
-                                <Plus className="h-4 w-4 mr-2"/>
-                                Tambah Stock Adjustment
-                            </Link>
-                        </Button>
+                        {
+                            getRole() !== "STAFF" && <Button size="sm" asChild>
+                                <Link href="/stock-adjustment/add">
+                                    <Plus className="h-4 w-4 mr-2"/>
+                                    Tambah Stock Adjustment
+                                </Link>
+                            </Button>
+                        }
+
                     </HeaderActions.ActionGroup>
                 }
             />
@@ -405,34 +408,34 @@ export default function StockAdjustmentPage() {
                                                     <Eye className="mr-2 h-4 w-4"/>
                                                     Lihat Detail
                                                 </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
+                                            </DropdownMenuItem> {
+                                            getRole() !== "STAFF" && <>  <DropdownMenuItem asChild>
                                                 <Link href={`/stock-adjustment/${adj.id}/edit`}>
                                                     <Edit className="mr-2 h-4 w-4"/> Edit
 
                                                 </Link>
                                             </DropdownMenuItem>
-
+                                                {adj.status_adjustment === "ACTIVE" && (
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleRollback(Number(adj.id))}
+                                                        className="text-red-600"
+                                                    >
+                                                        <RefreshCw className="mr-2 h-4 w-4"/>
+                                                        Rollback
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {adj.status_adjustment === "DRAFT" && (
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleDeleteClick(Number(adj.id))}
+                                                        className="text-red-600"
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4"/>
+                                                        Hapus
+                                                    </DropdownMenuItem>
+                                                )} </>
+                                        }
                                             <AuditDialog id={adj.id} type={"STOCK_ADJUSTMENT"}/>
-                                            {adj.status_adjustment === "ACTIVE" && (
-                                                <DropdownMenuItem
-                                                    onClick={() => handleRollback(Number(adj.id))}
-                                                    className="text-red-600"
-                                                >
-                                                    <RefreshCw className="mr-2 h-4 w-4"/>
-                                                    Rollback
-                                                </DropdownMenuItem>
-                                            )}
 
-                                            {adj.status_adjustment === "DRAFT" && (
-                                                <DropdownMenuItem
-                                                    onClick={() => handleDeleteClick(Number(adj.id))}
-                                                    className="text-red-600"
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4"/>
-                                                    Hapus
-                                                </DropdownMenuItem>
-                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </TableCell>

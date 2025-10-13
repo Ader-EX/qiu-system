@@ -4,7 +4,7 @@ import {
     Trash2,
     Eye,
     ChevronLeft,
-    ChevronRight,
+    ChevronRight, Plus,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import React, {useState, useEffect, useRef} from "react";
@@ -27,7 +27,7 @@ import carouselone from "@/public/not-found.png";
 import {Badge} from "@/components/ui/badge";
 import Image, {StaticImageData} from "next/image";
 import {Item, AttachmentResponse} from "@/types/types";
-import {formatMoney} from "@/lib/utils";
+import {formatMoney, getRole} from "@/lib/utils";
 import AuditDialog from "@/components/AuditDialog";
 
 interface ImageCarouselProps {
@@ -205,23 +205,26 @@ export const ProductGridView: React.FC<{
                                         <Eye className="mr-2 h-4 w-4"/>
                                         Lihat Detail
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={() => {
-                                            if (onEdit && product) onEdit(product);
-                                        }}
-                                    >
-                                        <Edit className="mr-2 h-4 w-4"/> Edit
-                                    </DropdownMenuItem>
+                                    {
+                                        getRole() !== "STAFF" && <><DropdownMenuItem
+                                            onClick={() => {
+                                                if (onEdit && product) onEdit(product);
+                                            }}
+                                        >
+                                            <Edit className="mr-2 h-4 w-4"/> Edit
+                                        </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() => {
+                                                    if (onDelete && product) onDelete(product.id);
+                                                }}
+                                                className="text-red-600"
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4"/> Hapus
+                                            </DropdownMenuItem> </>
+                                    }
 
                                     <AuditDialog id={product.id} type={"ITEM"}/>
-                                    <DropdownMenuItem
-                                        onClick={() => {
-                                            if (onDelete && product) onDelete(product.id);
-                                        }}
-                                        className="text-red-600"
-                                    >
-                                        <Trash2 className="mr-2 h-4 w-4"/> Hapus
-                                    </DropdownMenuItem>
+
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>

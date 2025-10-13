@@ -41,13 +41,15 @@ const LoginPage = () => {
                 }
             );
 
-            const {access_token, refresh_token, detail} = response.data;
+            const {access_token, role, name, refresh_token, detail} = response.data;
 
             if (access_token && refresh_token) {
                 toast.dismiss(loadingToast);
                 toast.success("Login berhasil!");
 
                 Cookies.set("access_token", access_token);
+                Cookies.set("name", name);
+                Cookies.set("role", role);
                 Cookies.set("refresh_token", refresh_token);
                 router.push("/dashboard");
             } else {

@@ -43,6 +43,7 @@ import {vendorService} from "@/services/vendorService";
 import {kategoriService} from "@/services/kategoriService";
 import SearchableSelect from "@/components/SearchableSelect";
 import CSVImportDialog from "@/components/Product/CSVImportDialog";
+import {getRole} from "@/lib/utils";
 
 export interface TOPUnit {
     id: string;
@@ -417,10 +418,11 @@ const ProdukPage = () => {
                             <Upload className="h-4 w-4 mr-2"/>
                             Import
                         </Button>
-                        <Button size="sm" onClick={openAddDialog}>
+                        {getRole() !== "STAFF" && <Button size="sm" onClick={openAddDialog}>
                             <Plus className="h-4 w-4 mr-2"/>
                             Tambah Item
-                        </Button>
+                        </Button>}
+
                     </HeaderActions.ActionGroup>
                 }
             />

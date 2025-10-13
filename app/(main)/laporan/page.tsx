@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/SidebarHeaderBar";
 import PurchaseDropdown from "@/components/laporan/PurchaseDropdown";
 import StockAdjDropdown from "@/components/laporan/StockAdjDropdown";
+import {getRole} from "@/lib/utils";
 
 export default function LaporanPage() {
     return (
@@ -42,7 +43,7 @@ export default function LaporanPage() {
             <div className="max-w-full overflow-x-hidden px-4">
                 <Tabs defaultValue="labarugi" className="space-y-6 max-w-full">
                     <TabsList>
-                        <TabsTrigger value="labarugi">Laba Rugi</TabsTrigger>
+                        {getRole() !== "SUPERVISOR" && <TabsTrigger value="labarugi">Laba Rugi</TabsTrigger>}
                         <TabsTrigger value="penjualan">Penjualan</TabsTrigger>
                         <TabsTrigger value="pembelian">Pembelian</TabsTrigger>
                         <TabsTrigger value="stock-card">Stock Card</TabsTrigger>

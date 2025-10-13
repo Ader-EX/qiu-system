@@ -59,6 +59,9 @@ const itemSchema = z.object({
             required_error: "Satuan is required",
         })
         .min(1, "Please select a satuan"),
+    vendor_id: z.coerce
+        .string()
+        .optional(),
     category_one: z.coerce.number().optional(),
     category_two: z.coerce.number().optional(),
     images: z.array(FileSchema).optional(),
@@ -95,13 +98,11 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
             name: "",
             sku: "",
             total_item: 0,
-
             min_item: 0,
             price: 0,
             modal_price: 0,
-
             satuan_id: 0,
-
+            vendor_id: "",
             category_one: undefined,
             category_two: undefined,
             images: [],
@@ -132,6 +133,11 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                         ? item.satuan_rel?.id || undefined
                         : undefined,
 
+                vendor_id:
+                    typeof item.vendor_rel === "object"
+                        ? item.vendor_rel?.id || undefined
+                        : undefined,
+
                 category_one:
                     typeof item.category_one_rel === "object"
                         ? item.category_one_rel?.id || undefined
@@ -153,7 +159,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 min_item: 0,
                 modal_price: 0,
                 satuan_id: undefined,
-
+                vendor_id: undefined,
                 category_one: undefined,
                 category_two: undefined,
                 images: [],
@@ -226,6 +232,8 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
             submitFormData.append("is_active", data.is_active.toString());
             submitFormData.append("satuan_id", data.satuan_id.toString());
 
+            if (data.vendor_id !== undefined)
+                submitFormData.append("vendor_id", data.vendor_id.toString());
             if (data.category_one !== undefined)
                 submitFormData.append("category_one", data.category_one.toString());
             if (data.category_two !== undefined)
@@ -463,14 +471,25 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                 )}
                             />
                         </div>
-                        <QuickFormSearchableField
-                            control={form.control}
-                            name="satuan_id"
-                            type="satuan"
-                            isRequired={true}
-                            label="Satuan"
-                            placeholder="Pilih Satuan"
-                        />
+                        <div className="grid grid-cols-2 gap-4">
+                            <QuickFormSearchableField
+                                control={form.control}
+                                name="satuan_id"
+                                type="satuan"
+                                isRequired={true}
+                                label="Satuan"
+                                placeholder="Pilih Satuan"
+                            />
+                            <QuickFormSearchableField
+                                control={form.control}
+                                name="vendor_id"
+                                type="vendor"
+
+                                label="Vendor"
+                                placeholder="Pilih Vendor"
+                            />
+
+                        </div>
 
                         {/* Row 5: categories - NOW MANDATORY */}
                         <div className="grid grid-cols-2 gap-4">

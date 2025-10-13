@@ -119,7 +119,8 @@ const UserMgmtForm: React.FC<UserFormProps> = ({
                                         <SelectContent>
                                             <SelectItem value="0">Owner</SelectItem>
                                             <SelectItem value="1">Staff</SelectItem>
-
+                                            <SelectItem value="3">Admin</SelectItem>
+                                            <SelectItem value="4">Supervisor</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage/>

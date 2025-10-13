@@ -68,6 +68,7 @@ export interface Item {
     price_rmb?: number;
     created_at: string | null;
     satuan_rel: SatuanOut | null;
+    vendor_rel: VendorOut | null;
     kode_lambung?: string;
     category_one_rel: CategoryOut | null;
     category_two_rel: CategoryOut | null;
