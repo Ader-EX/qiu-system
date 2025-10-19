@@ -197,7 +197,6 @@ export default function PenjualanForm({
   const convertIDRToRMB = (idrPrice: number, currencyRate: number) => {
     return roundToPrecision(idrPrice / currencyRate);
   };
-
   useEffect(() => {
     if ((mode !== "edit" && mode !== "view") || !penjualanId) return;
 
@@ -205,6 +204,35 @@ export default function PenjualanForm({
       try {
         const data = await penjualanService.getById(Number(penjualanId));
 
+        // Set loaded data FIRST before anything else
+        const loadedDisplayData = {
+          customer_name: data.customer_name || data.customer_rel?.name || "",
+          customer_code: data.customer_code || data.customer_rel?.code || "",
+          warehouse_name: data.warehouse_name || data.warehouse_rel?.name || "",
+          top_code: data.top_rel?.symbol || data.top_code || "",
+          top_name: data.top_name || data.top_rel?.name || "",
+        };
+        setLoadedData(loadedDisplayData);
+
+        // Then set other state
+        setSelectedItems(
+          data.penjualan_items.map((item: any) => ({
+            id: Number(item.item_id),
+            code: item.item_code ?? item.item_rel?.code ?? item.code ?? "",
+            name: item.item_name ?? item.item_rel?.name ?? "",
+            price: Number(item.unit_price),
+          }))
+        );
+
+        setTotalPaid(Number(data.total_paid || 0));
+        setTotalReturn(Number(data.total_return || 0));
+        setIsActive(
+          data.status_penjualan === "ACTIVE" ||
+            data.status_penjualan === "DRAFT"
+        );
+        setExistingAttachments(data.attachments || []);
+
+        // Finally reset form
         const formData: PenjualanFormData = {
           no_penjualan: data.no_penjualan,
           warehouse_id: Number(data.warehouse_id),
@@ -229,33 +257,6 @@ export default function PenjualanForm({
           attachments: [],
         };
 
-        // Select list visual data
-        setSelectedItems(
-          data.penjualan_items.map((item: any) => ({
-            id: Number(item.item_id),
-            code: item.item_code ?? item.item_rel?.code ?? item.code ?? "",
-            name: item.item_name ?? item.item_rel?.name ?? "",
-            price: Number(item.unit_price),
-          }))
-        );
-
-        setTotalPaid(Number(data.total_paid || 0));
-        setTotalReturn(Number(data.total_return || 0));
-        setIsActive(
-          data.status_penjualan === "ACTIVE" ||
-            data.status_penjualan === "DRAFT"
-        );
-        setExistingAttachments(data.attachments || []);
-
-        // Store loaded names for display
-        setLoadedData({
-          customer_name: data.customer_name || "",
-          customer_code: data.customer_rel.code || "",
-          warehouse_name: data.warehouse_name || "",
-          top_code: data.top_rel.symbol || "",
-          top_name: data.top_name || "",
-        });
-
         form.reset(formData);
       } catch (error: any) {
         toast.error(error.message || "Failed to load sales data");
@@ -264,7 +265,6 @@ export default function PenjualanForm({
 
     loadPenjualanData();
   }, [isEditMode, isViewMode, penjualanId]);
-
   const watchedItems = form.watch("items") || [];
   const rows = watchedItems.map((it) => {
     const qty = Number(it?.qty ?? 0);
