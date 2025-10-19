@@ -73,6 +73,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { RollbackAlert } from "@/components/rollback-alert";
 
 export default function StockAdjustmentPage() {
   const [adjustmentsData, setAdjustmentsData] = useState<
@@ -425,39 +426,11 @@ export default function StockAdjustmentPage() {
                               <Edit className="mr-2 h-4 w-4" /> Edit
                             </Link>
                           </DropdownMenuItem>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              {adj.status_adjustment === "ACTIVE" && (
-                                <DropdownMenuItem
-                                  onSelect={(e) => e.preventDefault()}
-                                  className="text-red-600"
-                                >
-                                  <RefreshCw className="mr-2 h-4 w-4" />
-                                  Rollback
-                                </DropdownMenuItem>
-                              )}
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Konfirmasi Rollback
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tindakan ini akan mengembalikan data ke
-                                  kondisi sebelumnya.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleRollback(Number(adj.id))}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  Rollback
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <RollbackAlert
+                            status={adj.status_adjustment}
+                            id={Number(adj.id)}
+                            onConfirm={handleRollback}
+                          />
                           {adj.status_adjustment === "DRAFT" && (
                             <DropdownMenuItem
                               onClick={() => handleDeleteClick(Number(adj.id))}
