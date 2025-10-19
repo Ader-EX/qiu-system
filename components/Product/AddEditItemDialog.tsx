@@ -31,11 +31,13 @@ import {Badge} from "@/components/ui/badge";
 import {X, Upload, Loader2} from "lucide-react";
 import {Item} from "@/types/types";
 import {ItemTypeEnum} from "@/services/itemService";
-
 import {NumericFormat} from "react-number-format";
 import toast from "react-hot-toast";
 import {QuickFormSearchableField} from "@/components/form/FormSearchableField";
 import {FileSchema} from "@/lib/utils";
+
+// Extended type to handle both File and existing image URLs
+type ImageType = File | { id: number; url: string; filename: string };
 
 const itemSchema = z.object({
     is_active: z.boolean().default(true),
@@ -47,11 +49,11 @@ const itemSchema = z.object({
     total_item: z.coerce
         .number()
         .min(0, "Total item must be at least 0")
-        .default(0), // Changed from 0 to 1
+        .default(0),
     min_item: z.coerce
         .number()
         .min(0, "Min item must be at least 0")
-        .default(0), // Changed from 0 to 1
+        .default(0),
     price: z.coerce.number().min(0, "Price must be 0 or greater"),
     modal_price: z.coerce.number().min(0, "Modal price must be 0 or greater"),
     satuan_id: z.coerce
@@ -64,7 +66,9 @@ const itemSchema = z.object({
         .optional(),
     category_one: z.coerce.number().optional(),
     category_two: z.coerce.number().optional(),
-    images: z.array(FileSchema).optional(),
+    images: z.array(z.any()).optional(), // Changed to z.any() to accept both File and URL objects
+    existing_images: z.array(z.number()).optional(), // IDs of existing images to keep
+    deleted_images: z.array(z.number()).optional(), // IDs of images to delete
 });
 
 type ItemFormData = z.infer<typeof itemSchema>;
@@ -85,9 +89,9 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                                                  isEdit = false,
                                                                  onSave,
                                                                  item = null,
-
                                                              }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [existingImages, setExistingImages] = useState<Array<{ id: number; url: string; filename: string }>>([]);
     const typeOptions = Object.values(ItemTypeEnum);
 
     const form = useForm<ItemFormData>({
@@ -106,6 +110,8 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
             category_one: undefined,
             category_two: undefined,
             images: [],
+            existing_images: [],
+            deleted_images: [],
         },
     });
 
@@ -113,10 +119,21 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         if (!isOpen) {
             form.reset();
             setIsSubmitting(false);
+            setExistingImages([]);
             return;
         }
 
         if (item) {
+            // Extract existing images from attachments
+            const attachments = item.attachments || [];
+            const imageData = attachments.map((att: any) => ({
+                id: att.id,
+                url: att.url,
+                filename: att.filename,
+            }));
+
+            setExistingImages(imageData);
+
             form.reset({
                 is_active: item.is_active === true,
                 type: item.type || ("" as ItemTypeEnum),
@@ -126,18 +143,14 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 min_item: item.min_item || 0,
                 price: item.price || 0,
                 modal_price: item.modal_price || 0,
-
                 satuan_id:
-
                     typeof item.satuan_rel === "object"
                         ? item.satuan_rel?.id || undefined
                         : undefined,
-
                 vendor_id:
                     typeof item.vendor_rel === "object"
                         ? item.vendor_rel?.id || undefined
                         : undefined,
-
                 category_one:
                     typeof item.category_one_rel === "object"
                         ? item.category_one_rel?.id || undefined
@@ -146,9 +159,12 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                     typeof item.category_two_rel === "object"
                         ? item.category_two_rel?.id || undefined
                         : undefined,
-                images: [], // Always start with empty images for editing
+                images: [],
+                existing_images: imageData.map((img: any) => img.id),
+                deleted_images: [],
             });
         } else {
+            setExistingImages([]);
             form.reset({
                 is_active: true,
                 type: "" as ItemTypeEnum,
@@ -163,23 +179,24 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 category_one: undefined,
                 category_two: undefined,
                 images: [],
+                existing_images: [],
+                deleted_images: [],
             });
         }
     }, [isOpen, item, form]);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files ? Array.from(e.target.files) : [];
-
-        // Clear the input value to allow re-selecting the same files
         e.target.value = "";
 
         if (files.length === 0) return;
 
         const currentImages = form.getValues("images") || [];
-        const totalImages = currentImages.length + files.length;
+        const currentExistingImages = form.getValues("existing_images") || [];
+        const totalImages = currentImages.length + currentExistingImages.length + files.length;
 
         if (totalImages > 3) {
-            alert("Maximum 3 images allowed. Please select fewer images.");
+            toast.error("Maximum 3 images allowed. Please select fewer images.");
             return;
         }
 
@@ -190,12 +207,12 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
         );
 
         if (invalidFiles.length > 0) {
-            alert("Please select only image files (JPG, PNG, GIF, WebP).");
+            toast.error("Please select only image files (JPG, PNG).");
             return;
         }
 
         // Validate file sizes (2MB limit)
-        const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+        const maxSize = 2 * 1024 * 1024;
         const oversizedFiles = files.filter((file) => file.size > maxSize);
 
         if (oversizedFiles.length > 0) {
@@ -205,19 +222,33 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
             return;
         }
 
-        // Add new files to existing ones
         const newImages = [...currentImages, ...files];
         form.setValue("images", newImages, {shouldValidate: true});
     };
 
-    const removeImage = (idx: number) => {
+    const removeNewImage = (idx: number) => {
         const currentImages = form.getValues("images") || [];
         const newImages = currentImages.filter((_, i) => i !== idx);
         form.setValue("images", newImages, {shouldValidate: true});
     };
 
+    const removeExistingImage = (imageId: number) => {
+        const currentExisting = form.getValues("existing_images") || [];
+        const currentDeleted = form.getValues("deleted_images") || [];
+
+        // Remove from existing_images
+        const newExisting = currentExisting.filter(id => id !== imageId);
+        form.setValue("existing_images", newExisting, {shouldValidate: true});
+
+        // Add to deleted_images
+        form.setValue("deleted_images", [...currentDeleted, imageId], {shouldValidate: true});
+
+        // Update local state for UI
+        setExistingImages(prev => prev.filter(img => img.id !== imageId));
+    };
+
     const onSubmit = async (data: ItemFormData) => {
-        setIsSubmitting(true); // Start loading
+        setIsSubmitting(true);
 
         try {
             const submitFormData = new FormData();
@@ -238,22 +269,40 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                 submitFormData.append("category_one", data.category_one.toString());
             if (data.category_two !== undefined)
                 submitFormData.append("category_two", data.category_two.toString());
-            if (data.images != undefined)
+
+            // Add new image files
+            if (data.images && data.images.length > 0) {
                 data.images.forEach((file) => {
                     submitFormData.append("images", file);
                 });
+            }
 
-            console.log("FormData created, calling onSave"); // Debug log
+            // Add existing image IDs to keep
+            if (data.existing_images && data.existing_images.length > 0) {
+                data.existing_images.forEach((id) => {
+                    submitFormData.append("existing_images", id.toString());
+                });
+            }
+
+            // Add deleted image IDs
+            if (data.deleted_images && data.deleted_images.length > 0) {
+                data.deleted_images.forEach((id) => {
+                    submitFormData.append("deleted_images", id.toString());
+                });
+            }
+
             await onSave(submitFormData);
             onClose();
         } catch (error) {
             console.error("Error submitting form:", error);
         } finally {
-            setIsSubmitting(false); // Stop loading
+            setIsSubmitting(false);
         }
     };
 
-    const watchedImages = form.watch("images") || [];
+    const watchedNewImages = form.watch("images") || [];
+    const watchedExistingImages = form.watch("existing_images") || [];
+    const totalImageCount = watchedNewImages.length + watchedExistingImages.length;
 
     return (
         <Dialog
@@ -484,14 +533,12 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                 control={form.control}
                                 name="vendor_id"
                                 type="vendor"
-
                                 label="Vendor"
                                 placeholder="Pilih Vendor"
                             />
-
                         </div>
 
-                        {/* Row 5: categories - NOW MANDATORY */}
+                        {/* Row 5: categories */}
                         <div className="grid grid-cols-2 gap-4">
                             <QuickFormSearchableField
                                 control={form.control}
@@ -510,23 +557,56 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                             />
                         </div>
 
-                        {/* Gambar upload - NOW MANDATORY */}
+                        {/* Image upload section */}
                         <FormField
                             control={form.control}
                             name="images"
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Gambar</FormLabel>
+
+                                    {/* Existing Images */}
+                                    {existingImages.length > 0 && (
+                                        <div className="mb-3">
+                                            <p className="text-sm text-muted-foreground mb-2">
+                                                Gambar saat ini:
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {existingImages.map((img) => (
+                                                    <div key={img.id} className="relative group">
+                                                        <img
+                                                            src={img.url}
+                                                            alt={img.filename}
+                                                            className="w-20 h-20 object-cover rounded border"
+                                                        />
+                                                        <button
+                                                            onClick={() => removeExistingImage(img.id)}
+                                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            type="button"
+                                                            disabled={isSubmitting}
+                                                        >
+                                                            <X className="w-3 h-3"/>
+                                                        </button>
+                                                        <p className="text-xs text-center mt-1 truncate w-20">
+                                                            {img.filename}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Upload new images */}
                                     <div className="flex items-center space-x-2">
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             className="relative"
                                             type="button"
-                                            disabled={watchedImages.length >= 3 || isSubmitting}
+                                            disabled={totalImageCount >= 3 || isSubmitting}
                                         >
                                             <Upload className="w-4 h-4 mr-2"/>
-                                            {watchedImages.length >= 3
+                                            {totalImageCount >= 3
                                                 ? "Maksimal 3 gambar"
                                                 : "Pilih File"}
                                             <input
@@ -535,22 +615,25 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                                 accept="image/*"
                                                 onChange={handleImageUpload}
                                                 className="absolute inset-0 opacity-0 cursor-pointer"
-                                                disabled={watchedImages.length >= 3 || isSubmitting}
+                                                disabled={totalImageCount >= 3 || isSubmitting}
                                             />
                                         </Button>
 
-                                        {watchedImages.length > 0 && (
+                                        {watchedNewImages.length > 0 && (
                                             <span className="text-sm text-gray-500">
-                        {watchedImages.length} file dipilih
-                      </span>
+                                                {watchedNewImages.length} file baru dipilih
+                                            </span>
                                         )}
                                     </div>
+
                                     <p className="text-sm text-muted-foreground">
-                                        Upload 1-3 gambar. Maks ukuran file 2 MB. Format JPG, PNG.
+                                        Upload 1-3 gambar total. Maks ukuran file 2 MB. Format JPG, PNG.
                                     </p>
-                                    {watchedImages.length > 0 && (
+
+                                    {/* New images preview */}
+                                    {watchedNewImages.length > 0 && (
                                         <div className="flex flex-wrap gap-2 mt-2">
-                                            {watchedImages.map((file, i) => (
+                                            {watchedNewImages.map((file: File, i: number) => (
                                                 <Badge
                                                     key={i}
                                                     variant="secondary"
@@ -558,7 +641,7 @@ const AddEditItemDialog: React.FC<AddEditItemDialogProps> = ({
                                                 >
                                                     <span className="max-w-32 truncate">{file.name}</span>
                                                     <button
-                                                        onClick={() => removeImage(i)}
+                                                        onClick={() => removeNewImage(i)}
                                                         className="ml-2 hover:text-red-500"
                                                         type="button"
                                                         disabled={isSubmitting}

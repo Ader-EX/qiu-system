@@ -103,7 +103,7 @@ export default function ProductListView({
                                                     }
 
                                                     <AuditDialog id={product.id} type={"ITEM"}/>
-                                                  
+
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>
@@ -116,8 +116,8 @@ export default function ProductListView({
                                                 </p>
                                             </div>
                                             <Badge
-                                                className="text-sm  mb-1"
-                                                variant={product.total_item <= product.min_item ? `secondary` : `okay`}
+                                                className="text-xs absolute top-4 right-4"
+                                                variant={product.total_item <= product.min_item ? `destructive` : `secondary`}
                                             >
                                                 {product.total_item} unit tersisa
                                             </Badge>
