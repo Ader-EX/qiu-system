@@ -31,14 +31,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { customerService } from "@/services/customerService";
 import { QuickFormSearchableField } from "@/components/form/FormSearchableField";
-import {
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from "../ui/dialog";
-import { Dialog } from "@/components/ui/dialog";
+
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { KodeLambungData } from "@/services/kodeLambungService";
 import { Spinner } from "@/components/ui/spinner";
@@ -61,12 +54,12 @@ const FormSection = ({
 // Customer schema with kode_lambung
 const customerSchema = z.object({
   code: z.string().optional(),
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "Nama perlu diisi"),
   is_active: z.boolean().default(true),
   currency_id: z.coerce.number({
-    required_error: "Currency is required",
+    required_error: "Mata uang perlu diisi",
   }),
-  address: z.string().min(1, "Address is required"),
+  address: z.string().min(1, "Alamat perlu diisi"),
   kode_lambung: z.string().optional(),
   kode_lambung_items: z
     .array(

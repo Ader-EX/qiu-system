@@ -8,11 +8,9 @@ import {
   Edit,
   Trash2,
   Search as SearchIcon,
-  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -44,18 +42,10 @@ import {
 import { TOPUnit } from "@/types/types";
 
 import { mataUangService } from "@/services/mataUangService";
-import Cookies from "js-cookie";
 import GlobalPaginationFunction from "@/components/pagination-global";
 import CurrencyForm from "@/components/currency/CurrencyForm";
 import { Spinner } from "@/components/ui/spinner";
 import { format } from "date-fns";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 export default function CurrencyPage() {
   const [units, setUnits] = useState<TOPUnit[]>([]);

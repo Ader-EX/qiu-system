@@ -20,9 +20,6 @@ import {
   formatMoney,
   roundToPrecision,
 } from "@/lib/utils";
-import { useMemo } from "react";
-import { debounce } from "lodash";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,17 +57,13 @@ import {
   Attachment,
   calcRowTotalData,
 } from "@/services/pembelianService";
-import { warehouseService } from "@/services/warehouseService";
-import { jenisPembayaranService } from "@/services/mataUangService";
 import { imageService, ParentType } from "@/services/imageService";
 import { Item } from "@/types/types";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { vendorService } from "@/services/vendorService";
 import { usePrintInvoice } from "@/hooks/usePrintInvoice";
 import { NumericFormat } from "react-number-format";
-import { sumberdanaService } from "@/services/sumberdanaservice";
 import { QuickFormSearchableField } from "@/components/form/FormSearchableField";
 
 const FormSection = ({

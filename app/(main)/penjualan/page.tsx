@@ -54,7 +54,6 @@ import {
   StatusPembayaranEnum,
   StatusPenjualanEnum,
 } from "@/services/penjualanService";
-import { pembelianService } from "@/services/pembelianService";
 import { usePrintInvoice } from "@/hooks/usePrintInvoice";
 import {
   Popover,
@@ -67,7 +66,6 @@ import AuditDialog from "@/components/AuditDialog";
 import { RollbackAlert } from "@/components/rollback-alert";
 
 export default function PenjualanPage() {
-  // State management
   const [pembelians, setPembelians] = useState<PenjualanListResponse[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -81,14 +79,7 @@ export default function PenjualanPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  const {
-    simplePrint,
-    previewInvoice,
-    downloadInvoice,
-    printInvoice,
-    advancedPrint,
-    isPrinting,
-  } = usePrintInvoice();
+  const { downloadInvoice } = usePrintInvoice();
 
   const fetchPenjualans = async (filters: PenjualanFilters = {}) => {
     try {

@@ -61,11 +61,11 @@ import { QuickFormSearchableField } from "@/components/form/FormSearchableField"
 const pengembalianSchema = z
   .object({
     payment_code: z.string().optional(),
-    payment_date: z.date({ required_error: "Payment date harus diisi" }),
+    payment_date: z.date({ required_error: "Tanggal Pembayaran harus diisi" }),
     reference_type: z.enum(["PEMBELIAN", "PENJUALAN"], {
-      required_error: "Reference type harus dipilih",
+      required_error: "Tipe referensi harus dipilih",
     }),
-    currency_id: z.coerce.number().min(1, "Currency harus dipilih"),
+    currency_id: z.coerce.number().min(1, "Mata uang harus dipilih"),
     warehouse_id: z.coerce.number().min(1, "Warehouse harus dipilih"),
     warehouse_name: z.string().optional(),
     customer_name: z.string().optional(),
@@ -92,7 +92,7 @@ const pengembalianSchema = z
     },
     {
       message:
-        "Vendor is required for PEMBELIAN, Customer is required for PENJUALAN",
+        "Vendor dibutuhkan PEMBELIAN, Customer dibutuhkan untuk PENJUALAN",
       path: ["vendor_id"],
     }
   );

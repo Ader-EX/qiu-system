@@ -44,11 +44,6 @@ import {
   PembayaranUpdate,
 } from "@/services/pembayaranService";
 import { Attachment } from "@/services/pembelianService";
-import { warehouseService } from "@/services/warehouseService";
-import {
-  jenisPembayaranService,
-  mataUangService,
-} from "@/services/mataUangService";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import {
@@ -56,8 +51,6 @@ import {
   SelectedReference,
   SelectedReferencesTable,
 } from "@/components/pembayaran/ReferenceSelectionDialog";
-import { vendorService } from "@/services/vendorService";
-import { customerService } from "@/services/customerService";
 import { FileUploadButton } from "@/components/ImageUpload";
 import { imageService, ParentType } from "@/services/imageService";
 import { Spinner } from "@/components/ui/spinner";
