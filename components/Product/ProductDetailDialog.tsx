@@ -90,7 +90,7 @@ export const ProductDetailDialog: React.FC<ProductDetailDialogProps> = ({
               <p className="mt-1">{formatMoney(Number(product.price))}</p>
 
               <p className="text-sm font-medium text-gray-500 mt-4">
-                Harga Jual Minimum (Rp)
+                Harga Modal (Rp)
               </p>
               <p className="mt-1">{formatMoney(Number(product.modal_price))}</p>
             </div>
