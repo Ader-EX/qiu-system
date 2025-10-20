@@ -520,7 +520,7 @@ export default function PembayaranForm({
       },
       (errors) => {
         console.log("Form validation errors on draft:", errors);
-        toast.error("Please complete all required fields");
+        toast.error("Silahkan penuhi field yang belum terisi");
       }
     )();
   };
@@ -533,7 +533,7 @@ export default function PembayaranForm({
       },
       (errors) => {
         console.log("Form validation errors on finalize:", errors);
-        toast.error("Please complete all required fields");
+        toast.error("Silahkan penuhi field yang belum terisi");
       }
     )();
   };
