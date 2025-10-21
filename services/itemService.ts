@@ -96,7 +96,6 @@ class ItemService {
 
     return response.json();
   }
-
   async uploadItem(file: File): Promise<void> {
     const formData = new FormData();
     formData.append("file", file);
@@ -111,10 +110,31 @@ class ItemService {
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.detail || `HTTP error! status: ${response.status}`
-      );
+      let errorMsg = `HTTP error! status: ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+
+        // If server provides detailed errors array, extract the first one
+        if (errorData?.errors?.length > 0) {
+          const firstError = errorData.errors[0];
+          errorMsg = `Row ${firstError.row}: ${firstError.error}`;
+        }
+        // Handle backend "detail" or "message" key
+        else if (errorData?.detail) {
+          errorMsg = errorData.detail;
+        } else if (errorData?.message) {
+          errorMsg = errorData.message;
+        }
+      } catch {
+        // Handle cases where server returns non-JSON (like 500 HTML)
+        if (response.status === 500) {
+          errorMsg =
+            "Internal Server Error. Please contact support or try again later.";
+        }
+      }
+
+      throw new Error(errorMsg);
     }
   }
 

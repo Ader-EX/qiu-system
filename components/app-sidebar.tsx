@@ -37,7 +37,7 @@ const allNavItems = [
   { title: "Pembelian", url: "/pembelian", icon: ShoppingCart },
   { title: "Penjualan", url: "/penjualan", icon: Receipt },
   { title: "Pembayaran", url: "/pembayaran", icon: CircleDollarSign },
-  //   { title: "Pengembalian", url: "/pengembalian", icon: HandCoins },
+  { title: "Pengembalian", url: "/pengembalian", icon: HandCoins },
   { title: "Vendor", url: "/vendor", icon: Factory },
   { title: "Customer", url: "/customer", icon: Users },
   { title: "Laporan", url: "/laporan", icon: FileText },

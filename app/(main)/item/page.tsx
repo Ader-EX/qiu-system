@@ -351,7 +351,6 @@ const ProdukPage = () => {
   const totalPages = Math.ceil(state.total / state.rowsPerPage);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.currentTarget;
     const file = input.files?.[0];
@@ -362,11 +361,7 @@ const ProdukPage = () => {
       toast.success("File berhasil diunggah");
       fetchItems();
     } catch (err: any) {
-      const serverMsg =
-        err?.response?.data?.message ??
-        err?.response?.data?.error ??
-        err?.message ??
-        "File upload failed";
+      const serverMsg = err.message || "File upload failed";
       toast.error(serverMsg);
     } finally {
       input.value = "";
@@ -387,15 +382,14 @@ const ProdukPage = () => {
           setIsLoading(true);
           try {
             await itemService.uploadItem(file);
-
             toast.success("File berhasil diunggah");
-            setIsLoading(false);
           } catch (error: any) {
-            const fixedErrormsg = error.message.split(":");
+            const serverMsg = error.message || "File upload failed";
+            toast.error(serverMsg);
+          } finally {
             setIsLoading(false);
-            toast.error(fixedErrormsg[1]);
+            fetchItems();
           }
-          fetchItems();
         }}
       />
       <SidebarHeaderBar

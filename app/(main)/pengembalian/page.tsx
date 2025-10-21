@@ -157,36 +157,19 @@ export default function PengembalianPage() {
     }
   };
 
-  // Helper function to get reference numbers from pengembalian_details
   const getReferenceNumbers = (pengembalian: PengembalianResponse) => {
-    if (
-      !pengembalian.pengembalian_details ||
-      pengembalian.pengembalian_details.length === 0
-    ) {
-      return "-";
-    }
+    const references: string =
+      pengembalian.penjualan_rel?.no_penjualan ||
+      pengembalian.pembelian_rel?.no_pembelian ||
+      "-";
 
-    const references: string[] = [];
-
-    pengembalian.pengembalian_details.forEach((detail) => {
-      if (detail.pembelian_id && detail.pembelian_rel) {
-        references.push(detail.pembelian_rel.no_pembelian);
-      }
-      if (detail.penjualan_id && detail.penjualan_rel) {
-        references.push(detail.penjualan_rel.no_penjualan);
-      }
-    });
-
-    return references.length > 0 ? references.join(", ") : "-";
+    return references;
   };
 
   const getTotalReturn = (pengembalian: PengembalianResponse): number => {
-    const details = pengembalian.pengembalian_details ?? [];
+    const details = pengembalian.total_return ?? 0;
 
-    return details.reduce((sum, d) => {
-      const value = parseFloat(d.total_return || "0");
-      return sum + (Number.isFinite(value) ? value : 0);
-    }, 0);
+    return details;
   };
 
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
