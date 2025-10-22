@@ -98,8 +98,7 @@ const pembayaranSchema = z
       return !(data.reference_type === "PENJUALAN" && !data.customer_id);
     },
     {
-      message:
-        "Vendor is required for PEMBELIAN, Customer is required for PENJUALAN",
+      message: "Isi field ini terlebih dahulu",
       path: ["vendor_id"],
     }
   );
@@ -260,52 +259,15 @@ export default function PembayaranForm({
     loadPembayaranData();
   }, [mode, pembayaranId]);
 
+  const prevRefType = React.useRef<string | undefined>(watchedReferenceType);
+
   useEffect(() => {
-    if (mode === "view") return;
-
-    if (mode === "add") {
-      const fieldToClear =
-        watchedReferenceType === "PEMBELIAN" ? "customer_id" : "vendor_id";
-      form.setValue(fieldToClear, "");
-      setSelectedReferences([]);
-      return;
+    if (prevRefType.current && prevRefType.current !== watchedReferenceType) {
+      form.setValue("customer_id", "");
+      form.setValue("vendor_id", undefined);
     }
-
-    if (
-      mode === "edit" &&
-      isDataLoaded &&
-      initialDataSet &&
-      preloadValues.reference_type
-    ) {
-      const referenceTypeChanged =
-        watchedReferenceType !== preloadValues.reference_type;
-      const vendorChanged = watchedVendorId !== preloadValues.vendor_id;
-      const customerChanged = watchedCustomerId !== preloadValues.customer_id;
-
-      if (
-        referenceTypeChanged ||
-        (watchedReferenceType === "PEMBELIAN" && vendorChanged) ||
-        (watchedReferenceType === "PENJUALAN" && customerChanged)
-      ) {
-        setSelectedReferences([]);
-      }
-
-      if (referenceTypeChanged) {
-        const fieldToClear =
-          watchedReferenceType === "PEMBELIAN" ? "customer_id" : "vendor_id";
-        form.setValue(fieldToClear, "");
-      }
-    }
-  }, [
-    watchedReferenceType,
-    watchedCustomerId,
-    watchedVendorId,
-    form,
-    isDataLoaded,
-    initialDataSet,
-    mode,
-    preloadValues,
-  ]);
+    prevRefType.current = watchedReferenceType;
+  }, [watchedReferenceType, form]);
 
   const handleReferenceSelect = (reference: SelectedReference) => {
     setSelectedReferences((prev) => {
@@ -697,6 +659,7 @@ export default function PembayaranForm({
               name="currency_id"
               type="currency"
               isRequired={true}
+              disabled={isViewMode}
               label="Mata Uang"
               placeholder="Pilih Mata Uang"
             />
@@ -767,22 +730,60 @@ export default function PembayaranForm({
                 control={form.control}
                 name="attachments"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {isEditMode ? "Add New Attachments" : "Attachments"}
-                    </FormLabel>
-                    <FormControl>
-                      <FileUploadButton
-                        value={field.value || []}
-                        onChangeAction={field.onChange}
-                        maxFiles={3}
-                        maxSizeMB={4}
-                        disabled={isViewMode}
-                        accept={{ "application/pdf": [".pdf"] }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <>
+                    <FormItem>
+                      <FormLabel>
+                        {isEditMode ? "Add New Attachments" : "Attachments"}
+                      </FormLabel>
+                      <FormControl>
+                        <FileUploadButton
+                          value={field.value || []}
+                          onChangeAction={field.onChange}
+                          maxFiles={3}
+                          maxSizeMB={4}
+                          accept={{ "application/pdf": [".pdf"] }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                    {(isEditMode || isViewMode) &&
+                      pembayaranId &&
+                      field.value &&
+                      field.value.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="mt-2"
+                          disabled={isSubmitting}
+                          onClick={async () => {
+                            setIsSubmitting(true);
+                            try {
+                              await handleAttachmentUpload(
+                                field.value,
+                                Number(pembayaranId)
+                              );
+                              toast.success(
+                                "Attachments uploaded successfully"
+                              );
+                              field.onChange([]);
+                              const data =
+                                await pembayaranService.getPembayaranById(
+                                  Number(pembayaranId)
+                                );
+                              setExistingAttachments(data.attachments || []);
+                            } catch (error: any) {
+                              toast.error(
+                                error.message || "Failed to upload attachments"
+                              );
+                            } finally {
+                              setIsSubmitting(false);
+                            }
+                          }}
+                        >
+                          Upload Attachments Only
+                        </Button>
+                      )}
+                  </>
                 )}
               />
             </div>

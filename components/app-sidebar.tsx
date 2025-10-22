@@ -72,8 +72,6 @@ const roleDenyMap: Record<string, string[]> = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [role, setRole] = useState<UserRoleType | undefined>();
   const [name, setName] = useState<string | undefined>();
-  console.log("Role:", role);
-  console.log("Name:", name);
 
   useEffect(() => {
     const r = getRole();

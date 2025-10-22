@@ -39,7 +39,9 @@ export const formatDate = (dateString: any) => {
 const StockAdjDropdown = () => {
   const [dateFrom, setDateFrom] = useState<Date>(new Date(2025, 0, 1));
   const [dateTo, setDateTo] = useState<Date>(new Date());
-  const [itemId, setItemId] = useState<number>(); // <-- NEW
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [itemId, setItemId] = useState<number | undefined>(undefined);
+
   const [showForm, setShowForm] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -222,21 +224,21 @@ const StockAdjDropdown = () => {
             <SearchableSelect
               label=""
               placeholder="Pilih Item"
-              value={itemId}
-              onChange={(value) => {
-                setItemId(Number(value));
+              value={selectedItem} // pass the object, not just the id
+              onChange={(opt: any | null) => {
+                // receive the object
+                setSelectedItem(opt);
+                setItemId(opt ? Number(opt) : undefined);
               }}
               fetchData={async (search) => {
-                return await itemService.getAllItems({
+                const res = await itemService.getAllItems({
                   page: 0,
                   rowsPerPage: 10,
                   search_key: search,
                 });
+                return res;
               }}
-              renderLabel={(item: any) =>
-                `${item.code} - ${item.name} 
-                `
-              }
+              renderLabel={(item: any) => `${item.code} - ${item.name}`}
             />
           </div>
 
