@@ -173,8 +173,7 @@ export default function PenjualanForm({
       const subscription = form.watch((value, { name }) => {
         if (name?.includes("tax_percentage")) {
           // debug watcher like PembelianForm
-          // console.log(`[Form Watch] ${name} changed:`, value);
-        }
+          // }
       });
       return () => subscription.unsubscribe();
     }

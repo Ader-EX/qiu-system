@@ -242,8 +242,6 @@ export default function Kategori1Page() {
 
   // Apply filters only when search button is clicked
   const handleSearch = async () => {
-    console.log("Search clicked, searchTerm:", searchTerm);
-
     // Apply the current input values to the filter states
     setAppliedSearchTerm(searchTerm);
     setAppliedFromDate(fromDate);

@@ -83,8 +83,6 @@ class ItemService {
     if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
     if (filters.vendor) params.append("vendor", filters.vendor);
 
-    console.log(filters);
-
     const response = await fetch(`${this.baseUrl}?${params.toString()}`, {
       method: "GET",
       headers: this.getAuthHeaders(),

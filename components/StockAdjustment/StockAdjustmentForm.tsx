@@ -207,7 +207,6 @@ export default function StockAdjustmentForm({
 
   const handleAttachmentUpload = async (attachments: any, parentId: number) => {
     if (!attachments) {
-      console.log("No attachments to upload");
       return;
     }
 
@@ -225,12 +224,8 @@ export default function StockAdjustmentForm({
         return;
       }
 
-      console.log("Files to upload:", filesToUpload);
-
       const uploadPromises = filesToUpload.map(async (file, index) => {
         try {
-          console.log(`Uploading file ${index + 1}:`, file.name);
-
           const validationError = imageService.validateFile(file);
           if (validationError) {
             throw new Error(`File "${file.name}": ${validationError}`);
@@ -242,7 +237,6 @@ export default function StockAdjustmentForm({
             parent_id: parentId,
           });
 
-          console.log(`Upload result for ${file.name}:`, uploadResult);
           return uploadResult;
         } catch (error: any) {
           console.error(`Error uploading file ${file.name}:`, error);
@@ -391,7 +385,7 @@ export default function StockAdjustmentForm({
         router.back();
       }
     } catch (e: any) {
-      console.log("Full Error Object:", e); // Crucial for debugging the structure!
+      // Crucial for debugging the structure!
 
       // Check for standard server response structure
 

@@ -158,7 +158,6 @@ export default function VendorPage() {
       };
 
       const response = await vendorService.getAllVendors(filters);
-      console.log(response);
       setVendors(response.data);
       setTotalCount(response.total);
     } catch (error) {
@@ -183,7 +182,6 @@ export default function VendorPage() {
   }, [loadVendors]);
 
   const handleSearch = useCallback(async () => {
-    console.log("Search clicked, searchTerm:", searchTerm);
     setCurrentPage(1);
     await loadVendors();
   }, [searchTerm, loadVendors]);

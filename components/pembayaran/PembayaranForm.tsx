@@ -171,12 +171,10 @@ export default function PembayaranForm({
     const loadPembayaranData = async () => {
       try {
         setIsDataLoaded(false);
-        console.log("Loading pembayaran data for ID:", pembayaranId);
 
         const data = await pembayaranService.getPembayaranById(
           Number(pembayaranId)
         );
-        console.log("Fetched pembayaran data:", data);
 
         const references: SelectedReference[] =
           data.pembayaran_details?.map((detail: any) => {
@@ -200,8 +198,6 @@ export default function PembayaranForm({
 
             return mappedRef;
           }) || [];
-
-        console.log("All mapped references:", references);
 
         // Extract attachments from the pembayaran object itself (if any)
         let allAttachments: Attachment[] = data.attachments || [];
@@ -317,8 +313,6 @@ export default function PembayaranForm({
 
     if (!isValid) {
       const errors = form.formState.errors;
-      console.log("Form validation errors:", errors);
-
       Object.keys(errors).forEach((key) => {
         const error = errors[key as keyof typeof errors];
         if (error?.message) {
@@ -354,8 +348,6 @@ export default function PembayaranForm({
   ) => {
     setIsSubmitting(true);
     try {
-      console.log("Submitting form data:", data);
-
       const isValid = await validateForm();
       if (!isValid) {
         return;
@@ -379,8 +371,6 @@ export default function PembayaranForm({
         vendor_id: data.vendor_id || undefined,
         pembayaran_details,
       };
-
-      console.log("API Payload:", apiPayload);
 
       let resultId: any;
 
@@ -428,7 +418,6 @@ export default function PembayaranForm({
 
   const handleAttachmentUpload = async (attachments: any, parentId: number) => {
     if (!attachments || attachments.length === 0) {
-      console.log("No attachments to upload");
       return;
     }
 
@@ -448,8 +437,6 @@ export default function PembayaranForm({
 
       const uploadPromises = filesToUpload.map(async (file, index) => {
         try {
-          console.log(`Uploading file ${index + 1}:`, file.name);
-
           const validationError = imageService.validateFile(file);
           if (validationError) {
             throw new Error(`File "${file.name}": ${validationError}`);
@@ -461,7 +448,6 @@ export default function PembayaranForm({
             parent_id: parentId,
           });
 
-          console.log(`Upload result for ${file.name}:`, uploadResult);
           return uploadResult;
         } catch (error: any) {
           console.error(`Error uploading file ${file.name}:`, error);
@@ -477,11 +463,9 @@ export default function PembayaranForm({
   const onDraftClick = () => {
     form.handleSubmit(
       (data) => {
-        console.log("Draft submit - form data:", data);
         handleSubmit(data, false);
       },
       (errors) => {
-        console.log("Form validation errors on draft:", errors);
         toast.error("Silahkan penuhi field yang belum terisi");
       }
     )();
@@ -490,11 +474,9 @@ export default function PembayaranForm({
   const onFinalizeClick = () => {
     form.handleSubmit(
       (data) => {
-        console.log("Finalize submit - form data:", data);
         handleSubmit(data, true);
       },
       (errors) => {
-        console.log("Form validation errors on finalize:", errors);
         toast.error("Silahkan penuhi field yang belum terisi");
       }
     )();

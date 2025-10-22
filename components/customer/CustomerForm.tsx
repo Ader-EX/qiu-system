@@ -211,9 +211,6 @@ export default function CustomerForm({ mode, customerId }: CustomerFormProps) {
       };
 
       // Debug log to see what's being sent
-      console.log("Submit data:", submitData);
-      console.log("Kode lambungs:", kodeLambungForSubmit);
-
       if (isEditMode && customerId) {
         await customerService.updateCustomer(customerId, submitData);
         toast.success("Customer berhasil diperbarui");

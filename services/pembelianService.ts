@@ -305,8 +305,6 @@ class PembelianService {
       method: "POST",
       headers: this.getAuthHeaders(),
     });
-    console.log("MASUK");
-
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(
@@ -401,9 +399,6 @@ class PembelianService {
       }
     );
 
-    console.log(`Response status: ${response.status}`);
-    console.log(`Response headers:`, response.headers);
-
     if (!response.ok) {
       // Try to get error message from response
       let errorMessage = `HTTP error! status: ${response.status}`;
@@ -419,9 +414,7 @@ class PembelianService {
           const errorText = await response.text();
           errorMessage = errorText || errorMessage;
         }
-      } catch (parseError) {
-        console.log("Could not parse error response:", parseError);
-      }
+      } catch (parseError) {}
 
       console.error("Download failed:", errorMessage);
       throw new Error(errorMessage);
@@ -436,10 +429,7 @@ class PembelianService {
     filename: string
   ): Promise<void> {
     try {
-      console.log(`Starting download for: ${filename}`);
       const blob = await this.downloadAttachment(pembelianId, attachmentId);
-
-      console.log(`Got blob, size: ${blob.size}, type: ${blob.type}`);
 
       // Create download link
       const url = window.URL.createObjectURL(blob);
@@ -454,8 +444,6 @@ class PembelianService {
       // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-
-      console.log("Download completed successfully");
     } catch (error) {
       console.error("Download failed:", error);
       // Don't re-throw to prevent page refresh, just log

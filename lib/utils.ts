@@ -55,7 +55,6 @@ export const getRole = (): UserRoleType | undefined => {
   if (typeof window === "undefined") return undefined;
 
   const roleString = Cookies.get("role");
-  console.log("Raw cookie value for 'role':", roleString);
 
   if (!roleString) return undefined;
 
@@ -69,17 +68,14 @@ export const getRole = (): UserRoleType | undefined => {
     return roleString as UserRoleType;
   }
 
-  console.log("Role validation failed");
   return undefined;
 };
 
 export const getUsername = (): string | undefined => {
   if (typeof window === "undefined") {
-    console.log("Window is undefined");
     return undefined;
   }
   const name = Cookies.get("name");
-  console.log("Raw cookie value for 'name':", name);
   return name || undefined;
 };
 

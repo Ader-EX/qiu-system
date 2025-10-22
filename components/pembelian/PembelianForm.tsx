@@ -160,7 +160,6 @@ export default function PembelianForm({
     if (isEditMode) {
       const subscription = form.watch((value, { name, type }) => {
         if (name?.includes("tax_percentage")) {
-          console.log(`[Form Watch] ${name} changed:`, value);
         }
       });
       return () => subscription.unsubscribe();
@@ -500,7 +499,6 @@ export default function PembelianForm({
       } else {
         const result = await pembelianService.createPembelian(apiPayload);
 
-        console.log("Create result:", result);
         resultId = result.id;
         if (!resultId) throw new Error("Failed to get ID from response.");
 
@@ -534,7 +532,6 @@ export default function PembelianForm({
 
   const handleAttachmentUpload = async (attachments: any, parentId: number) => {
     if (!attachments) {
-      console.log("No attachments to upload");
       return;
     }
 
@@ -556,13 +553,9 @@ export default function PembelianForm({
         return;
       }
 
-      console.log("Files to upload:", filesToUpload);
-
       // Upload each file
       const uploadPromises = filesToUpload.map(async (file, index) => {
         try {
-          console.log(`Uploading file ${index + 1}:`, file.name);
-
           const validationError = imageService.validateFile(file);
           if (validationError) {
             throw new Error(`File "${file.name}": ${validationError}`);
@@ -574,7 +567,6 @@ export default function PembelianForm({
             parent_id: parentId,
           });
 
-          console.log(`Upload result for ${file.name}:`, uploadResult);
           return uploadResult;
         } catch (error: any) {
           console.error(`Error uploading file ${file.name}:`, error);
@@ -592,13 +584,11 @@ export default function PembelianForm({
 
   const handleExistingAttachments = async (pembelianId: string) => {
     try {
-      console.log("Fetching existing attachments for pembelian:", pembelianId);
       const existingAttachments = await imageService.getAttachmentsByParent(
         ParentType.PEMBELIANS,
         pembelianId
       );
 
-      console.log("Existing attachments:", existingAttachments);
       return existingAttachments;
     } catch (error) {
       console.error("Error fetching existing attachments:", error);

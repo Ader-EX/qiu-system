@@ -189,13 +189,9 @@ export default function PengembalianForm({
     const loadPengembalianData = async () => {
       try {
         setIsDataLoaded(false);
-        console.log("Loading pengembalian data for ID:", pengembalianId);
-
         const data = await pengembalianService.getPengembalianById(
           Number(pengembalianId)
         );
-        console.log("Fetched pengembalian data:", data);
-
         // Set pengembalian items
         const items: PengembalianItem[] =
           data.pengembalian_items?.map((item: any) => ({
@@ -373,8 +369,6 @@ export default function PengembalianForm({
 
     if (!isValid) {
       const errors = form.formState.errors;
-      console.log("Form validation errors:", errors);
-
       Object.keys(errors).forEach((key) => {
         const error = errors[key as keyof typeof errors];
         if (error?.message) {
@@ -426,8 +420,6 @@ export default function PengembalianForm({
   ) => {
     setIsSubmitting(true);
     try {
-      console.log("Submitting form data:", data);
-
       const isValid = await validateForm();
       if (!isValid) {
         return;
@@ -453,8 +445,6 @@ export default function PengembalianForm({
         notes: data.notes || "",
         pengembalian_items,
       };
-
-      console.log("API Payload:", apiPayload);
 
       let resultId: any;
 

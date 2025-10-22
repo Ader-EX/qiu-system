@@ -94,13 +94,6 @@ export default function JenisPembayaranPage() {
     toDate?: Date
   ) => {
     try {
-      console.log("Loading units with:", {
-        page,
-        searchTerm,
-        limit,
-        fromDate,
-        toDate,
-      });
       setLoading(true);
       const params: any = {
         skip: (page - 1) * limit,

@@ -1,8 +1,8 @@
 import Cookies from "js-cookie";
 
 interface TokenPayload {
-    exp: number;
-    sub: string;
+  exp: number;
+  sub: string;
 }
 
 // Commented out - tokens no longer have expiration
@@ -19,156 +19,155 @@ interface TokenPayload {
 // };
 
 const refreshTokens = async (): Promise<boolean> => {
-    const refreshToken = Cookies.get("refresh_token");
+  const refreshToken = Cookies.get("refresh_token");
 
-    // Removed expiration check - just check if token exists
-    if (!refreshToken) {
-        Cookies.remove("access_token");
-        Cookies.remove("refresh_token");
-        Cookies.remove("role");
-        Cookies.remove("name");
-        return false;
+  // Removed expiration check - just check if token exists
+  if (!refreshToken) {
+    Cookies.remove("access_token");
+    Cookies.remove("refresh_token");
+    Cookies.remove("role");
+    Cookies.remove("name");
+    return false;
+  }
+
+  try {
+    const response = await originalFetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }
+    );
+
+    if (response.ok) {
+      const { access_token, name, role } = await response.json();
+      Cookies.set("access_token", access_token);
+      Cookies.set("name", name);
+      Cookies.set("role", role);
+
+      return true;
     }
 
-    try {
-        const response = await originalFetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
-            {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({refresh_token: refreshToken}),
-            }
-        );
+    Cookies.remove("access_token");
+    Cookies.remove("role");
 
-        if (response.ok) {
-            const {access_token, name, role} = await response.json();
-            Cookies.set("access_token", access_token);
-            Cookies.set("name", name);
-            Cookies.set("role", role);
+    Cookies.remove("name");
+    Cookies.remove("refresh_token");
+    return false;
+  } catch {
+    Cookies.remove("access_token");
+    Cookies.remove("role");
 
-            return true;
-        }
-
-        Cookies.remove("access_token");
-        Cookies.remove("role");
-
-        Cookies.remove("name");
-        Cookies.remove("refresh_token");
-        return false;
-    } catch {
-        Cookies.remove("access_token");
-        Cookies.remove("role");
-
-        Cookies.remove("name");
-        Cookies.remove("refresh_token");
-        return false;
-    }
+    Cookies.remove("name");
+    Cookies.remove("refresh_token");
+    return false;
+  }
 };
 
 const originalFetch = window.fetch;
 let isRefreshing = false;
 const refreshQueue: Array<{
-    resolve: Function;
-    reject: Function;
-    requestInfo: any;
-    requestInit: any;
+  resolve: Function;
+  reject: Function;
+  requestInfo: any;
+  requestInit: any;
 }> = [];
 
 // Override global fetch
 window.fetch = async (
-    input: RequestInfo | URL,
-    init?: RequestInit
+  input: RequestInfo | URL,
+  init?: RequestInit
 ): Promise<Response> => {
-    const url =
-        typeof input === "string"
-            ? input
-            : input instanceof URL
-                ? input.href
-                : input.url;
+  const url =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+      ? input.href
+      : input.url;
 
-    if (url.includes("/login") || url.includes("/auth/register")) {
-        return originalFetch(input, init);
+  if (url.includes("/login") || url.includes("/auth/register")) {
+    return originalFetch(input, init);
+  }
+
+  const token = Cookies.get("access_token");
+  // Removed expiration check - just check if token exists
+  if (token) {
+    init = {
+      ...init,
+      headers: {
+        ...init?.headers,
+        Authorization: `Bearer ${token}`,
+      },
+    };
+  }
+
+  // Make the request
+  let response = await originalFetch(input, init);
+
+  // Handle 401 responses
+  if (response.status === 401) {
+    if (isRefreshing) {
+      // If already refreshing, queue this request
+      return new Promise((resolve, reject) => {
+        refreshQueue.push({
+          resolve,
+          reject,
+          requestInfo: input,
+          requestInit: init,
+        });
+      });
     }
 
-    const token = Cookies.get("access_token");
-    // Removed expiration check - just check if token exists
-    if (token) {
-        init = {
-            ...init,
-            headers: {
-                ...init?.headers,
-                Authorization: `Bearer ${token}`,
-            },
+    isRefreshing = true;
+
+    try {
+      const refreshed = await refreshTokens();
+
+      if (refreshed) {
+        // Process queued requests
+        const newToken = Cookies.get("access_token");
+        const updatedInit = {
+          ...init,
+          headers: {
+            ...init?.headers,
+            Authorization: `Bearer ${newToken}`,
+          },
         };
+
+        // Retry original request
+        response = await originalFetch(input, updatedInit);
+
+        // Process queue
+        refreshQueue.forEach(({ resolve, requestInfo, requestInit }) => {
+          const queuedInit = {
+            ...requestInit,
+            headers: {
+              ...requestInfo?.headers,
+              Authorization: `Bearer ${newToken}`,
+            },
+          };
+          resolve(originalFetch(requestInfo, queuedInit));
+        });
+        refreshQueue.length = 0;
+      } else {
+        // Refresh failed - redirect to login
+        window.location.href = "/login";
+
+        // Reject queued requests
+        refreshQueue.forEach(({ reject }) => {
+          reject(new Error("Authentication failed"));
+        });
+        refreshQueue.length = 0;
+      }
+    } finally {
+      isRefreshing = false;
     }
+  }
 
-    // Make the request
-    let response = await originalFetch(input, init);
-
-    // Handle 401 responses
-    if (response.status === 401) {
-        if (isRefreshing) {
-            // If already refreshing, queue this request
-            return new Promise((resolve, reject) => {
-                refreshQueue.push({
-                    resolve,
-                    reject,
-                    requestInfo: input,
-                    requestInit: init,
-                });
-            });
-        }
-
-        isRefreshing = true;
-
-        try {
-            const refreshed = await refreshTokens();
-
-            if (refreshed) {
-                // Process queued requests
-                const newToken = Cookies.get("access_token");
-                const updatedInit = {
-                    ...init,
-                    headers: {
-                        ...init?.headers,
-                        Authorization: `Bearer ${newToken}`,
-                    },
-                };
-
-                // Retry original request
-                response = await originalFetch(input, updatedInit);
-
-                // Process queue
-                refreshQueue.forEach(({resolve, requestInfo, requestInit}) => {
-                    const queuedInit = {
-                        ...requestInit,
-                        headers: {
-                            ...requestInfo?.headers,
-                            Authorization: `Bearer ${newToken}`,
-                        },
-                    };
-                    resolve(originalFetch(requestInfo, queuedInit));
-                });
-                refreshQueue.length = 0;
-            } else {
-                // Refresh failed - redirect to login
-                window.location.href = "/login";
-
-                // Reject queued requests
-                refreshQueue.forEach(({reject}) => {
-                    reject(new Error("Authentication failed"));
-                });
-                refreshQueue.length = 0;
-            }
-        } finally {
-            isRefreshing = false;
-        }
-    }
-
-    return response;
+  return response;
 };
 
 export const setupGlobalAuth = () => {
-    // This function just needs to be called once to setup the global fetch override
-    console.log("Global auth interceptor setup complete");
+  // This function just needs to be called once to setup the global fetch override
 };
