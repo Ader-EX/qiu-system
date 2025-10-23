@@ -1356,8 +1356,8 @@ export default function PenjualanForm({
                     ? "Finalizing..."
                     : "Memfinalisasi..."
                   : isEditMode
-                  ? "Update & Finalize"
-                  : "Buat Invoice"}
+                  ? "Update & Finalisasi"
+                  : "Finalisasi"}
               </Button>
             </div>
           ) : (

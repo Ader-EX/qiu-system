@@ -1527,8 +1527,8 @@ export default function PembelianForm({
                     ? "Finalizing..."
                     : "Memfinalisasi..."
                   : isEditMode
-                  ? "Update & Finalize"
-                  : "Buat Invoice"}
+                  ? "Update & Finalisasi"
+                  : "Finalisasi"}
               </Button>
             </div>
           ) : (
