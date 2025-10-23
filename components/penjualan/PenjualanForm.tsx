@@ -174,6 +174,8 @@ export default function PenjualanForm({
         if (name?.includes("tax_percentage")) {
           // debug watcher like PembelianForm
           // }
+          console.log("masuk");
+        }
       });
       return () => subscription.unsubscribe();
     }
