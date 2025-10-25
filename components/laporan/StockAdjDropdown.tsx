@@ -315,8 +315,11 @@ const StockAdjDropdown = () => {
                   <TableHead className="px-3 py-3 w-[15%]">
                     No. Transaksi
                   </TableHead>
+                  <TableHead className="px-3 py-3w-[10%]">
+                    Nomor Batch
+                  </TableHead>
                   <TableHead className="px-3 py-3w-[15%]">Item Code</TableHead>
-                  <TableHead className="px-3 py-3  w-[20%]">
+                  <TableHead className="px-3 py-3  w-[10%]">
                     Item Name
                   </TableHead>
                   <TableHead className="px-3 py-3 w-[10%]">Qty Masuk</TableHead>
@@ -327,8 +330,10 @@ const StockAdjDropdown = () => {
                     Qty Balance
                   </TableHead>
                   <TableHead className="px-3 py-3 w-[10%]">
-                    Harga Modal
+                    Harga Beli
                   </TableHead>
+
+                  <TableHead className="px-3 py-3 w-[10%]">HPP Sisa</TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -358,6 +363,9 @@ const StockAdjDropdown = () => {
                             </div>
                           </TableCell>
                           <TableCell className="px-3 py-4">
+                            {row.batch || "-"}
+                          </TableCell>
+                          <TableCell className="px-3 py-4">
                             {row.item_code || "-"}
                           </TableCell>
                           <TableCell className="px-3 py-4">
@@ -371,6 +379,9 @@ const StockAdjDropdown = () => {
                           </TableCell>
                           <TableCell className="px-3 py-4">
                             {row.qty_balance || 0}
+                          </TableCell>
+                          <TableCell className="px-3 py-4">
+                            {formatMoney(row.harga_beli || 0)}
                           </TableCell>
                           <TableCell className="px-3 py-4">
                             {formatMoney(row.hpp || 0)}

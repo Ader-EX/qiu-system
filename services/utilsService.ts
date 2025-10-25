@@ -3,11 +3,67 @@ import { TOPUnit } from "@/types/types";
 import Cookies from "js-cookie";
 import { PaginatedResponse } from "./itemService";
 
-export type LabaRugiResponse = {
+export interface LabaRugiDetailRow {
+  /** The date of the invoice (tanggal). */
+  tanggal: Date;
+
+  /** The unique invoice identifier (no_invoice). */
+  no_invoice: string;
+
+  /** The code for the sold item (item_code). */
+  item_code: string;
+
+  /** The name of the sold item (item_name). */
+  item_name: string;
+
+  /** The quantity of the item sold (qty_terjual). */
+  qty_terjual: number;
+
+  /** The cost of goods sold per unit (HPP per unit), which is your calculated pp_per_unit (hpp). */
+  hpp: number;
+
+  /** The total cost of goods sold for this line item (total_hpp). */
+  total_hpp: number;
+
+  /** The unit selling price (harga_jual). */
+  harga_jual: number;
+
+  /** The total revenue from this line item (total_penjualan). */
   total_penjualan: number;
-  total_pembelian: number;
-  profit_or_loss: number;
-};
+
+  /** The gross profit (laba_kotor). */
+  laba_kotor: number;
+}
+
+export interface LabaRugiResponse {
+  /** The title of the report. */
+  title: string;
+
+  /** The starting date of the report period (date_from). */
+  date_from: Date;
+
+  /** The ending date of the report period (date_to). */
+  date_to: Date;
+
+  /** A list of all transaction detail rows. */
+  details: LabaRugiDetailRow[];
+
+  /** The grand total quantity of items sold. */
+  total_qty: number;
+
+  /** The grand total HPP (Cost of Goods Sold) for the period. */
+  total_hpp: number;
+
+  /** The grand total revenue for the period. */
+  total_penjualan: number;
+
+  /** The grand total gross profit for the period. */
+  total_laba_kotor: number;
+
+  /** The total number of detail rows included in the report (total). */
+  total: number;
+}
+
 export type LaporanPenjualanRows = {
   date: string;
   customer: string;
@@ -57,10 +113,12 @@ export type DashboardData = {
 export interface StockAdjustmentItem {
   date: string;
   no_transaksi: string;
+  batch: string;
   item_code: string;
   item_name: string;
   qty_masuk: number;
   qty_keluar: number;
+  harga_beli: number;
   qty_balance: number;
   harga_masuk: number;
   harga_keluar: number;
