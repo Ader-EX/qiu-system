@@ -370,15 +370,11 @@ const LabaRugiReport = () => {
                         <td className="px-3 py-3 text-sm font-bold text-gray-900 text-right">
                           {reportData.total_qty.toLocaleString("id-ID")}
                         </td>
-                        <td className="px-3 py-3 text-sm font-bold text-gray-900 text-right">
-                          -
-                        </td>
+                        <td className="px-3 py-3 text-sm font-bold text-gray-900 text-right"></td>
                         <td className="px-3 py-3 text-sm font-bold text-gray-900 text-right">
                           {formatMoney(reportData.total_hpp)}
                         </td>
-                        <td className="px-3 py-3 text-sm font-bold text-gray-900 text-right">
-                          -
-                        </td>
+                        <td className="px-3 py-3 text-sm font-bold text-gray-900 text-right"></td>
                         <td className="px-3 py-3 text-sm font-bold text-gray-900 text-right">
                           {formatMoney(reportData.total_penjualan)}
                         </td>
