@@ -289,10 +289,10 @@ export default function PengembalianForm({
         item_code: item.code,
         item_name: item.name,
         qty_returned: 1,
-        unit_price: 0,
-        tax_percentage: 0,
-        sub_total: 0,
-        total_return: 0,
+      unit_price: item.price || 0, 
+      tax_percentage: 0,
+      sub_total: item.price || 0,  
+      total_return: item.price || 0,  
       };
 
       return [...prev, newItem];
