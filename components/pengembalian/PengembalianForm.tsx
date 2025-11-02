@@ -768,6 +768,78 @@ export default function PengembalianForm({
           </FormSection>
 
           {/* Reference Selection */}
+     {/* Attachments */}
+          <FormSection title="Lampiran">
+            {(isEditMode || isViewMode) && (
+              <div className="md:col-span-2 space-y-3">
+                {existingAttachments.length > 0 ? (
+                  <div className="space-y-2">
+                    {existingAttachments.map((att) => (
+                      <div
+                        key={att.id}
+                        className="flex items-center justify-between p-2 bg-muted rounded-lg"
+                      >
+                        <div className="flex items-center space-x-3 truncate">
+                          <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                          <a
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              imageService.handleDownload(att);
+                            }}
+                            className="text-sm font-medium hover:underline truncate"
+                          >
+                            {att.filename}
+                          </a>
+                        </div>
+                        {!isViewMode && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            onClick={() =>
+                              handleRemoveExistingAttachment(att.id)
+                            }
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Tidak ada lampiran.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="md:col-span-2">
+              <FormField
+                control={form.control}
+                name="attachments"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {isEditMode ? "Tambah Lampiran Baru" : "Lampiran"}
+                    </FormLabel>
+                    <FormControl>
+                      <FileUploadButton
+                        value={field.value || []}
+                        onChangeAction={field.onChange}
+                        maxFiles={3}
+                        maxSizeMB={4}
+                        accept={{ "application/pdf": [".pdf"] }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </FormSection>
 
           {/* Items Table */}
           <FormSection title="Detail Item">
@@ -944,79 +1016,7 @@ export default function PengembalianForm({
             </div>
           )}
 
-          {/* Attachments */}
-          <FormSection title="Lampiran">
-            {(isEditMode || isViewMode) && (
-              <div className="md:col-span-2 space-y-3">
-                {existingAttachments.length > 0 ? (
-                  <div className="space-y-2">
-                    {existingAttachments.map((att) => (
-                      <div
-                        key={att.id}
-                        className="flex items-center justify-between p-2 bg-muted rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3 truncate">
-                          <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                          <a
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              imageService.handleDownload(att);
-                            }}
-                            className="text-sm font-medium hover:underline truncate"
-                          >
-                            {att.filename}
-                          </a>
-                        </div>
-                        {!isViewMode && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            type="button"
-                            onClick={() =>
-                              handleRemoveExistingAttachment(att.id)
-                            }
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Tidak ada lampiran.
-                  </p>
-                )}
-              </div>
-            )}
-
-            <div className="md:col-span-2">
-              <FormField
-                control={form.control}
-                name="attachments"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {isEditMode ? "Tambah Lampiran Baru" : "Lampiran"}
-                    </FormLabel>
-                    <FormControl>
-                      <FileUploadButton
-                        value={field.value || []}
-                        onChangeAction={field.onChange}
-                        maxFiles={3}
-                        maxSizeMB={4}
-                        accept={{ "application/pdf": [".pdf"] }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </FormSection>
-
+     
           {/* Action Buttons */}
           {!isViewMode ? (
             <div className="flex justify-end space-x-2 pt-6 border-t">
