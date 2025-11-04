@@ -1,17 +1,14 @@
 "use client";
 
 import {
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
   Package,
   Users,
   ShoppingCart,
   Receipt,
-  PlusIcon,
-  DownloadIcon,
-  Plus,
-  Download,
+  TrendingUp,
+  DollarSign,
+  Tag,
+  ShoppingBag,
 } from "lucide-react";
 import {
   Card,
@@ -22,44 +19,82 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  HeaderActions,
   SidebarHeaderBar,
 } from "@/components/ui/SidebarHeaderBar";
 import Link from "next/link";
 import { formatMoney } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { DashboardData, utilsService } from "@/services/utilsService";
+import { utilsService } from "@/services/utilsService";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
-const getStatusIcon = (status: string, percentage: number) => {
-  switch (status) {
-    case "up":
-      return <TrendingUp className="h-3 w-3 mr-1" />;
-    case "down":
-      return <TrendingDown className="h-3 w-3 mr-1" />;
-    default:
-      return <TrendingUp className="h-3 w-3 mr-1" />;
-  }
-};
+export interface DashboardStats {
+    total_products: number;
+    total_brands: number;
+    total_jenis_barang: number;
+    total_customers: number;
+    total_vendors: number;
+    total_item_terjual: number;
+    total_pembelian_value: number;
+    total_pembelian_count: number;
+    total_penjualan_value: number;
+    total_penjualan_count: number;
+    total_hpp: number;
+    total_profit: number;
+}
+
+export interface DailyRevenueData {
+  date: string;
+  penjualan: number;
+  pembelian: number;
+}
+
+export interface DailyProfitData {
+  date: string;
+  profit: number;
+  cumulative_profit: number;
+}
+
+export interface ChartData {
+  revenue_chart: DailyRevenueData[];
+  profit_chart: DailyProfitData[];
+}
 
 const formatNumber = (value: number): string => {
   return new Intl.NumberFormat("id-ID").format(value);
 };
 
-const getStatusColor = (status: string): string => {
-  switch (status) {
-    case "up":
-      return "text-green-600";
-    case "down":
-      return "text-red-600";
-    default:
-      return "text-gray-600";
+const formatCompactMoney = (value: number): string => {
+  if (value >= 1000000) {
+    return `${(value / 1000000).toFixed(1)}M`;
+  } else if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)}K`;
   }
+  return formatNumber(value);
 };
+
 export default function DashboardPage() {
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
-    null
-  );
+  const [period, setPeriod] = useState<"7days" | "30days" | "month">("month");
+  const [dashboardData, setDashboardData] = useState<DashboardStats | null>(null);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,8 +102,12 @@ export default function DashboardPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await utilsService.getStatistics();
-        setDashboardData(data);
+        const [stats, charts] = await Promise.all([
+          utilsService.getStatistics(period),
+          utilsService.getChartData(period),
+        ]);
+        setDashboardData(stats);
+        setChartData(charts);
         setError(null);
       } catch (err) {
         setError("Failed to load dashboard data");
@@ -79,7 +118,7 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, []);
+  }, [period]);
 
   if (loading) {
     return (
@@ -92,7 +131,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (error || !dashboardData) {
+  if (error || !dashboardData || !chartData) {
     return (
       <div className="space-y-6">
         <SidebarHeaderBar title="Dashboard" />
@@ -110,221 +149,245 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <SidebarHeaderBar title="Dashboard" />
+      <div className="flex items-center justify-between">
+        <SidebarHeaderBar title="Dashboard" />
+        <Select value={period} onValueChange={(value: any) => setPeriod(value)}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7days">Last 7 Days</SelectItem>
+            <SelectItem value="30days">Last 30 Days</SelectItem>
+            <SelectItem value="month">This Month</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Ringkasan Eksekutif */}
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Ringkasan Eksekutif</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Item</p>
+                  <p className="text-3xl font-bold">{formatNumber(dashboardData.total_products)}</p>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Package className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Brand</p>
+                  <p className="text-3xl font-bold">{formatNumber(dashboardData.total_brands)}</p>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+                  <Tag className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Item Terjual</p>
+                  <p className="text-3xl font-bold">{formatNumber(dashboardData.total_item_terjual)}</p>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <ShoppingBag className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Customer</p>
+                  <p className="text-3xl font-bold">{formatNumber(dashboardData.total_customers)}</p>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
+                  <Users className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Vendor</p>
+                  <p className="text-3xl font-bold">{formatNumber(dashboardData.total_vendors)}</p>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-pink-100 flex items-center justify-center">
+                  <Package className="h-6 w-6 text-pink-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Jenis Barang</p>
+                  <p className="text-3xl font-bold">{formatNumber(dashboardData.total_jenis_barang)}</p>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-cyan-100 flex items-center justify-center">
+                  <Receipt className="h-6 w-6 text-cyan-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+   
+
+      {/* Ringkasan Keuangan */}
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Ringkasan Keuangan</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Penjualan</p>
+                  <p className="text-3xl font-bold">{formatMoney(dashboardData.total_penjualan_value)}</p>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Pembelian</p>
+                  <p className="text-3xl font-bold">{formatMoney(dashboardData.total_pembelian_value)}</p>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <ShoppingCart className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total HPP</p>
+                  <p className="text-3xl font-bold">{formatMoney(dashboardData.total_hpp)}</p>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-yellow-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Profit / Loss</p>
+                  <p className={`text-3xl font-bold ${dashboardData.total_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatMoney(dashboardData.total_profit)}
+                  </p>
+                </div>
+                <div className={`h-12 w-12 rounded-full ${dashboardData.total_profit >= 0 ? 'bg-green-100' : 'bg-red-100'} flex items-center justify-center`}>
+                  <DollarSign className={`h-6 w-6 ${dashboardData.total_profit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+   {/* Charts Section */}
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Produk</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle>Revenue Comparison</CardTitle>
+            <CardDescription>Daily Penjualan vs Pembelian</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatNumber(dashboardData.total_products)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <span
-                className={`flex items-center ${getStatusColor(
-                  dashboardData.status_month_products
-                )}`}
-              >
-                {getStatusIcon(
-                  dashboardData.status_month_products,
-                  dashboardData.percentage_month_products
-                )}
-                {dashboardData.status_month_products === "up"
-                  ? "+"
-                  : dashboardData.status_month_products === "down"
-                  ? "-"
-                  : ""}
-                {Math.abs(dashboardData.percentage_month_products).toFixed(1)}%
-              </span>
-              dari bulan lalu
-            </p>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData.revenue_chart}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value) => new Date(value).getDate().toString()}
+                />
+                <YAxis tick={{ fontSize: 12 }} tickFormatter={formatCompactMoney} />
+                <Tooltip 
+                  formatter={(value: number) => formatMoney(value)}
+                  labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID')}
+                />
+                <Legend />
+                <Bar dataKey="penjualan" fill="#10b981" name="Penjualan" />
+                <Bar dataKey="pembelian" fill="#3b82f6" name="Pembelian" />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Customer
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle>Profit Tracking</CardTitle>
+            <CardDescription>Daily & Cumulative Profit</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatNumber(dashboardData.total_customer)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <span
-                className={`flex items-center ${getStatusColor(
-                  dashboardData.status_month_customer
-                )}`}
-              >
-                {getStatusIcon(
-                  dashboardData.status_month_customer,
-                  dashboardData.percentage_month_customer
-                )}
-                {dashboardData.status_month_customer === "up"
-                  ? "+"
-                  : dashboardData.status_month_customer === "down"
-                  ? "-"
-                  : ""}
-                {Math.abs(dashboardData.percentage_month_customer).toFixed(1)}%
-              </span>
-              dari bulan lalu
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pembelian Bulan Ini
-            </CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatMoney(Number(dashboardData.total_pembelian))}
-            </div>
-            <p className="text-xs text-muted-foreground truncate overflow-ellipsis">
-              <span
-                className={`flex items-center ${getStatusColor(
-                  dashboardData.status_month_pembelian
-                )}`}
-              >
-                {getStatusIcon(
-                  dashboardData.status_month_pembelian,
-                  dashboardData.percentage_month_pembelian
-                )}
-                {dashboardData.status_month_pembelian === "up"
-                  ? "+"
-                  : dashboardData.status_month_pembelian === "down"
-                  ? "-"
-                  : ""}
-                {Math.abs(dashboardData.percentage_month_pembelian).toFixed(1)}%
-              </span>
-              dari bulan lalu
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Penjualan Bulan Ini
-            </CardTitle>
-            <Receipt className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold truncate overflow-ellipsis">
-              {formatMoney(Number(dashboardData.total_penjualan))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <span
-                className={`flex items-center ${getStatusColor(
-                  dashboardData.status_month_penjualan
-                )}`}
-              >
-                {getStatusIcon(
-                  dashboardData.status_month_penjualan,
-                  dashboardData.percentage_month_penjualan
-                )}
-                {dashboardData.status_month_penjualan === "up"
-                  ? "+"
-                  : dashboardData.status_month_penjualan === "down"
-                  ? "-"
-                  : ""}
-                {Math.abs(dashboardData.percentage_month_penjualan).toFixed(1)}%
-              </span>
-              dari bulan lalu
-            </p>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData.profit_chart}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value) => new Date(value).getDate().toString()}
+                />
+                <YAxis tick={{ fontSize: 12 }} tickFormatter={formatCompactMoney} />
+                <Tooltip 
+                  formatter={(value: number) => formatMoney(value)}
+                  labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID')}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="profit" 
+                  stroke="#10b981" 
+                  name="Daily Profit"
+                  strokeWidth={2}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="cumulative_profit" 
+                  stroke="#3b82f6" 
+                  name="Cumulative"
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
-
-      {/* Charts and Recent Activity */}
-      {/*<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">*/}
-      {/*  <Card className="col-span-4">*/}
-      {/*    <CardHeader>*/}
-      {/*      <CardTitle className="flex items-center gap-2">*/}
-      {/*        <BarChart3 className="h-5 w-5" />*/}
-      {/*        Grafik Penjualan & Pembelian*/}
-      {/*      </CardTitle>*/}
-      {/*      <CardDescription>*/}
-      {/*        Perbandingan penjualan dan pembelian 6 bulan terakhir*/}
-      {/*      </CardDescription>*/}
-      {/*    </CardHeader>*/}
-      {/*    <CardContent>*/}
-      {/*      <div className="h-[300px] flex items-center justify-center text-muted-foreground">*/}
-      {/*        [Chart akan ditampilkan di sini]*/}
-      {/*      </div>*/}
-      {/*    </CardContent>*/}
-      {/*  </Card>*/}
-
-      {/*  <Card className="col-span-3">*/}
-      {/*    <CardHeader>*/}
-      {/*      <CardTitle>Aktivitas Terbaru</CardTitle>*/}
-      {/*      <CardDescription>*/}
-      {/*        Transaksi dan aktivitas sistem terbaru*/}
-      {/*      </CardDescription>*/}
-      {/*    </CardHeader>*/}
-      {/*    <CardContent>*/}
-      {/*      <div className="space-y-4">*/}
-      {/*        <div className="flex items-center gap-3">*/}
-      {/*          <div className="h-2 w-2 rounded-full bg-green-500"></div>*/}
-      {/*          <div className="flex-1">*/}
-      {/*            <p className="text-sm font-medium">Penjualan baru #SO-001</p>*/}
-      {/*            <p className="text-xs text-muted-foreground">*/}
-      {/*              2 menit yang lalu*/}
-      {/*            </p>*/}
-      {/*          </div>*/}
-      {/*        </div>*/}
-      {/*        <div className="flex items-center gap-3">*/}
-      {/*          <div className="h-2 w-2 rounded-full bg-blue-500"></div>*/}
-      {/*          <div className="flex-1">*/}
-      {/*            <p className="text-sm font-medium">Produk baru ditambahkan</p>*/}
-      {/*            <p className="text-xs text-muted-foreground">*/}
-      {/*              15 menit yang lalu*/}
-      {/*            </p>*/}
-      {/*          </div>*/}
-      {/*        </div>*/}
-      {/*        <div className="flex items-center gap-3">*/}
-      {/*          <div className="h-2 w-2 rounded-full bg-orange-500"></div>*/}
-      {/*          <div className="flex-1">*/}
-      {/*            <p className="text-sm font-medium">*/}
-      {/*              Pembelian #PO-002 diproses*/}
-      {/*            </p>*/}
-      {/*            <p className="text-xs text-muted-foreground">*/}
-      {/*              1 jam yang lalu*/}
-      {/*            </p>*/}
-      {/*          </div>*/}
-      {/*        </div>*/}
-      {/*        <div className="flex items-center gap-3">*/}
-      {/*          <div className="h-2 w-2 rounded-full bg-purple-500"></div>*/}
-      {/*          <div className="flex-1">*/}
-      {/*            <p className="text-sm font-medium">Customer baru terdaftar</p>*/}
-      {/*            <p className="text-xs text-muted-foreground">*/}
-      {/*              3 jam yang lalu*/}
-      {/*            </p>*/}
-      {/*          </div>*/}
-      {/*        </div>*/}
-      {/*        <div className="flex items-center gap-3">*/}
-      {/*          <div className="h-2 w-2 rounded-full bg-red-500"></div>*/}
-      {/*          <div className="flex-1">*/}
-      {/*            <p className="text-sm font-medium">Stok produk menipis</p>*/}
-      {/*            <p className="text-xs text-muted-foreground">*/}
-      {/*              5 jam yang lalu*/}
-      {/*            </p>*/}
-      {/*          </div>*/}
-      {/*        </div>*/}
-      {/*      </div>*/}
-      {/*    </CardContent>*/}
-      {/*  </Card>*/}
-      {/*</div>*/}
-
+      
       {/* Quick Actions */}
       <Card>
         <CardHeader>

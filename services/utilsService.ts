@@ -2,6 +2,7 @@
 import { TOPUnit } from "@/types/types";
 import Cookies from "js-cookie";
 import { PaginatedResponse } from "./itemService";
+import { DashboardStats } from "@/app/(main)/dashboard/page";
 
 export interface LabaRugiDetailRow {
   /** The date of the invoice (tanggal). */
@@ -95,21 +96,6 @@ export type LaporanPembelianRows = {
   grand_total: string;
 };
 
-export type DashboardData = {
-  total_products: number;
-  percentage_month_products: number;
-  status_month_products: string;
-  total_customer: number;
-  percentage_month_customer: number;
-  status_month_customer: string;
-  total_pembelian: string;
-  percentage_month_pembelian: number;
-  status_month_pembelian: string;
-  total_penjualan: string;
-  percentage_month_penjualan: number;
-  status_month_penjualan: string;
-};
-
 export interface StockAdjustmentItem {
   date: string;
   no_transaksi: string;
@@ -123,6 +109,23 @@ export interface StockAdjustmentItem {
   harga_masuk: number;
   harga_keluar: number;
   hpp: number;
+}
+
+export interface DailyRevenueData {
+  date: string;
+  penjualan: number;
+  pembelian: number;
+}
+
+export interface DailyProfitData {
+  date: string;
+  profit: number;
+  cumulative_profit: number;
+}
+
+export interface ChartData {
+  revenue_chart: DailyRevenueData[];
+  profit_chart: DailyProfitData[];
 }
 
 export interface ParentStockAdjustmentItem<T> {
@@ -147,25 +150,44 @@ class UtilsService {
     this.baseUrl = `${NEXT_PUBLIC_API_URL}/${destination}`;
   }
 
-  async getStatistics(): Promise<DashboardData> {
-    const url = this.baseUrl + `/statistics`;
-    try {
-      const response = await fetch(url, {
-        method: "GET",
-        headers: this.getAuthHeaders(),
-      });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch laporan: ${response.statusText}`);
-      }
-
-      const result = (await response.json()) as DashboardData;
-      return result;
-    } catch (error) {
-      console.error("Error fetching laporan.h:", error);
-      throw error;
+  async getStatistics(period: string = "month"): Promise<DashboardStats> {
+  const url = this.baseUrl + `/statistics?period=${period}`;
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch statistics: ${response.statusText}`);
     }
+    const result = (await response.json()) as DashboardStats;
+    return result;
+  } catch (error) {
+    console.error("Error fetching statistics:", error);
+    throw error;
   }
+}
+
+
+
+async getChartData(period: string = "month"): Promise<ChartData> {
+  const url = this.baseUrl + `/charts?period=${period}`;
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: this.getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch chart data: ${response.statusText}`);
+    }
+    const result = (await response.json()) as ChartData;
+    return result;
+  } catch (error) {
+    console.error("Error fetching chart data:", error);
+    throw error;
+  }
+}
 
   async getLabaRugi(from_date: Date, to_date: Date): Promise<LabaRugiResponse> {
     const params = new URLSearchParams({

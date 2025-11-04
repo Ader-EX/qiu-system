@@ -12,7 +12,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Trash2 } from "lucide-react";
 
 interface DeleteAlertProps {
   /** The current status of the adjustment */
@@ -40,7 +40,7 @@ export function DeleteAlert({
           onSelect={(e) => e.preventDefault()}
           className="text-red-600"
         >
-          <RefreshCw className="mr-2 h-4 w-4" />
+          <Trash2 className="mr-2 h-4 w-4" />
           {label}
         </DropdownMenuItem>
       </AlertDialogTrigger>
