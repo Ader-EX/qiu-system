@@ -64,6 +64,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import AuditDialog from "@/components/AuditDialog";
 import { RollbackAlert } from "@/components/rollback-alert";
+import { DeleteAlert } from "@/components/delete-alert";
 
 export default function PembelianPage() {
   const [pembelians, setPembelians] = useState<PembelianListResponse[]>([]);
@@ -470,15 +471,12 @@ export default function PembelianPage() {
                         <AuditDialog id={pembelian.id} type={"PEMBELIAN"} />
                         {pembelian.status_pembelian ===
                           StatusPembelianEnum.DRAFT && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleDeleteClick(Number(pembelian.id))
-                            }
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Hapus
-                          </DropdownMenuItem>
+                            <DeleteAlert
+                            status={pembelian.status_pembelian}
+                            id={Number(pembelian.id)}
+                            onConfirm={handleDeleteClick}
+                          />
+                          
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>

@@ -63,6 +63,7 @@ import {
 import { format } from "date-fns";
 import AuditDialog from "@/components/AuditDialog";
 import { RollbackAlert } from "@/components/rollback-alert";
+import { DeleteAlert } from "@/components/delete-alert";
 
 export default function PembayaranPage() {
   const [pembayarans, setPembayarans] = useState<PembayaranResponse[]>([]);
@@ -444,6 +445,7 @@ export default function PembayaranPage() {
                       )}
 
                       {pembayaran.status === "DRAFT" && (
+                        
                         <DropdownMenuItem asChild>
                           <Link href={`/pembayaran/${pembayaran.id}/edit`}>
                             <Edit className="mr-2 h-4 w-4" />
@@ -453,15 +455,12 @@ export default function PembayaranPage() {
                       )}
                       <AuditDialog id={pembayaran.id} type={"PEMBAYARAN"} />
                       {pembayaran.status === "DRAFT" && (
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handleDeleteClick(Number(pembayaran.id))
-                          }
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Hapus
-                        </DropdownMenuItem>
+                        <DeleteAlert
+                                                     status={pembayaran.status}
+                          id={Number(pembayaran.id)}
+                          onConfirm={handleDeleteClick}
+                        />
+                        
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>

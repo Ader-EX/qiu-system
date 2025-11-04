@@ -62,6 +62,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import AuditDialog from "@/components/AuditDialog";
 import { StatusPembelianEnum } from "@/services/pembelianService";
 import { RollbackAlert } from "@/components/rollback-alert";
+import { DeleteAlert } from "@/components/delete-alert";
 
 export default function PengembalianPage() {
   const [pengembalians, setPengembalians] = useState<PengembalianResponse[]>(
@@ -451,15 +452,12 @@ export default function PengembalianPage() {
                       />
 
                       {pengembalian.status === "DRAFT" && (
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handleDeleteClick(Number(pengembalian.id))
-                          }
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Hapus
-                        </DropdownMenuItem>
+                        <DeleteAlert
+                            status={pengembalian.status}
+                            id={Number(pengembalian.id)}
+                            onConfirm={handleDeleteClick}
+                          />
+                        
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>

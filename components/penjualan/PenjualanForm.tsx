@@ -421,6 +421,14 @@ export default function PenjualanForm({
     }
   };
 
+  const onFinalizeClick = () => {
+        form.handleSubmit(
+          (data) => handleSubmit(data, true),
+          () => toast.error("Silahkan penuhi field yang belum terisi")
+        )();
+      };
+  
+
   const handleSubmit = async (data: PenjualanFormData, finalize = false) => {
     setIsSubmitting(true);
     try {
@@ -1347,9 +1355,7 @@ export default function PenjualanForm({
                 type="button"
                 className="bg-orange-500 hover:bg-orange-600"
                 disabled={isSubmitting}
-                onClick={() => {
-                  form.handleSubmit((data) => handleSubmit(data, true))();
-                }}
+                onClick={onFinalizeClick}
               >
                 {isSubmitting
                   ? isEditMode

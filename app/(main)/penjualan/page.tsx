@@ -64,6 +64,7 @@ import {
 import { format } from "date-fns";
 import AuditDialog from "@/components/AuditDialog";
 import { RollbackAlert } from "@/components/rollback-alert";
+import { DeleteAlert } from "@/components/delete-alert";
 
 export default function PenjualanPage() {
   const [pembelians, setPembelians] = useState<PenjualanListResponse[]>([]);
@@ -446,15 +447,12 @@ export default function PenjualanPage() {
 
                         {penjualan.status_penjualan ===
                           StatusPenjualanEnum.DRAFT && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleDeleteClick(Number(penjualan.id))
-                            }
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Hapus
-                          </DropdownMenuItem>
+                            <DeleteAlert
+                                                        status={penjualan.status_penjualan}
+                                                        id={Number(penjualan.id)}
+                                                        onConfirm={handleDeleteClick}
+                                                      />
+                          
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>

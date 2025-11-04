@@ -445,6 +445,13 @@ export default function PembelianForm({
     setSelectedItems(newSelectedItems);
   };
 
+  const onFinalizeClick = () => {
+      form.handleSubmit(
+        (data) => handleSubmit(data, true),
+        () => toast.error("Silahkan penuhi field yang belum terisi")
+      )();
+    };
+
   const handleSubmit = async (
     data: PembelianFormData,
     finalize: boolean = false
@@ -1516,11 +1523,7 @@ export default function PembelianForm({
                 type="button"
                 className="bg-orange-500 hover:bg-orange-600"
                 disabled={isSubmitting}
-                onClick={() => {
-                  form.handleSubmit((data) => {
-                    handleSubmit(data, true);
-                  })();
-                }}
+                onClick={onFinalizeClick}
               >
                 {isSubmitting
                   ? isEditMode
