@@ -263,7 +263,10 @@ export default function PembayaranForm({
       form.setValue("vendor_id", undefined);
     }
     prevRefType.current = watchedReferenceType;
+    setSelectedReferences([])
   }, [watchedReferenceType, form]);
+
+  
 
   const handleReferenceSelect = (reference: SelectedReference) => {
     setSelectedReferences((prev) => {
