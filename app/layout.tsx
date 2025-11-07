@@ -2,13 +2,14 @@ import type React from "react";
 import type {Metadata} from "next";
 import {Inter} from "next/font/google";
 import "./globals.css";
-import {AppLayout} from "@/components/app-layout";
-import logo from "@/public/logo.png";
-
-const inter = Inter({subsets: ["latin"]});
-
 import {Toaster} from "react-hot-toast";
 import {ClientAuthSetup} from "@/components/ClientAuthSetup";
+
+const inter = Inter({
+    subsets: ["latin"],
+    variable: "--font-inter", // Add this
+    display: "swap", // Add this to prevent FOUT
+});
 
 export const metadata: Metadata = {
     title: "QIU System - Inventory Management",
@@ -17,21 +18,19 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({
-                                       children,
-                                   }: {
+    children,
+}: {
     children: React.ReactNode;
 }) {
-
     return (
         <html lang="id">
         <head>
             <link rel="icon" href="/logo.png" sizes="any"/>
         </head>
-        <body className={inter.className}>
-        <ClientAuthSetup/>
-        {/* <AppLayout>{children}</AppLayout> */}
-        <Toaster/>
-        {children}
+        <body className={inter.className} suppressHydrationWarning>
+            <ClientAuthSetup/>
+            <Toaster/>
+            {children}
         </body>
         </html>
     );

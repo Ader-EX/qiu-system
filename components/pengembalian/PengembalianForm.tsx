@@ -71,6 +71,7 @@ import { QuickFormSearchableField } from "@/components/form/FormSearchableField"
 
 import { NumericFormat } from "react-number-format";
 import ItemSelectorDialog from "../ItemSelectorDialog";
+import MultiItemSelectorDialog from "../MultiItemSelectorDialog";
 const pengembalianSchema = z
   .object({
     payment_code: z.string().optional(),
@@ -269,8 +270,9 @@ export default function PengembalianForm({
     prevRefType.current = watchedReferenceType;
   }, [watchedReferenceType, form]);
 
-  const handleAddItem = (item: any) => {
-    setPengembalianItems((prev) => {
+  const handleAddItem = (items: any[]) => {
+    items.forEach(item => {
+      setPengembalianItems((prev) => {
       const existingIndex = prev.findIndex((i) => i.item_id === item.id);
 
       if (existingIndex !== -1) {
@@ -284,6 +286,8 @@ export default function PengembalianForm({
         return updated;
       }
 
+       
+
       const newItem: PengembalianItem = {
         item_id: item.id,
         item_code: item.code,
@@ -295,8 +299,12 @@ export default function PengembalianForm({
       total_return: item.price || 0,  
       };
 
+   
+
       return [...prev, newItem];
     });
+    })
+    
   };
 
   const handleRemoveItem = (index: number) => {
@@ -1097,7 +1105,7 @@ export default function PengembalianForm({
         </form>
       </Form>
 
-      <ItemSelectorDialog
+      <MultiItemSelectorDialog
         open={isItemDialogOpen}
         onOpenChange={setIsItemDialogOpen}
         onSelect={handleAddItem}

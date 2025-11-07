@@ -12,6 +12,7 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Calendar, Search, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -24,7 +25,6 @@ import GlobalPaginationFunction from "../pagination-global";
 import { cn, formatMoney } from "@/lib/utils";
 import { NumericFormat } from "react-number-format";
 import { Badge } from "../ui/badge";
-import { formatDate } from "date-fns-jalali";
 import { Spinner } from "@/components/ui/spinner";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { format } from "date-fns";
@@ -33,10 +33,10 @@ import { Calendar as CalendarComponent } from "../ui/calendar";
 // Simplified interface for selected references
 interface SelectedReference {
   id: number;
-  no_reference: string; // no_pembelian or no_penjualan
-  total_outstanding: number; // total_price - (total_paid + total_return)
+  no_reference: string;
+  total_outstanding: number;
   total_price: number;
-  user_paid_amount: number; // user input
+  user_paid_amount: number;
 }
 
 const ReferenceSelectionDialog = ({
@@ -49,10 +49,11 @@ const ReferenceSelectionDialog = ({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   referenceType: "PEMBELIAN" | "PENJUALAN";
-  onSelect: (reference: any) => void;
-  referenceId?: string;
+  onSelect: (references: any[]) => void;
+  referenceId?: any;
 }) => {
   const [references, setReferences] = useState<any[]>([]);
+  const [selectedReferences, setSelectedReferences] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [currentSearch, setCurrentSearch] = useState("");
@@ -68,11 +69,11 @@ const ReferenceSelectionDialog = ({
       setPage(1);
       setSearch("");
       setCurrentSearch("");
+      setSelectedReferences([]);
       loadReferences(1, "");
     }
   }, [open, referenceType]);
 
-  // Load references when page or rowsPerPage changes (but not search - that's handled separately)
   useEffect(() => {
     if (open) {
       loadReferences(page, currentSearch);
@@ -148,33 +149,51 @@ const ReferenceSelectionDialog = ({
     setPage(1);
   };
 
-  const handleSelect = (reference: any) => {
-    // Calculate outstanding amount
-    const totalOutstanding =
-      reference.total_price -
-      (reference.total_paid || 0) -
-      (reference.total_return || 0);
+  const handleToggleReference = (reference: any) => {
+    setSelectedReferences(prev => {
+      const isSelected = prev.some(r => r.id === reference.id);
+      if (isSelected) {
+        return prev.filter(r => r.id !== reference.id);
+      } else {
+        return [...prev, reference];
+      }
+    });
+  };
 
-    const selectedRef = {
-      id: reference.id,
-      no_reference:
-        referenceType === "PEMBELIAN"
-          ? reference.no_pembelian
-          : reference.no_penjualan,
-      total_outstanding: totalOutstanding,
-      user_paid_amount: totalOutstanding,
-    };
+  const isReferenceSelected = (referenceId: number) => {
+    return selectedReferences.some(ref => ref.id === referenceId);
+  };
 
-    onSelect(selectedRef);
+  const handleConfirmSelection = () => {
+    const mappedReferences = selectedReferences.map(reference => {
+      const totalOutstanding =
+        reference.total_price -
+        (reference.total_paid || 0) -
+        (reference.total_return || 0);
+
+      return {
+        id: reference.id,
+        no_reference:
+          referenceType === "PEMBELIAN"
+            ? reference.no_pembelian
+            : reference.no_penjualan,
+        total_outstanding: totalOutstanding,
+        total_price: reference.total_price,
+        user_paid_amount: totalOutstanding,
+      };
+    });
+
+    onSelect(mappedReferences);
     onOpenChange(false);
+    setSelectedReferences([]);
   };
 
   const handleClose = () => {
-    // Reset all states when closing
     setSearch("");
     setCurrentSearch("");
     setPage(1);
     setReferences([]);
+    setSelectedReferences([]);
     onOpenChange(false);
   };
 
@@ -223,7 +242,6 @@ const ReferenceSelectionDialog = ({
             />
           </div>
           <div className="flex gap-2">
-            {/* From Date */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -247,7 +265,6 @@ const ReferenceSelectionDialog = ({
               </PopoverContent>
             </Popover>
             <span className="self-center">-</span>
-            {/* To Date */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -276,6 +293,12 @@ const ReferenceSelectionDialog = ({
           </Button>
         </div>
 
+        {selectedReferences.length > 0 && (
+          <div className="mb-4 text-sm text-muted-foreground">
+            {selectedReferences.length} reference(s) selected
+          </div>
+        )}
+
         {loading ? (
           <Spinner />
         ) : (
@@ -283,6 +306,7 @@ const ReferenceSelectionDialog = ({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12"></TableHead>
                   <TableHead>
                     {referenceType === "PEMBELIAN"
                       ? "No. Pembelian"
@@ -291,35 +315,42 @@ const ReferenceSelectionDialog = ({
                   <TableHead>Tanggal</TableHead>
                   <TableHead>Total Harga</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {references.map((ref) => (
-                  <TableRow key={ref.id}>
-                    <TableCell>
-                      {referenceType === "PEMBELIAN"
-                        ? ref.no_pembelian
-                        : ref.no_penjualan}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(ref.sales_date).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </TableCell>
-                    <TableCell>{formatMoney(ref.total_price)}</TableCell>
-                    <TableCell>
-                      {getStatusBadge(ref.status_pembayaran || "")}
-                    </TableCell>
-                    <TableCell className={"text-right"}>
-                      <Button size="sm" onClick={() => handleSelect(ref)}>
-                        Select
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {references.map((ref) => {
+                  const isSelected = isReferenceSelected(ref.id);
+                  return (
+                    <TableRow
+                      key={ref.id}
+                      className="cursor-pointer hover:bg-accent"
+                      onClick={() => handleToggleReference(ref)}
+                    >
+                      <TableCell>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => handleToggleReference(ref)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {referenceType === "PEMBELIAN"
+                          ? ref.no_pembelian
+                          : ref.no_penjualan}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(ref.sales_date).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </TableCell>
+                      <TableCell>{formatMoney(ref.total_price)}</TableCell>
+                      <TableCell>
+                        {getStatusBadge(ref.status_pembayaran || "")}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
 
@@ -343,6 +374,18 @@ const ReferenceSelectionDialog = ({
             </div>
           </>
         )}
+
+        <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+          <Button variant="outline" onClick={handleClose}>
+            Batalkan
+          </Button>
+          <Button
+            onClick={handleConfirmSelection}
+            disabled={selectedReferences.length === 0}
+          >
+            Pilih ({selectedReferences.length})
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
 "use client";
-
 import type * as React from "react";
 import {
   LayoutDashboard,
@@ -14,7 +13,6 @@ import {
   HandCoins,
   ArrowDownUp,
 } from "lucide-react";
-
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { SidebarHeader } from "@/components/sidebar-header";
@@ -28,7 +26,6 @@ import {
 import ConditionalSidebarHeader from "./ConditionalSidebarHeader";
 import { getRole, getUsername, UserRoleType } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { Spinner } from "./ui/spinner";
 
 const allNavItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -43,6 +40,7 @@ const allNavItems = [
   { title: "Laporan", url: "/laporan", icon: FileText },
   { title: "Pengaturan", url: "/pengaturan", icon: Settings },
 ];
+
 const roleDenyMap: Record<string, string[]> = {
   ADMIN: [], // Can see everything
   OWNER: [
@@ -70,38 +68,49 @@ const roleDenyMap: Record<string, string[]> = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [role, setRole] = useState<UserRoleType | undefined>();
-  const [name, setName] = useState<string | undefined>();
+  // State to hold role and username after client-side mount
+  const [role, setRole] = useState<string>("ADMIN"); // Default to ADMIN to show all items initially
+  const [username, setUsername] = useState<string>("Loading...");
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    const r = getRole();
-    const n = getUsername();
-    if (!r || !n) {
-      window.location.href = "/login";
-      return;
-    }
-    setRole(r);
-    setName(n);
+    // Only run on client side after mount
+    setIsMounted(true);
+    const userRole = getRole() || "ADMIN";
+    const userName = getUsername() || "Guest";
+    setRole(userRole);
+    setUsername(userName);
   }, []);
 
-  if (!role || !name) {
-    return (
-      <div className="flex h-screen items-center justify-center text-muted-foreground">
-        <Spinner />
-      </div>
-    );
-  }
+  // Calculate accessible nav items based on role
   const accessibleNav = allNavItems.filter(
     (item) => !roleDenyMap[role]?.includes(item.title)
   );
 
   const data = {
     user: {
-      name,
+      name: username,
       email: role,
     },
     navMain: accessibleNav,
   };
+
+  // Don't render until mounted to avoid hydration mismatch
+  if (!isMounted) {
+    return (
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeaderWrapper>
+          <ConditionalSidebarHeader />
+        </SidebarHeaderWrapper>
+        <SidebarContent>
+          <NavMain items={allNavItems} />
+        </SidebarContent>
+        <SidebarFooter>
+          <NavUser user={{ name: "Loading...", email: "..." }} />
+        </SidebarFooter>
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar collapsible="icon" {...props}>

@@ -60,6 +60,7 @@ import {
 } from "@/services/adjustmentService";
 import { FileUploadButton } from "../ImageUpload";
 import { Attachment } from "@/services/pembelianService";
+import MultiItemSelectorDialog from "../MultiItemSelectorDialog";
 
 const FormSection = ({
   title,
@@ -274,12 +275,14 @@ export default function StockAdjustmentForm({
     const price = Number(item?.adj_price) || 0;
     return sum + qty * price;
   }, 0);
-
-  const handleAddItem = (pickedItem: Item) => {
+const handleAddItem = (pickedItems: Item[]) => {
+  const newItems: any[] = [];
+  
+  pickedItems.forEach((pickedItem) => {
     const existingItemIndex = fields.findIndex(
       (field) => field.item_id === pickedItem.id
     );
-
+    
     if (existingItemIndex >= 0) {
       const currentQty = form.getValues(
         `stock_adjustment_items.${existingItemIndex}.qty`
@@ -289,19 +292,16 @@ export default function StockAdjustmentForm({
         currentQty + 1
       );
     } else {
-      // Add satuan_code to the selectedItems
-      setSelectedItems([
-        ...selectedItems,
-        {
-          id: pickedItem.id,
-          code: pickedItem.code,
-          name: pickedItem.name,
-          sku: pickedItem.sku,
-          price: pickedItem.price,
-          satuan_code: pickedItem.satuan_rel?.symbol, // Add this line
-        },
-      ]);
-
+      // Collect new items to add
+      newItems.push({
+        id: pickedItem.id,
+        code: pickedItem.code,
+        name: pickedItem.name,
+        sku: pickedItem.sku,
+        price: pickedItem.price,
+        satuan_code: pickedItem.satuan_rel?.symbol,
+      });
+      
       append({
         item_id: pickedItem.id,
         qty: 1,
@@ -310,7 +310,13 @@ export default function StockAdjustmentForm({
         adj_price: pickedItem.price,
       });
     }
-  };
+  });
+  
+  // Update selectedItems once with all new items
+  if (newItems.length > 0) {
+    setSelectedItems(prev => [...prev, ...newItems]);
+  }
+};
   const handleRemoveItem = (index: number) => {
     remove(index);
     const newSelectedItems = [...selectedItems];
@@ -687,120 +693,96 @@ export default function StockAdjustmentForm({
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="w-full overflow-x-auto">
-                <div className="min-w-max">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>SKU</TableHead>
-
-                        <TableHead>Kode Item</TableHead>
-                        <TableHead>Nama Item</TableHead>
-                        <TableHead>Satuan</TableHead>
-
-                        <TableHead>Qty</TableHead>
-                        <TableHead>Harga Adjustment</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {fields.map((field, index) => {
-                        const qty =
-                          Number(
-                            form.watch(`stock_adjustment_items.${index}.qty`)
-                          ) || 0;
-                        const price =
-                          Number(
-                            form.watch(
-                              `stock_adjustment_items.${index}.adj_price`
-                            )
-                          ) || 0;
-                        const total = qty * price;
-
-                        return (
-                          <TableRow key={field.id}>
-                            <TableCell>
-                              {selectedItems[index]?.sku || ""}
-                            </TableCell>
-
-                            <TableCell>
-                              {selectedItems[index]?.code || ""}
-                            </TableCell>
-                            <TableCell>
-                              {selectedItems[index]?.name || ""}
-                            </TableCell>
-                            <TableCell>
-                              {selectedItems[index]?.satuan_code || ""}
-                            </TableCell>
-
-                            <TableCell>
-                              <FormField
-                                control={form.control}
-                                name={`stock_adjustment_items.${index}.qty`}
-                                render={({ field }) => (
-                                  <Input
-                                    disabled={isViewMode || false}
-                                    type="number"
-                                    className="w-24"
-                                    min={1}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                    {...field}
-                                    onChange={(e) =>
-                                      field.onChange(Number(e.target.value))
-                                    }
-                                  />
-                                )}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <FormField
-                                control={form.control}
-                                name={`stock_adjustment_items.${index}.adj_price`}
-                                render={({ field }) => (
-                                  <NumericFormat
-                                    customInput={Input}
-                                    thousandSeparator="."
-                                    decimalSeparator=","
-                                    allowNegative={false}
-                                    inputMode="decimal"
-                                    disabled={isViewMode}
-                                    className="w-32"
-                                    value={field.value ?? ""}
-                                    onValueChange={(v) => {
-                                      field.onChange(Number(v.floatValue ?? 0));
-                                    }}
-                                  />
-                                )}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <span>
-                                {formatMoney(total, "IDR", "id-ID", "nosymbol")}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                disabled={isViewMode}
-                                variant="ghost"
-                                size="icon"
-                                type="button"
-                                onClick={() => handleRemoveItem(index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
+           <div className="w-full overflow-x-auto">
+  <div className="min-w-max">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>SKU</TableHead>
+          <TableHead>Kode Item</TableHead>
+          <TableHead>Nama Item</TableHead>
+          <TableHead>Satuan</TableHead>
+          <TableHead>Qty</TableHead>
+          <TableHead>Harga Adjustment</TableHead>
+          <TableHead>Total</TableHead>
+          <TableHead></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {fields.map((field, index) => {
+          const qty = Number(form.watch(`stock_adjustment_items.${index}.qty`)) || 0;
+          const price = Number(form.watch(`stock_adjustment_items.${index}.adj_price`)) || 0;
+          const total = qty * price;
+          const selectedItem = selectedItems.find(item => item.id === field.item_id);
+          return (
+            <TableRow key={field.id}>
+              <TableCell>{selectedItem?.sku || field.sku || ""}</TableCell>
+              <TableCell>{selectedItem?.code || ""}</TableCell>
+              <TableCell>{selectedItem?.name || ""}</TableCell>
+              <TableCell>{selectedItem?.satuan_code || field.satuan_code || ""}</TableCell>
+              <TableCell>
+                <FormField
+                  control={form.control}
+                  name={`stock_adjustment_items.${index}.qty`}
+                  render={({ field }) => (
+                    <Input
+                      disabled={isViewMode || false}
+                      type="number"
+                      className="w-24"
+                      min={1}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                        }
+                      }}
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  )}
+                />
+              </TableCell>
+              <TableCell>
+                <FormField
+                  control={form.control}
+                  name={`stock_adjustment_items.${index}.adj_price`}
+                  render={({ field }) => (
+                    <NumericFormat
+                      customInput={Input}
+                      thousandSeparator="."
+                      decimalSeparator=","
+                      allowNegative={false}
+                      inputMode="decimal"
+                      disabled={isViewMode}
+                      className="w-32"
+                      value={field.value ?? ""}
+                      onValueChange={(v) => {
+                        field.onChange(Number(v.floatValue ?? 0));
+                      }}
+                    />
+                  )}
+                />
+              </TableCell>
+              <TableCell>
+                <span>{formatMoney(total, "IDR", "id-ID", "nosymbol")}</span>
+              </TableCell>
+              <TableCell>
+                <Button
+                  disabled={isViewMode}
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  onClick={() => handleRemoveItem(index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  </div>
+</div>
 
               {/* Totals */}
               <div className="flex w-full justify-end mt-4">
@@ -873,7 +855,7 @@ export default function StockAdjustmentForm({
         </form>
       </Form>
 
-      <ItemSelectorDialog
+      <MultiItemSelectorDialog
         open={isItemDialogOpen}
         canDisabledBePicked={!isTypeOut}
         onOpenChange={setIsItemDialogOpen}

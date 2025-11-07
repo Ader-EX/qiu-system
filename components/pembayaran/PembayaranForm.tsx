@@ -71,7 +71,6 @@ export const FormSection = ({
   </div>
 );
 
-// Fixed schema - made customer_id and vendor_id optional since they're conditional
 const pembayaranSchema = z
   .object({
     payment_code: z.string().optional(),
@@ -268,14 +267,17 @@ export default function PembayaranForm({
 
   
 
-  const handleReferenceSelect = (reference: SelectedReference) => {
-    setSelectedReferences((prev) => {
-      if (prev.find((ref) => ref.id === reference.id)) {
-        toast.error("Reference already selected");
-        return prev;
-      }
+  const handleReferenceSelect = (references: SelectedReference[]) => {
+    references.forEach(reference => {
+      setSelectedReferences((prev) => {
+        if (prev.find((ref) => ref.id === reference.id)) {
+          toast.error("Reference already selected");
+          return prev;
+        }
       return [...prev, reference];
     });
+    })
+    
   };
 
   const handleRemoveReference = (id: number) => {
@@ -331,7 +333,6 @@ export default function PembayaranForm({
       return false;
     }
 
-    // Validate reference selection matches reference type
     if (watchedReferenceType === "PEMBELIAN" && !watchedVendorId) {
       toast.error("Vendor harus dipilih untuk referensi PEMBELIAN");
       return false;

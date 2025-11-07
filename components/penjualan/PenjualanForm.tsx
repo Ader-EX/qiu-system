@@ -66,6 +66,7 @@ import { usePrintInvoice } from "@/hooks/usePrintInvoice";
 import { NumericFormat } from "react-number-format";
 import { calcRowTotalData } from "@/services/pembelianService";
 import { QuickFormSearchableField } from "@/components/form/FormSearchableField";
+import MultiItemSelectorDialog from "../MultiItemSelectorDialog";
 
 const FormSection = ({
   title,
@@ -343,7 +344,9 @@ export default function PenjualanForm({
       });
     }
   };
-  const handleAddItem = (pickedItem: Item) => {
+  const handleAddItem = (pickedItems: Item[]) => {
+    const newItems : any[] = []
+    pickedItems.forEach((pickedItem => {
     const existingItemIndex = fields.findIndex(
       (field) => field.item_id === pickedItem.id
     );
@@ -359,6 +362,13 @@ export default function PenjualanForm({
         currentCurrency > 0
           ? convertIDRToRMB(pickedItem.price, currentCurrency)
           : 0;
+        
+       newItems.push({
+        id: pickedItem.id,
+        code: pickedItem.code,
+        name: pickedItem.name,
+        price: pickedItem.price,
+      }); 
 
       append({
         item_id: pickedItem.id,
@@ -369,6 +379,8 @@ export default function PenjualanForm({
         tax_percentage: 10,
       });
     }
+    }))
+   
   };
 
   const handleRemoveItem = (index: number) => {
@@ -1395,7 +1407,7 @@ export default function PenjualanForm({
         </form>
       </Form>
 
-      <ItemSelectorDialog
+      <MultiItemSelectorDialog
         open={isItemDialogOpen}
         onOpenChange={setIsItemDialogOpen}
         onSelect={handleAddItem}
